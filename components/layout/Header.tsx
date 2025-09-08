@@ -56,13 +56,19 @@ const Header = () => {
                   <span className="hidden sm:inline text-sm text-gray-600">
                     Hello, {user.name}
                   </span>
-                  {user.isAdmin && (
+                  {user.role === 'admin' && (
                     <Link href="/admin">
                       <Button variant="ghost" size="sm">
                         Admin
                       </Button>
                     </Link>
                   )}
+                  <Link href="/profile">
+                    <Button variant="ghost" size="sm">
+                      <User className="w-4 h-4" />
+                      <span className="ml-2 hidden sm:inline">Profile</span>
+                    </Button>
+                  </Link>
                   <Button variant="ghost" size="sm" onClick={logout}>
                     <LogOut className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">Logout</span>

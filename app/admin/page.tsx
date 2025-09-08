@@ -30,18 +30,18 @@ const topBooksData = [
 ];
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, login } = useAuth();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
 
-  if (!user?.isAdmin) {
-    const handleLogin = async (e: React.FormEvent) => {
-      e.preventDefault();
-      const { login } = useAuth();
-      const success = await login(loginData.email, loginData.password);
-      if (!success) {
-        toast.error('Invalid admin credentials');
-      }
-    };
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = await login(loginData.email, loginData.password);
+    if (!success) {
+      toast.error('Invalid admin credentials');
+    }
+  };
+
+  if (!user || user.role !== 'admin') {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 flex items-center justify-center p-4">
@@ -91,13 +91,12 @@ export default function AdminDashboard() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 p-8"
     >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
             <p className="text-gray-600">Welcome back, {user.name}</p>
           </div>
           <Button onClick={logout} variant="outline">

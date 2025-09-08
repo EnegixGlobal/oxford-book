@@ -6,13 +6,17 @@ interface User {
   id: string;
   name: string;
   email: string;
-  isAdmin: boolean;
+  role: 'customer' | 'admin';
+  phone?: string;
+  address?: string;
+  joinDate: string;
+  isActive: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, phone?: string, address?: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
 }
@@ -48,26 +52,31 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setLoading(true);
       
-      // Demo login - replace with actual API call
-      if (email === 'admin@bookhaven.com' && password === 'admin123') {
-        const adminUser = {
-          id: '1',
-          name: 'Admin User',
-          email,
-          isAdmin: true
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const userData = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role,
+          phone: data.user.phone,
+          address: data.user.address,
+          joinDate: data.user.joinDate,
+          isActive: data.user.isActive,
         };
-        setUser(adminUser);
-        localStorage.setItem('bookhaven-user', JSON.stringify(adminUser));
-        return true;
-      } else if (email && password) {
-        const regularUser = {
-          id: '2',
-          name: 'John Doe',
-          email,
-          isAdmin: false
-        };
-        setUser(regularUser);
-        localStorage.setItem('bookhaven-user', JSON.stringify(regularUser));
+        
+        setUser(userData);
+        localStorage.setItem('bookhaven-user', JSON.stringify(userData));
+        localStorage.setItem('bookhaven-token', data.token);
         return true;
       }
       
@@ -80,21 +89,39 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string, phone?: string, address?: string): Promise<boolean> => {
     try {
       setLoading(true);
       
-      // Demo registration - replace with actual API call
-      const newUser = {
-        id: Date.now().toString(),
-        name,
-        email,
-        isAdmin: false
-      };
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password, phone, address }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const userData = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role,
+          phone: data.user.phone,
+          address: data.user.address,
+          joinDate: data.user.joinDate,
+          isActive: data.user.isActive,
+        };
+        
+        setUser(userData);
+        localStorage.setItem('bookhaven-user', JSON.stringify(userData));
+        localStorage.setItem('bookhaven-token', data.token);
+        return true;
+      }
       
-      setUser(newUser);
-      localStorage.setItem('bookhaven-user', JSON.stringify(newUser));
-      return true;
+      return false;
     } catch (error) {
       console.error('Registration error:', error);
       return false;
@@ -106,6 +133,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('bookhaven-user');
+    localStorage.removeItem('bookhaven-token');
   };
 
   return (

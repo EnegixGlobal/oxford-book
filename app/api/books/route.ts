@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { sampleBooks } from '@/lib/sampleData';
 
 export const dynamic = 'force-static';

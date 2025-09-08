@@ -1,0 +1,78 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { Book, Users, Grid, ShoppingCart, MessageSquare, Home, User } from 'lucide-react';
+
+const sidebarItems = [
+  {
+    title: 'Dashboard',
+    href: '/admin',
+    icon: Home
+  },
+  {
+    title: 'Books',
+    href: '/admin/books',
+    icon: Book
+  },
+  {
+    title: 'Authors',
+    href: '/admin/authors',
+    icon: Users
+  },
+  {
+    title: 'Users',
+    href: '/admin/users',
+    icon: User
+  },
+  {
+    title: 'Categories',
+    href: '/admin/categories',
+    icon: Grid
+  },
+  {
+    title: 'Orders',
+    href: '/admin/orders',
+    icon: ShoppingCart
+  },
+  {
+    title: 'Reviews',
+    href: '/admin/reviews',
+    icon: MessageSquare
+  }
+];
+
+export function AdminSidebar() {
+  const pathname = usePathname();
+
+  return (
+    <div className="h-screen w-64 bg-white border-r fixed left-0 top-0 p-4">
+      <div className="flex items-center justify-center mb-8">
+        <h1 className="text-2xl font-bold text-purple-600">BookHaven</h1>
+      </div>
+      
+      <nav className="space-y-2">
+        {sidebarItems.map((item) => {
+          const isActive = pathname === item.href;
+          
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors",
+                isActive
+                  ? "bg-purple-50 text-purple-600"
+                  : "text-gray-600 hover:bg-gray-50"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              <span>{item.title}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}

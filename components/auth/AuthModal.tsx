@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Lock } from 'lucide-react';
+import { X, User, Mail, Lock, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -20,7 +20,9 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) =
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phone: '',
+    address: ''
   });
   const { login, register } = useAuth();
 
@@ -33,7 +35,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) =
         return;
       }
       
-      const success = await register(formData.name, formData.email, formData.password);
+      const success = await register(formData.name, formData.email, formData.password, formData.phone || undefined, formData.address || undefined);
       if (success) {
         toast.success('Account created successfully!');
         onClose();
@@ -52,7 +54,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) =
   };
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+    setFormData({ name: '', email: '', password: '', confirmPassword: '', phone: '', address: '' });
   };
 
   const switchMode = () => {
@@ -97,6 +99,32 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) =
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     className="pl-10"
                     required
+                  />
+                </div>
+              )}
+
+              {mode === 'register' && (
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="tel"
+                    placeholder="Phone Number (optional)"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    className="pl-10"
+                  />
+                </div>
+              )}
+
+              {mode === 'register' && (
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Address (optional)"
+                    value={formData.address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    className="pl-10"
                   />
                 </div>
               )}
