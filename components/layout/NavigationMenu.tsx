@@ -1,63 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
-interface Category {
+interface SubcategoryDto {
+  _id?: string;
   name: string;
   slug: string;
-  subcategories?: string[];
 }
 
-const categories: Category[] = [
-  {
-    name: 'Fiction',
-    slug: 'fiction',
-    subcategories: ['Romance', 'Mystery', 'Thriller', 'Fantasy', 'Sci-Fi', 'Horror']
-  },
-  {
-    name: 'Non-Fiction',
-    slug: 'non-fiction',
-    subcategories: ['Biography', 'History', 'Science', 'Technology', 'Business', 'Self-Help']
-  },
-  {
-    name: 'Classics',
-    slug: 'classics',
-    subcategories: ['British Classics', 'American Classics', 'World Literature']
-  },
-  {
-    name: "Children's Books",
-    slug: 'children',
-    subcategories: ['Picture Books', 'Early Readers', 'Middle Grade', 'Young Adult']
-  },
-  {
-    name: 'Philosophy',
-    slug: 'philosophy',
-    subcategories: ['Ancient Philosophy', 'Modern Philosophy', 'Ethics', 'Logic']
-  },
-  {
-    name: 'Poetry',
-    slug: 'poetry',
-    subcategories: ['Classic Poetry', 'Modern Poetry', 'Contemporary Poetry', 'Love Poetry', 'Nature Poetry']
-  },
-  {
-    name: 'Spiritual',
-    slug: 'spiritual',
-    subcategories: ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Meditation', 'Spirituality']
-  },
-  {
-    name: 'Cookbooks',
-    slug: 'cookbooks',
-    subcategories: ['Indian Cuisine', 'International Cuisine', 'Baking & Desserts', 'Healthy Cooking', 'Quick & Easy']
-  },
-  {
-    name: 'Art',
-    slug: 'art',
-    subcategories: ['Art History', 'Photography', 'Drawing & Painting', 'Design', 'Architecture']
-  }
-];
+interface CategoryDto {
+  _id?: string;
+  name: string;
+  slug: string;
+  subcategories?: SubcategoryDto[];
+}
 
 interface NavigationMenuProps {
   mobile?: boolean;
@@ -66,6 +25,30 @@ interface NavigationMenuProps {
 const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/categories?featured=false', { cache: 'no-store' });
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.data)) {
+          if (isMounted) setCategories(json.data);
+        }
+      } catch (e) {
+        // noop for nav
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleCategory = (slug: string) => {
     setOpenCategories(prev => {
@@ -79,14 +62,14 @@ const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
     });
   };
 
-  const allSubcategories = categories.flatMap(cat => cat.subcategories || []);
+  const allSubcategories = categories.flatMap(cat => (cat.subcategories || []).map(s => s.name));
 
   if (mobile) {
     return (
       <div className="p-4 space-y-4">
         {categories.map((category) => {
           const isOpen = openCategories.has(category.slug);
-          const subcats = category.slug === 'fiction' ? allSubcategories : category.subcategories;
+          const subcats = category.slug === 'fiction' ? allSubcategories : (category.subcategories || []).map(s => s.name);
           return (
             <div key={category.slug}>
               <div
@@ -128,7 +111,7 @@ const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
 
   return (
     <nav className="flex justify-center space-x-8">
-      {categories.map((category) => (
+    {categories.map((category) => (
         <div
           key={category.slug}
           className="relative"
@@ -140,12 +123,12 @@ const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
             className="flex items-center space-x-1 py-2 text-gray-700 hover:text-purple-600 transition-colors"
           >
             <span>{category.name}</span>
-            {category.subcategories && <ChevronDown className="w-4 h-4" />}
+      {category.subcategories && category.subcategories.length > 0 && <ChevronDown className="w-4 h-4" />}
           </Link>
 
           {/* Dropdown Menu */}
           <AnimatePresence>
-            {hoveredCategory === category.slug && category.subcategories && (
+      {hoveredCategory === category.slug && category.subcategories && category.subcategories.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -153,13 +136,13 @@ const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
                 transition={{ duration: 0.2 }}
                 className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50"
               >
-                {category.subcategories.map((subcategory) => (
+        {category.subcategories.map((subcategory) => (
                   <Link
-                    key={subcategory}
-                    href={`/category/${category.slug}/${subcategory.toLowerCase().replace(' ', '-')}`}
+          key={subcategory._id || subcategory.slug}
+          href={`/category/${category.slug}/${subcategory.slug}`}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors"
                   >
-                    {subcategory}
+          {subcategory.name}
                   </Link>
                 ))}
               </motion.div>

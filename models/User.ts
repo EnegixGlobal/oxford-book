@@ -63,7 +63,7 @@ const UserSchema: Schema<IUser> = new Schema({
 });
 
 // Index for better query performance
-UserSchema.index({ email: 1 });
+// Note: `unique: true` on email already creates an index; avoid duplicating it
 UserSchema.index({ role: 1 });
 
 // Hash password before saving

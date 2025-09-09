@@ -1,7 +1,4 @@
-import { sampleAuthors } from '@/lib/sampleData';
-
+// No static params; author pages are fetched dynamically from backend
 export async function generateStaticParams() {
-  return sampleAuthors.map((author) => ({
-    id: author.id,
-  }));
+  return [];
 }

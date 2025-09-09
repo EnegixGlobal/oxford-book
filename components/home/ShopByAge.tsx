@@ -9,40 +9,40 @@ const ageGroups = [
     name: '0-2',
     description: 'Babies & Toddlers',
     iconPath: '/icons/baby-boy.png',
-    slug: 'babies'
+  slug: '0-2'
   },
   {
     name: '3-5',
     description: 'Preschool',
     iconPath: '/icons/boy.png',
-    slug: 'preschool'
+  slug: '3-5'
   },
   {
     name: '6-8',
     description: 'Early Elementary',
     iconPath: '/icons/student.png',
-    slug: 'early-elementary'
+  slug: '6-8'
   },
   {
     name: '9-12',
     description: 'Pre-Teen',
     iconPath: '/icons/teen.png',
-    slug: 'pre-teen'
+  slug: '9-12'
   },
   {
-    name: 'Teen',
+  name: 'teen',
     description: 'Teen',
     iconPath: '/icons/teenage.png',
     slug: 'teen'
   },
   {
-    name: 'Young Adult',
+  name: 'young-adult',
     description: 'Young Adult',
     iconPath: '/icons/strong.png',
     slug: 'young-adult'
   },
   {
-    name: 'Old Man',
+  name: 'old-man',
     description: 'Old Man',
     iconPath: '/icons/tax-inspector.png',
     slug: 'old-man'

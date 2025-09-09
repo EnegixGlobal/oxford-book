@@ -1,31 +1,71 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import BookCard from '@/components/books/BookCard';
-import { sampleBooks } from '@/lib/sampleData';
 
-export default function AgeGroupPage({ params }: any) {
-  // Map age group slugs to actual age groups
-  const ageGroupMap: { [key: string]: string } = {
-    'toddlers': 'toddlers',
-    'children': 'children',
-    'tweens': 'tweens',
-    'adults': 'adult'
-  };
+const LABELS: Record<string, string> = {
+  '0-2': 'Babies & Toddlers (0-2)',
+  '3-5': 'Preschool (3-5)',
+  '6-8': 'Early Elementary (6-8)',
+  '9-12': 'Pre-Teen (9-12)',
+  'teen': 'Teen',
+  'young-adult': 'Young Adult',
+  'old-man': 'Old Man',
+};
 
-  const targetAgeGroup = ageGroupMap[params.ageGroup] || params.ageGroup;
-  const ageGroupBooks = sampleBooks.filter(book => 
-    book.ageGroup === targetAgeGroup || book.category === 'children'
-  );
+export default function AgeGroupPage({ params }: { params: Promise<{ ageGroup: string }> }) {
+  const { ageGroup } = React.use(params);
+  const [books, setBooks] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const ageGroupNames: { [key: string]: string } = {
-    'toddlers': 'Toddlers (0-3 years)',
-    'children': 'Children (4-8 years)',
-    'tweens': 'Tweens (9-12 years)',
-    'adults': 'Teens & Adults (13+ years)'
-  };
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/books?ageGroup=${encodeURIComponent(ageGroup)}&limit=40`, { cache: 'no-store' });
+        const json = await res.json();
+        if (!alive) return;
+        if (json?.success && Array.isArray(json.data)) {
+          const mapped = json.data.map((b: any) => ({
+            id: b._id || b.id,
+            title: b.title,
+            isbn: b.isbn,
+            author: b.authorName || b.author,
+            publisher: b.publisher || '',
+            binding: (b.binding || 'paperback').toString(),
+            weight: '',
+            language: b.language || 'english',
+            description: b.description || '',
+            mrp: b.mrp,
+            discountedPrice: b.discountedPrice,
+            rating: b.rating || 0,
+            reviewCount: b.reviewCount || 0,
+            category: b.categorySlug,
+            subcategory: b.subcategorySlug,
+            ageGroup: b.ageGroup || '',
+            coverImage: b.coverImage || '/logo.png',
+            inStock: b.inStock,
+            featured: !!b.featured,
+          }));
+          setBooks(mapped);
+        } else if (Array.isArray(json)) {
+          setBooks(json as any[]);
+        } else {
+          setBooks([]);
+        }
+      } catch {
+        if (alive) setBooks([]);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+    load();
+    return () => { alive = false; };
+  }, [ageGroup]);
 
-  const displayName = ageGroupNames[params.ageGroup] || 'Age Group';
+  const displayName = LABELS[ageGroup] || 'Age Group';
 
   return (
     <motion.div
@@ -42,13 +82,11 @@ export default function AgeGroupPage({ params }: any) {
           className="mb-8"
         >
           <h1 className="text-4xl font-bold text-gray-900 mb-4">{displayName}</h1>
-          <p className="text-xl text-gray-600">
-            Perfect books for this age group
-          </p>
+          <p className="text-xl text-gray-600">Perfect books for this age group</p>
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {ageGroupBooks.map((book, index) => (
+          {books.map((book, index) => (
             <motion.div
               key={book.id}
               initial={{ opacity: 0, y: 20 }}
@@ -60,7 +98,7 @@ export default function AgeGroupPage({ params }: any) {
           ))}
         </div>
 
-        {ageGroupBooks.length === 0 && (
+        {!loading && books.length === 0 && (
           <div className="text-center py-16">
             <p className="text-gray-500 text-lg">No books found for this age group.</p>
           </div>

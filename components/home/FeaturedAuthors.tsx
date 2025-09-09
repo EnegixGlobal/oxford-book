@@ -1,11 +1,44 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { sampleAuthors } from '@/lib/sampleData';
+
+interface AuthorDto {
+  _id?: string;
+  name: string;
+  slug: string;
+  nationality?: string;
+  biography?: string;
+  profileImage?: string;
+  booksCount?: number;
+}
 
 const FeaturedAuthors = () => {
+  const [authors, setAuthors] = useState<AuthorDto[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/authors?featured=true&limit=12', { cache: 'no-store' });
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.data)) {
+          if (isMounted) setAuthors(json.data);
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, []);
+
   return (
     <section className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -24,19 +57,19 @@ const FeaturedAuthors = () => {
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-8 mb-16">
-          {sampleAuthors.map((author, index) => (
+          {authors.map((author, index) => (
             <motion.div
-              key={author.id}
+              key={author._id || author.slug}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
               className="group text-center"
             >
-              <Link href={`/author/${author.id}`} className="block">
+              <Link href={`/author/${author.slug}`} className="block">
                 <div className="relative mb-4">
                   <div className="w-32 h-32 mx-auto rounded-full overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                     <Image
-                      src={author.image}
+                      src={author.profileImage || '/logo.png'}
                       alt={`Portrait of ${author.name}`}
                       width={128}
                       height={128}
@@ -48,7 +81,7 @@ const FeaturedAuthors = () => {
                   {author.name}
                 </h3>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  {author.bio.length > 60 ? `${author.bio.substring(0, 60)}...` : author.bio}
+                  {(author.biography || '').length > 60 ? `${author.biography?.substring(0, 60)}...` : (author.biography || '')}
                 </p>
               </Link>
             </motion.div>

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "./textarea"
+import { toast } from "sonner"
 
 interface AuthorFormDialogProps {
   open: boolean
@@ -29,6 +30,33 @@ export function AuthorFormDialog({
   onSubmit
 }: AuthorFormDialogProps) {
   const [imageOption, setImageOption] = useState<'url' | 'file'>(initialData?.imageFile ? 'file' : 'url');
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
+  const [uploading, setUploading] = useState<boolean>(false);
+  
+  useEffect(() => {
+    if (open) {
+      // reset transient upload state when dialog opens
+      setUploadedImageUrl("");
+      setUploading(false);
+    }
+  }, [open]);
+
+  const uploadImage = async (file: File) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      return { success: false, message: 'Upload failed' };
+    }
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
@@ -38,15 +66,17 @@ export function AuthorFormDialog({
     if (imageOption === 'url') {
       profileImage = formData.get('profileImage') as string;
     } else {
-      const imageFile = formData.get('imageFile') as File;
-      if (imageFile && imageFile.size > 0) {
-        // Here you would typically upload the file to your storage service
-        // For now, we'll create a temporary URL for demo purposes
-        profileImage = URL.createObjectURL(imageFile);
-        // In production, you would upload the file and get a URL back
-        // const uploadedUrl = await uploadImage(imageFile);
-        // profileImage = uploadedUrl;
+      // Guard against submitting while upload in progress or missing URL
+      if (uploading) {
+        toast.info('Please wait for the image upload to finish');
+        return;
       }
+      if (!uploadedImageUrl && !initialData?.profileImage) {
+        toast.error('Please upload an image or switch to URL option');
+        return;
+      }
+      // Use uploaded URL or keep existing if editing and no new upload
+      profileImage = uploadedImageUrl || initialData?.profileImage || '';
     }
 
     const data = {
@@ -102,7 +132,9 @@ export function AuthorFormDialog({
               defaultValue={initialData?.biography}
               placeholder="Enter author biography"
               className="h-32"
+              maxLength={2000}
             />
+            <p className="text-xs text-gray-500">Max 2000 characters</p>
           </div>
 
           <div className="space-y-4">
@@ -120,8 +152,8 @@ export function AuthorFormDialog({
                     setImageOption('url');
                     const fileInput = document.getElementById('imageFile') as HTMLInputElement;
                     if (fileInput) fileInput.value = '';
-                    const preview = document.getElementById('imagePreview') as HTMLImageElement;
-                    if (preview) preview.style.display = 'none';
+                    // Clear uploaded preview state; rendering is controlled by state
+                    setUploadedImageUrl('');
                   }}
                 />
                 <Label htmlFor="imageUrlOption" className="ml-2">URL</Label>
@@ -162,27 +194,39 @@ export function AuthorFormDialog({
                   type="file"
                   accept="image/*"
                   className="mt-2"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (e) => {
-                        const preview = document.getElementById('imagePreview') as HTMLImageElement;
-                        if (preview && e.target?.result) {
-                          preview.src = e.target.result as string;
-                          preview.style.display = 'block';
-                        }
-                      };
-                      reader.readAsDataURL(file);
+                    if (!file) return;
+                    if (!file.type.startsWith('image/')) {
+                      toast.error('Please select a valid image file');
+                      return;
                     }
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error('Image size must be less than 5MB');
+                      return;
+                    }
+                    setUploading(true);
+                    const result = await uploadImage(file);
+                    if (result?.success) {
+                      setUploadedImageUrl(result.data.url);
+                      toast.success('Image uploaded');
+                    } else {
+                      toast.error(result?.message || 'Failed to upload image');
+                    }
+                    setUploading(false);
                   }}
                 />
-                <div id="imagePreviewContainer" className="mt-4">
-                  <img
-                    id="imagePreview"
-                    alt="Profile preview"
-                    className="max-w-[200px] max-h-[200px] object-contain hidden rounded-full"
-                  />
+                {uploading && (
+                  <p className="text-xs text-gray-500">Uploading image...</p>
+                )}
+                <div className="mt-4">
+                  {(uploadedImageUrl || initialData?.profileImage) && (
+                    <img
+                      alt="Profile preview"
+                      src={(uploadedImageUrl || initialData?.profileImage) as string}
+                      className="max-w-[200px] max-h-[200px] object-contain rounded-full"
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -199,7 +243,7 @@ export function AuthorFormDialog({
 
           <div className="sticky bottom-0 bg-white pt-4 dark:bg-gray-950">
             <DialogFooter>
-              <Button type="submit">
+              <Button type="submit" disabled={uploading}>
                 {mode === 'add' ? 'Add Author' : 'Save Changes'}
               </Button>
             </DialogFooter>

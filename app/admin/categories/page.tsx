@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, Search, BookOpen, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, BookOpen, ChevronRight, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,60 +13,100 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { AdminPagination } from '@/components/ui/admin-pagination';
-import { sampleBooks } from '@/lib/sampleData';
 
-// Extract unique categories and subcategories from sample books
-const categoriesMap = sampleBooks.reduce((acc, book) => {
-  if (!acc[book.category]) {
-    acc[book.category] = new Set();
-  }
-  if (book.subcategory) {
-    acc[book.category].add(book.subcategory);
-  }
-  return acc;
-}, {} as Record<string, Set<string>>);
+// API functions
+const fetchCategories = async (page = 1, limit = 5, search = '') => {
+  const token = localStorage.getItem('bookhaven-token');
+  const response = await fetch(`/api/admin/categories?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.json();
+};
 
-// Convert to array structure
-const initialCategories = Object.entries(categoriesMap).map(([category, subcategories]) => ({
-  id: category,
-  name: category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-  slug: category,
-  description: `Collection of ${category.replace('-', ' ')} books`,
-  booksCount: sampleBooks.filter(book => book.category === category).length,
-  featured: true,
-  image: `/genre/${category}.jpg`,
-  subcategories: Array.from(subcategories).map(sub => ({
-    id: sub,
-    name: sub.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-    slug: sub,
-    description: `${sub.replace('-', ' ')} books`,
-    booksCount: sampleBooks.filter(book => book.subcategory === sub).length,
-  }))
-}));
+const createCategory = async (data: any) => {
+  const token = localStorage.getItem('bookhaven-token');
+  const response = await fetch('/api/admin/categories', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+};
+
+const updateCategory = async (id: string, data: any) => {
+  const token = localStorage.getItem('bookhaven-token');
+  const response = await fetch(`/api/admin/categories?id=${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+};
+
+const deleteCategory = async (id: string, subcategoryId?: string) => {
+  const token = localStorage.getItem('bookhaven-token');
+  const url = subcategoryId
+    ? `/api/admin/categories?id=${id}&subcategoryId=${subcategoryId}`
+    : `/api/admin/categories?id=${id}`;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.json();
+};
+
+const uploadImage = async (file: File) => {
+  const token = localStorage.getItem('bookhaven-token');
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await fetch('/api/admin/upload', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+  return response.json();
+};
 
 interface SubCategory {
+  _id?: string;
   id: string;
   name: string;
   slug: string;
   description: string;
+  image?: string;
   booksCount: number;
 }
 
 interface Category {
+  _id?: string;
   id: string;
   name: string;
   slug: string;
   description: string;
   booksCount: number;
   featured: boolean;
-  image: string;
+  image?: string;
   subcategories: SubCategory[];
 }
 
 interface CategoryFormData {
+  id?: string;
   name: string;
   description: string;
-  image: string;
+  image?: string;
   featured: boolean;
   parentCategory?: string;
 }
@@ -76,132 +116,148 @@ export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFormData | null>(null);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isSubcategory, setIsSubcategory] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
   const itemsPerPage = 5;
 
-  const filteredCategories = categories.filter(category => 
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.subcategories.some(sub => 
-      sub.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sub.description.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  // Fetch categories on mount and when dependencies change
+  useEffect(() => {
+    loadCategories();
+  }, [currentPage, searchTerm]);
 
-  // Pagination logic
-  const totalItems = filteredCategories.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentCategories = filteredCategories.slice(startIndex, endIndex);
-
-  // Reset to first page when search changes
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      const result = await fetchCategories(currentPage, itemsPerPage, searchTerm);
+      if (result.success) {
+        setCategories(result.data);
+        setTotalPages(result.pagination.totalPages);
+        setTotalItems(result.pagination.totalItems);
+      } else {
+        toast.error(result.message || 'Failed to load categories');
+      }
+    } catch (error) {
+      console.error('Load categories error:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const result = await uploadImage(file);
+      if (result.success) {
+        setUploadedImageUrl(result.data.url);
+        toast.success('Image uploaded successfully');
+      } else {
+        toast.error(result.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      toast.error('Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleOpenDialog = (mode: 'add' | 'edit', category?: CategoryFormData | null, subcategory: boolean = false) => {
+    setDialogMode(mode);
+    setSelectedCategory(category || null);
+    setIsSubcategory(subcategory);
+    setUploadedImageUrl(category?.image || '');
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const categoryData = {
       name: formData.get('name') as string,
       description: formData.get('description') as string,
-      image: formData.get('image') as string,
+      image: uploadedImageUrl || (formData.get('image') as string) || selectedCategory?.image || '',
       featured: formData.get('featured') === 'true',
-      parentCategory: formData.get('parentCategory') as string,
+      parentCategoryId: formData.get('parentCategory') as string,
+      isSubcategory,
     };
 
-    if (dialogMode === 'add') {
-      if (isSubcategory && categoryData.parentCategory) {
-        const newSubcategory: SubCategory = {
-          id: categoryData.name.toLowerCase().replace(/\s+/g, '-'),
-          name: categoryData.name,
-          slug: categoryData.name.toLowerCase().replace(/\s+/g, '-'),
-          description: categoryData.description,
-          booksCount: 0,
-        };
-
-        setCategories(categories.map(cat => 
-          cat.id === categoryData.parentCategory
-            ? { ...cat, subcategories: [...cat.subcategories, newSubcategory] }
-            : cat
-        ));
-        toast.success('Subcategory added successfully!');
-      } else {
-        const newCategory: Category = {
-          id: categoryData.name.toLowerCase().replace(/\s+/g, '-'),
-          name: categoryData.name,
-          slug: categoryData.name.toLowerCase().replace(/\s+/g, '-'),
-          description: categoryData.description,
-          booksCount: 0,
-          featured: categoryData.featured,
-          image: categoryData.image,
-          subcategories: [],
-        };
-        setCategories([...categories, newCategory]);
-        toast.success('Category added successfully!');
-      }
-    } else if (selectedCategory) {
-      // Handle edit mode
-      if (isSubcategory && categoryData.parentCategory) {
-        setCategories(categories.map(cat => {
-          if (cat.id === categoryData.parentCategory) {
-            return {
-              ...cat,
-              subcategories: cat.subcategories.map(sub =>
-                sub.id === selectedCategory.name.toLowerCase().replace(/\s+/g, '-')
-                  ? {
-                      ...sub,
-                      name: categoryData.name,
-                      slug: categoryData.name.toLowerCase().replace(/\s+/g, '-'),
-                      description: categoryData.description,
-                    }
-                  : sub
-              ),
-            };
-          }
-          return cat;
-        }));
-      } else {
-        setCategories(categories.map(cat =>
-          cat.id === selectedCategory.name.toLowerCase().replace(/\s+/g, '-')
-            ? {
-                ...cat,
-                name: categoryData.name,
-                description: categoryData.description,
-                image: categoryData.image,
-                featured: categoryData.featured,
-              }
-            : cat
-        ));
-      }
-      toast.success('Category updated successfully!');
+    // Ensure image is always a string
+    if (typeof categoryData.image !== 'string' || categoryData.image === '{}') {
+      categoryData.image = '';
     }
 
-    setIsDialogOpen(false);
+    try {
+      let result;
+      if (dialogMode === 'add') {
+        result = await createCategory(categoryData);
+      } else {
+        const categoryId = isSubcategory && categoryData.parentCategoryId
+          ? categoryData.parentCategoryId
+          : selectedCategory?.id;
+        result = await updateCategory(categoryId!, {
+          ...categoryData,
+          subcategoryId: isSubcategory ? selectedCategory?.id : undefined
+        });
+      }
+
+      if (result.success) {
+        toast.success(dialogMode === 'add' ? 'Category created successfully!' : 'Category updated successfully!');
+        setIsDialogOpen(false);
+        setUploadedImageUrl(''); // Reset uploaded image URL
+        loadCategories(); // Reload categories
+      } else {
+        toast.error(result.message || 'Operation failed');
+      }
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('Operation failed');
+    }
   };
 
-  const handleDelete = (categoryId: string, parentCategoryId?: string) => {
+  const handleDelete = async (categoryId: string, parentCategoryId?: string) => {
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-      if (parentCategoryId) {
-        // Delete subcategory
-        setCategories(categories.map(cat =>
-          cat.id === parentCategoryId
-            ? { ...cat, subcategories: cat.subcategories.filter(sub => sub.id !== categoryId) }
-            : cat
-        ));
-      } else {
-        // Delete main category
-        setCategories(categories.filter(cat => cat.id !== categoryId));
+      try {
+        const result = await deleteCategory(categoryId, parentCategoryId);
+        if (result.success) {
+          toast.success('Category deleted successfully!');
+          loadCategories(); // Reload categories
+        } else {
+          toast.error(result.message || 'Delete failed');
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        toast.error('Delete failed');
       }
-      toast.success('Category deleted successfully!');
     }
   };
 
@@ -254,13 +310,38 @@ export default function CategoriesPage() {
 
       {/* Categories Display - Column Wise */}
       <div className="space-y-8">
-        {currentCategories.map((category) => (
-          <motion.div
-            key={category.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg shadow-md overflow-hidden"
-          >
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading categories...</p>
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="text-center py-12">
+            <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
+            <p className="text-gray-500 mb-6">
+              {searchTerm ? 'No categories match your search.' : 'Start by adding your first category.'}
+            </p>
+            {!searchTerm && (
+              <Button onClick={() => {
+                setDialogMode('add');
+                setSelectedCategory(null);
+                setIsSubcategory(false);
+                setIsDialogOpen(true);
+              }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add First Category
+              </Button>
+            )}
+          </div>
+        ) : (
+          categories.map((category) => (
+            <motion.div
+              key={category._id || category.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+            >
             {/* Category Header */}
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6">
               <div className="flex items-center justify-between">
@@ -291,6 +372,7 @@ export default function CategoriesPage() {
                       onClick={() => {
                         setDialogMode('edit');
                         setSelectedCategory({
+                          id: category._id || category.id,
                           name: category.name,
                           description: category.description,
                           image: category.image,
@@ -306,7 +388,7 @@ export default function CategoriesPage() {
                       variant="outline"
                       size="sm"
                       className="bg-red-500 border-red-500 text-white hover:bg-red-600"
-                      onClick={() => handleDelete(category.id)}
+                      onClick={() => handleDelete(category._id || category.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -325,7 +407,7 @@ export default function CategoriesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {category.subcategories.map((sub) => (
                     <div
-                      key={sub.id}
+                      key={sub._id || sub.id || sub.slug}
                       className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -342,11 +424,12 @@ export default function CategoriesPage() {
                           onClick={() => {
                             setDialogMode('edit');
                             setSelectedCategory({
+                              id: sub._id || sub.id,
                               name: sub.name,
                               description: sub.description,
-                              image: '',
+                              image: sub.image || '',
                               featured: false,
-                              parentCategory: category.id
+                              parentCategory: category._id || category.id
                             });
                             setIsSubcategory(true);
                             setIsDialogOpen(true);
@@ -358,7 +441,7 @@ export default function CategoriesPage() {
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDelete(sub.id, category.id)}
+                          onClick={() => handleDelete(sub._id || sub.id, category._id || category.id)}
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -392,7 +475,8 @@ export default function CategoriesPage() {
               </div>
             )}
           </motion.div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Pagination */}
@@ -436,7 +520,7 @@ export default function CategoriesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
+                      <SelectItem key={cat._id || cat.id} value={cat._id || cat.id}>
                         {cat.name}
                       </SelectItem>
                     ))}
@@ -466,35 +550,72 @@ export default function CategoriesPage() {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="image">{isSubcategory ? 'Subcategory Image' : 'Category Image'}</Label>
+              <div className="space-y-2">
+                <Input
+                  id="image"
+                  name="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  className="cursor-pointer"
+                />
+                {uploadingImage && (
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <span>Uploading image...</span>
+                  </div>
+                )}
+                {(uploadedImageUrl || selectedCategory?.image) && (
+                  <div className="space-y-2">
+                    <div className="relative inline-block">
+                      <img
+                        src={uploadedImageUrl || selectedCategory?.image}
+                        alt={`${isSubcategory ? 'Subcategory' : 'Category'} preview`}
+                        className="w-32 h-32 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                        onClick={() => {
+                          setUploadedImageUrl('');
+                          const input = document.getElementById('image') as HTMLInputElement;
+                          if (input) input.value = '';
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <Input
+                      type="hidden"
+                      name="image"
+                      value={uploadedImageUrl || selectedCategory?.image || ''}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
             {!isSubcategory && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="image">Image URL</Label>
-                  <Input
-                    id="image"
-                    name="image"
-                    defaultValue={selectedCategory?.image}
-                    placeholder="Enter category image URL"
-                    required
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="featured">Featured Category</Label>
-                  <Switch
-                    id="featured"
-                    name="featured"
-                    defaultChecked={selectedCategory?.featured}
-                    onCheckedChange={(checked) => {
-                      const input = document.createElement('input');
-                      input.type = 'hidden';
-                      input.name = 'featured';
-                      input.value = checked.toString();
-                      const form = document.querySelector('form');
-                      form?.appendChild(input);
-                    }}
-                  />
-                </div>
-              </>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="featured">Featured Category</Label>
+                <Switch
+                  id="featured"
+                  name="featured"
+                  defaultChecked={selectedCategory?.featured}
+                  onCheckedChange={(checked) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'featured';
+                    input.value = checked.toString();
+                    const form = document.querySelector('form');
+                    form?.appendChild(input);
+                  }}
+                />
+              </div>
             )}
             <DialogFooter>
               <Button type="submit">

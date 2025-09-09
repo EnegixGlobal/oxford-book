@@ -12,28 +12,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "./textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
-import { sampleBooks } from "@/lib/sampleData"
 
-// Extract unique categories and subcategories from sample books
-const categoriesMap = sampleBooks.reduce((acc, book) => {
-  if (!acc[book.category]) {
-    acc[book.category] = new Set();
-  }
-  if (book.subcategory) {
-    acc[book.category].add(book.subcategory);
-  }
-  return acc;
-}, {} as Record<string, Set<string>>);
-
-// Convert to array structure
-const categories = Object.entries(categoriesMap).map(([category, subcategories]) => ({
-  id: category,
-  name: category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-  subcategories: Array.from(subcategories).map(sub => ({
-    id: sub,
-    name: sub.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-  }))
-}));
+interface AuthorDto { _id: string; name: string; slug: string }
+interface CategoryDto { slug: string; name: string; subcategories?: { slug: string; name: string }[] }
 
 interface BookFormDialogProps {
   open: boolean
@@ -50,36 +31,108 @@ export function BookFormDialog({
   initialData,
   onSubmit
 }: BookFormDialogProps) {
+  const [authors, setAuthors] = useState<AuthorDto[]>([]);
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const [selectedAuthorId, setSelectedAuthorId] = useState<string | undefined>(initialData?.authorId);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialData?.category || '');
-  const [availableSubcategories, setAvailableSubcategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [availableSubcategories, setAvailableSubcategories] = useState<Array<{ slug: string; name: string }>>([]);
   const [imageOption, setImageOption] = useState<'url' | 'file'>(initialData?.imageFile ? 'file' : 'url');
+  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.coverImage || '');
+  const ageOptions = [
+    { value: '0-2', label: '0-2' },
+    { value: '3-5', label: '3-5' },
+    { value: '6-8', label: '6-8' },
+    { value: '9-12', label: '9-12' },
+    { value: 'teen', label: 'Teen' },
+    { value: 'young-adult', label: 'Young Adult' },
+    { value: 'old-man', label: 'Old Man' },
+  ];
+
+  // Reset dialog-local state when opening or when initialData changes
+  useEffect(() => {
+    if (open) {
+      setSelectedAuthorId(initialData?.authorId);
+      setSelectedCategory(initialData?.category || '');
+      setImageOption(initialData?.imageFile ? 'file' : 'url');
+      setPreviewUrl(initialData?.coverImage || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialData]);
 
   useEffect(() => {
     if (selectedCategory) {
-      const category = categories.find(cat => cat.id === selectedCategory);
+      const category = categories.find(cat => cat.slug === selectedCategory);
       setAvailableSubcategories(category?.subcategories || []);
     } else {
       setAvailableSubcategories([]);
     }
   }, [selectedCategory]);
 
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        // authors
+        const ares = await fetch('/api/authors?limit=100', { cache: 'no-store' });
+        const aj = await ares.json();
+        if (mounted && aj?.success && Array.isArray(aj.data)) {
+          setAuthors(aj.data.map((a: any) => ({ _id: a._id, name: a.name, slug: a.slug })));
+          if (!initialData?.authorId && initialData?.author) {
+            const found = aj.data.find((a: any) => a.name === initialData.author);
+            if (found) setSelectedAuthorId(found._id);
+          }
+        }
+        // categories
+        const cres = await fetch('/api/categories', { cache: 'no-store' });
+        const cj = await cres.json();
+        if (mounted && cj?.success && Array.isArray(cj.data)) {
+          setCategories(cj.data);
+        }
+      } catch {}
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const imageOption = formData.get('imageOption');
     
-    let coverImage = '';
+    let coverImage: string | undefined = undefined;
     if (imageOption === 'url') {
-      coverImage = formData.get('coverImage') as string;
+      const url = (formData.get('coverImage') as string || '').trim();
+      if (url) {
+        coverImage = url;
+      } else {
+        coverImage = undefined; // don't overwrite existing image with empty string
+      }
     } else {
       const imageFile = formData.get('imageFile') as File;
       if (imageFile && imageFile.size > 0) {
-        // Here you would typically upload the file to your storage service
-        // For now, we'll create a temporary URL for demo purposes
-        coverImage = URL.createObjectURL(imageFile);
-        // In production, you would upload the file and get a URL back
-        // const uploadedUrl = await uploadImage(imageFile);
-        // coverImage = uploadedUrl;
+        try {
+          const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+          const fd = new FormData();
+          fd.append('image', imageFile);
+          fd.append('folder', 'books');
+          fd.append('publicId', `book_${Date.now()}`);
+          const res = await fetch('/api/admin/upload', {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: fd,
+          });
+          const data = await res.json();
+          if (data?.success && data?.data?.url) {
+            coverImage = data.data.url as string;
+            setPreviewUrl(coverImage);
+          } else {
+            throw new Error(data?.message || 'Upload failed');
+          }
+        } catch (err) {
+          // Fallback: leave coverImage empty; server accepts optional coverImage
+          console.error('Book image upload failed:', err);
+          coverImage = undefined;
+        }
       }
     }
 
@@ -87,12 +140,16 @@ export function BookFormDialog({
     const discount = Number(formData.get('discount'));
     const finalPrice = Number(formData.get('finalPrice'));
 
+    const authorId = selectedAuthorId || (formData.get('authorId') as string | null) || undefined;
+    const authorName = authorId ? (authors.find(a => a._id === authorId)?.name || '') : (formData.get('author') as string);
+
     const data = {
       title: formData.get('title'),
-      author: formData.get('author'),
+      author: authorName,
+      authorId: authorId,
       description: formData.get('description'),
       stock: formData.get('stock'),
-      coverImage: coverImage,
+  coverImage: coverImage,
       category: formData.get('category'),
       subcategory: formData.get('subcategory'),
       inStock: Number(formData.get('stock')) > 0,
@@ -103,11 +160,12 @@ export function BookFormDialog({
       publisher: formData.get('publisher'),
       binding: formData.get('binding'),
       language: formData.get('language'),
+  ageGroup: formData.get('ageGroup') || undefined,
       rating: 0,
       reviewCount: 0,
       featured: false
     };
-    onSubmit(data);
+  onSubmit(data);
     onOpenChange(false);
   };
 
@@ -133,13 +191,23 @@ export function BookFormDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="author">Author</Label>
-            <Input
-              id="author"
-              name="author"
-              defaultValue={initialData?.author}
-              placeholder="Enter author name"
-              required
-            />
+            <Select
+              name="authorId"
+              value={selectedAuthorId}
+              onValueChange={(v) => setSelectedAuthorId(v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select an author" />
+              </SelectTrigger>
+              <SelectContent>
+                {authors.map((a) => (
+                  <SelectItem key={a._id} value={a._id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!selectedAuthorId && (
+              <Input id="author" name="author" defaultValue={initialData?.author} placeholder="Or type author name" />
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="isbn">ISBN</Label>
@@ -267,7 +335,7 @@ export function BookFormDialog({
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+                  <SelectItem key={category.slug} value={category.slug}>
                     {category.name}
                   </SelectItem>
                 ))}
@@ -285,7 +353,7 @@ export function BookFormDialog({
               </SelectTrigger>
               <SelectContent>
                 {availableSubcategories.map((subcategory) => (
-                  <SelectItem key={subcategory.id} value={subcategory.id}>
+                  <SelectItem key={subcategory.slug} value={subcategory.slug}>
                     {subcategory.name}
                   </SelectItem>
                 ))}
@@ -325,6 +393,19 @@ export function BookFormDialog({
                 <SelectItem value="english">English</SelectItem>
                 <SelectItem value="hindi">Hindi</SelectItem>
                 <SelectItem value="marathi">Marathi</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="ageGroup">Age Group (optional)</Label>
+            <Select name="ageGroup" defaultValue={initialData?.ageGroup}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select age group (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {ageOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -374,7 +455,17 @@ export function BookFormDialog({
                   defaultValue={initialData?.coverImage}
                   placeholder="Enter cover image URL"
                   className="mt-2"
+                  onChange={(e) => setPreviewUrl(e.target.value)}
                 />
+                {previewUrl && (
+                  <div className="mt-4">
+                    <img
+                      alt="Cover preview"
+                      src={previewUrl}
+                      className="max-w-[200px] max-h-[200px] object-contain rounded"
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -393,6 +484,7 @@ export function BookFormDialog({
                         if (preview && e.target?.result) {
                           preview.src = e.target.result as string;
                           preview.style.display = 'block';
+                          setPreviewUrl(e.target.result as string);
                         }
                       };
                       reader.readAsDataURL(file);
@@ -400,11 +492,14 @@ export function BookFormDialog({
                   }}
                 />
                 <div id="imagePreviewContainer" className="mt-4">
-                  <img
-                    id="imagePreview"
-                    alt="Cover preview"
-                    className="max-w-[200px] max-h-[200px] object-contain hidden"
-                  />
+                  {(previewUrl || initialData?.coverImage) && (
+                    <img
+                      id="imagePreview"
+                      alt="Cover preview"
+                      src={(previewUrl || initialData?.coverImage) as string}
+                      className="max-w-[200px] max-h-[200px] object-contain"
+                    />
+                  )}
                 </div>
               </div>
             )}

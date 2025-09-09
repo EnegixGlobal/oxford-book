@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Eye, Edit, Trash2, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,78 +10,59 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { toast } from 'sonner';
 import { AdminPagination } from '@/components/ui/admin-pagination';
 
-const sampleUsers = [
-  {
-    id: 1,
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+91 9876543210',
-    address: '123 Main Street, Mumbai, Maharashtra',
-    joinDate: '2025-01-15',
-    status: 'Active',
-    orders: 12,
-    totalSpent: 2499,
-    role: 'Customer'
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    email: 'jane.smith@example.com',
-    phone: '+91 9876543211',
-    address: '456 Oak Avenue, Delhi, Delhi',
-    joinDate: '2025-02-20',
-    status: 'Active',
-    orders: 8,
-    totalSpent: 1899,
-    role: 'Customer'
-  },
-  {
-    id: 3,
-    name: 'Mike Johnson',
-    email: 'mike.johnson@example.com',
-    phone: '+91 9876543212',
-    address: '789 Pine Road, Bangalore, Karnataka',
-    joinDate: '2025-03-10',
-    status: 'Inactive',
-    orders: 5,
-    totalSpent: 1299,
-    role: 'Customer'
-  },
-  {
-    id: 4,
-    name: 'Sarah Williams',
-    email: 'sarah.williams@example.com',
-    phone: '+91 9876543213',
-    address: '321 Elm Street, Chennai, Tamil Nadu',
-    joinDate: '2025-04-05',
-    status: 'Active',
-    orders: 15,
-    totalSpent: 3299,
-    role: 'Customer'
-  },
-  {
-    id: 5,
-    name: 'Admin User',
-    email: 'admin@bookhaven.com',
-    phone: '+91 9876543214',
-    address: 'Admin Office, Mumbai, Maharashtra',
-    joinDate: '2024-12-01',
-    status: 'Active',
-    orders: 0,
-    totalSpent: 0,
-    role: 'Admin'
-  }
-];
+// Fetch users from admin API
+const fetchUsers = async (page = 1, limit = 10, search = '') => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+  const url = new URL('/api/admin/users', window.location.origin);
+  url.searchParams.set('page', String(page));
+  url.searchParams.set('limit', String(limit));
+  if (search) url.searchParams.set('search', search);
+  const res = await fetch(url.toString(), {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  return res.json();
+};
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState(sampleUsers);
+  const [users, setUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editStatus, setEditStatus] = useState('');
   const [editRole, setEditRole] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const result = await fetchUsers(currentPage, itemsPerPage, searchTerm);
+      if (result?.success) {
+        const mapped = (result.data || []).map((u: any) => ({
+          id: u._id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone || '',
+          address: u.address || '',
+          joinDate: new Date(u.joinDate || u.createdAt).toISOString().slice(0, 10),
+          status: u.isActive ? 'Active' : 'Inactive',
+          orders: 0,
+          totalSpent: 0,
+          role: u.role === 'admin' ? 'Admin' : 'Customer',
+        }));
+        setUsers(mapped);
+        setTotalItems(result.pagination?.totalItems || mapped.length);
+        setTotalPages(result.pagination?.totalPages || 1);
+      }
+    } catch (e) {
+      // noop toast for now
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [currentPage, searchTerm]);
 
   const handleViewUser = (user: any) => {
     setSelectedUser(user);
@@ -104,18 +85,7 @@ export default function UsersPage() {
     toast.success('User deleted successfully');
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm)
-  );
-
-  // Pagination logic
-  const totalItems = filteredUsers.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+  const currentUsers = users; // server paginated
 
   // Reset to first page when search changes
   const handleSearchChange = (value: string) => {
@@ -191,7 +161,7 @@ export default function UsersPage() {
                     <div className="flex-shrink-0 h-10 w-10">
                       <div className="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center">
                         <span className="text-white font-medium text-sm">
-                          {user.name.split(' ').map(n => n[0]).join('')}
+                          {user.name.split(' ').map((n: string) => n[0]).join('')}
                         </span>
                       </div>
                     </div>
