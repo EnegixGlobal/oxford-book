@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category') || '';
   const subcategory = searchParams.get('subcategory') || '';
   const featured = searchParams.get('featured');
+  const anticipated = searchParams.get('anticipated');
   const ageGroup = searchParams.get('ageGroup') || '';
   const genre = searchParams.get('genre') || '';
   const authorId = searchParams.get('authorId');
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
     if (subcategory) andClauses.push({ subcategorySlug: subcategory });
   if (featured === 'true') andClauses.push({ featured: true });
   if (featured === 'false') andClauses.push({ featured: false });
+    if (anticipated === 'true') andClauses.push({ anticipated: true });
+    if (anticipated === 'false') andClauses.push({ anticipated: false });
   if (ageGroup) andClauses.push({ ageGroup });
   if (genre) andClauses.push({ genre });
 
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
   if (category) books = books.filter(b => b.category === category);
   if (ageGroup) books = books.filter((b: any) => (b as any).ageGroup === ageGroup);
     if (featured === 'true') books = books.filter(b => (b as any).featured);
+  if (anticipated === 'true') books = books.filter((b: any) => (b as any).anticipated);
     const limited = books.slice(0, limit);
     return NextResponse.json({ success: true, data: limited, pagination: { page: 1, totalPages: 1, totalItems: limited.length, itemsPerPage: limit, hasNext: false, hasPrev: false } });
   }

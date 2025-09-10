@@ -34,7 +34,7 @@ const BookCard = ({ book }: BookCardProps) => {
       transition={{ duration: 0.3 }}
       className="group"
     >
-      <Link href={`/book/${book.id}`}>
+  <Link href={`/book/${(book as any).slug ?? book.id}`}>
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col max-w-sm">
           {/* Book Cover */}
           <div className="relative aspect-[1/1] overflow-hidden">

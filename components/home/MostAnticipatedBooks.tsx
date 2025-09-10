@@ -5,14 +5,60 @@ import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BookCard from '@/components/books/BookCard';
-import { sampleBooks } from '@/lib/sampleData';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const MostAnticipatedBooks = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [books, setBooks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Get anticipated books (you can modify this logic)
-  const anticipatedBooks = sampleBooks.filter(book => book.featured).slice(0, 8);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/books?anticipated=true&limit=16', { cache: 'no-store' });
+        const json = await res.json();
+        if (!alive) return;
+        if (json?.success && Array.isArray(json.data)) {
+          const mapped = json.data.map((b: any) => ({
+            id: b._id || b.id,
+            slug: b.slug,
+            title: b.title,
+            isbn: b.isbn,
+            author: b.authorName || b.author,
+            publisher: b.publisher || '',
+            binding: (b.binding || 'paperback').toString(),
+            weight: '',
+            language: b.language || 'english',
+            description: b.description || '',
+            mrp: b.mrp,
+            discountedPrice: b.discountedPrice,
+            rating: b.rating || 0,
+            reviewCount: b.reviewCount || 0,
+            category: b.categorySlug,
+            subcategory: b.subcategorySlug,
+            ageGroup: b.ageGroup || '',
+            coverImage: b.coverImage || '/logo.png',
+            inStock: b.inStock,
+            featured: !!b.featured,
+            anticipated: !!b.anticipated,
+          }));
+          setBooks(mapped);
+        } else if (Array.isArray(json)) {
+          setBooks(json as any[]);
+        } else {
+          setBooks([]);
+        }
+      } catch {
+        if (alive) setBooks([]);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+    load();
+    return () => { alive = false; };
+  }, []);
 
   const scrollLeft = () => {
     if (scrollRef.current) {
@@ -30,55 +76,34 @@ const MostAnticipatedBooks = () => {
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Most Anticipated Books
-            </h2>
-            <p className="text-gray-600">
-              Discover the books everyone&apos;s talking about
-            </p>
-          </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-6"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+            Most <span className="text-fuchsia-600">Anticipated</span> Books
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Discover the books everyone&apos;s talking about
+          </p>
+        </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center space-x-4"
-          >
-            {/* Scroll Controls */}
-            <div className="hidden md:flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={scrollLeft}
-                className="p-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={scrollRight}
-                className="p-2"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* View All Button */}
-            <Link href="/anticipated">
-              <Button variant="outline" className="flex items-center space-x-2">
-                <span>View All</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </motion.div>
-        </div>
+        {/* View All on right */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="flex items-center justify-end mb-8"
+        >
+          <Link href="/anticipated">
+            <Button variant="outline" className="flex items-center gap-2">
+              <span>View All</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </motion.div>
 
         {/* Books Horizontal Scroll */}
         <motion.div
@@ -91,7 +116,7 @@ const MostAnticipatedBooks = () => {
             ref={scrollRef}
             className="flex space-x-6 overflow-x-auto pb-4 scroll-smooth"
           >
-            {anticipatedBooks.map((book, index) => (
+            {books.map((book, index) => (
               <motion.div
                 key={book.id}
                 initial={{ opacity: 0, scale: 0.9 }}

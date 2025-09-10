@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Book, Star } from 'lucide-react';
+import { ArrowLeft, Book, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import BookCard from '@/components/books/BookCard';
+import { Badge } from '@/components/ui/badge';
 
 interface AuthorDto {
   _id?: string;
@@ -23,6 +24,7 @@ export default function AuthorPage({ params }: { params: Promise<{ id: string }>
   const [author, setAuthor] = useState<AuthorDto | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [authorBooks, setAuthorBooks] = useState<any[]>([]);
+  const [expandBio, setExpandBio] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -41,6 +43,7 @@ export default function AuthorPage({ params }: { params: Promise<{ id: string }>
             // Map backend book shape to BookCard expected fields where needed
             const mapped = bj.data.map((b: any) => ({
               id: b._id || b.id,
+              slug: b.slug,
               title: b.title,
               isbn: b.isbn,
               author: b.authorName || b.author,
@@ -104,42 +107,94 @@ export default function AuthorPage({ params }: { params: Promise<{ id: string }>
           </Button>
         </Link>
 
-        {/* Author Header */}
+        {/* Author Hero */}
         {!!author && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-2xl shadow-lg p-8 mb-8"
+            className="relative overflow-hidden rounded-2xl mb-10"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-              <div className="lg:col-span-1">
-                <Image
-                  src={author.profileImage || '/logo.png'}
-                  alt={author.name}
-                  width={600}
-                  height={800}
-                  className="w-full max-w-sm mx-auto rounded-2xl shadow-xl h-auto object-cover"
-                  priority
-                />
-              </div>
-              
-              <div className="lg:col-span-2">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">{author.name}</h1>
-                <p className="text-lg text-gray-700 mb-6 leading-relaxed">{author.biography || ''}</p>
-                
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center">
-                    <Book className="w-5 h-5 text-purple-600 mr-2" />
-                    <span className="text-lg font-semibold text-gray-800">
-                      {author.booksCount || 0} Books Published
-                    </span>
+            {/* Blurred background */}
+            <div className="absolute inset-0 -z-10">
+              <Image
+                src={author.profileImage || '/logo.png'}
+                alt=""
+                fill
+                priority
+                className="object-cover blur-[14px] scale-[1.1] opacity-30"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-white/90 to-white/70" />
+            </div>
+
+            <div className="p-6 md:p-10">
+              <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 items-center">
+                {/* Avatar */}
+                <div className="justify-self-center lg:justify-self-start">
+                  <div className="relative w-52 h-64 rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white">
+                    <Image
+                      src={author.profileImage || '/logo.png'}
+                      alt={author.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-                  <div className="flex items-center">
-                    <Star className="w-5 h-5 text-yellow-400 mr-2" />
-                    <span className="text-lg font-semibold text-gray-800">
-                      4.6 Average Rating
-                    </span>
+                </div>
+
+                {/* Info */}
+                <div className="">
+                  <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-3">
+                    {author.name}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-3 mb-5">
+                    {author.nationality && (
+                      <Badge variant="secondary" className="text-sm">{author.nationality}</Badge>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Book className="w-5 h-5 text-fuchsia-600" />
+                      <span className="text-sm md:text-base font-semibold text-gray-800">
+                        {author.booksCount || 0} Books Published
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-400" />
+                      <span className="text-sm md:text-base font-semibold text-gray-800">4.6 Avg Rating</span>
+                    </div>
+                  </div>
+
+                  {author.biography && (
+                    <motion.div layout className="relative text-gray-700 leading-relaxed">
+                      <p className={`${expandBio ? '' : 'line-clamp-6'} text-base md:text-lg whitespace-pre-line`}>{author.biography}</p>
+                      {!expandBio && (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
+                      )}
+                      {author.biography.length > 240 && (
+                        <button
+                          type="button"
+                          onClick={() => setExpandBio((v) => !v)}
+                          className="mt-3 inline-flex items-center gap-1.5 text-fuchsia-700 font-semibold hover:underline"
+                        >
+                          {expandBio ? (
+                            <>
+                              Read less <ChevronUp className="w-4 h-4" />
+                            </>
+                          ) : (
+                            <>
+                              Read more <ChevronDown className="w-4 h-4" />
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </motion.div>
+                  )}
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <Link href="#author-books">
+                      <Button className="bg-fuchsia-700 hover:bg-fuchsia-800">View Books</Button>
+                    </Link>
+                    <Link href="/authors">
+                      <Button variant="outline">Back to Authors</Button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -154,7 +209,7 @@ export default function AuthorPage({ params }: { params: Promise<{ id: string }>
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           {!!author && (
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">Books by {author.name}</h2>
+            <h2 id="author-books" className="text-3xl font-bold text-gray-900 mb-8">Books by {author.name}</h2>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {authorBooks.map((book, index) => (

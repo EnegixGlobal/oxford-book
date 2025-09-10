@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
     const featured = searchParams.get('featured');
   const ageGroup = searchParams.get('ageGroup') || '';
   const genre = searchParams.get('genre') || '';
+  const anticipated = searchParams.get('anticipated');
 
     await connectDB();
 
@@ -90,6 +91,8 @@ export async function GET(request: NextRequest) {
     if (featured === 'false') query.featured = false;
   if (ageGroup) query.ageGroup = ageGroup;
   if (genre) query.genre = genre;
+  if (anticipated === 'true') query.anticipated = true;
+  if (anticipated === 'false') query.anticipated = false;
 
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
@@ -132,7 +135,8 @@ export async function POST(request: NextRequest) {
     const {
     title, author, authorId, description, coverImage, category, subcategory,
   stock, mrp, discountedPrice, discount, isbn, publisher, binding, language,
-    featured,
+  featured,
+  anticipated,
   ageGroup,
     genre,
     } = body;
@@ -169,7 +173,8 @@ export async function POST(request: NextRequest) {
       publisher,
       binding,
       language,
-      featured: !!featured,
+  featured: !!featured,
+  anticipated: !!anticipated,
     });
 
     await newBook.save();
@@ -232,6 +237,7 @@ export async function PUT(request: NextRequest) {
     map('featured', 'featured', (v) => !!v);
   map('ageGroup', 'ageGroup');
   map('genre', 'genre');
+  map('anticipated', 'anticipated', (v) => !!v);
 
     // if title is being updated, recompute a unique slug
     if (typeof body.title === 'string' && body.title.trim().length > 0) {

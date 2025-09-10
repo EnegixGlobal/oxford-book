@@ -150,8 +150,8 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                   src={book.coverImage}
                   alt={book.title}
                   width={400}
-                  height={600}
-                  className="w-full max-w-md mx-auto rounded-2xl shadow-2xl h-auto object-cover"
+                  height={400}
+                  className="w-full h-[400px] rounded-lg  mx-auto object-contain"
                   priority
                 />
                 {discountPercentage > 0 && (

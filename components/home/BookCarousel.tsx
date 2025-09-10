@@ -73,7 +73,7 @@ const BookCarousel = () => {
                     transition={{ duration: 0.5 }}
                     className="group flex flex-col items-center"
                   >
-                    <Link href={`/book/${book.id}`}>
+                    <Link href={`/book/${(book as any).slug ?? book.id}`}>
                       <div className="bg-white rounded-lg shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden w-44">
                         <div className="relative aspect-[1/1] overflow-hidden">
                           <Image

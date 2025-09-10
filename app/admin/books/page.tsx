@@ -172,6 +172,7 @@ export default function BooksPage() {
               ageGroup: data.ageGroup || undefined,
               genre: data.genre || undefined,
               featured: !!data.featured,
+              anticipated: !!data.anticipated,
             };
             const res = dialogMode === 'add'
               ? await createBook(payload)
@@ -283,9 +284,14 @@ export default function BooksPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{book.discountedPrice?.toFixed ? book.discountedPrice.toFixed(2) : book.discountedPrice}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={(book.inStock ? 'bg-green-500' : 'bg-red-500') + ' text-white'}>
-                    {book.inStock ? 'In Stock' : 'Out of Stock'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={(book.inStock ? 'bg-green-500' : 'bg-red-500') + ' text-white'}>
+                      {book.inStock ? 'In Stock' : 'Out of Stock'}
+                    </Badge>
+                    {book.anticipated && (
+                      <Badge variant="secondary">Anticipated</Badge>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex space-x-2">
@@ -303,6 +309,7 @@ export default function BooksPage() {
                           subcategory: book.subcategorySlug,
                           ageGroup: book.ageGroup,
                           genre: book.genre,
+                          anticipated: !!book.anticipated,
                         });
                         setIsDialogOpen(true);
                       }}

@@ -23,6 +23,7 @@ export interface IBook extends Document {
 	rating: number; // average rating
 	reviewCount: number;
 	featured: boolean;
+		anticipated?: boolean;
 }
 
 const BookSchema: Schema<IBook> = new Schema(
@@ -49,6 +50,7 @@ const BookSchema: Schema<IBook> = new Schema(
 		rating: { type: Number, default: 0, min: 0, max: 5 },
 		reviewCount: { type: Number, default: 0, min: 0 },
 		featured: { type: Boolean, default: false },
+		anticipated: { type: Boolean, default: false },
 	},
 	{ timestamps: true }
 );
@@ -68,6 +70,7 @@ BookSchema.index({ subcategorySlug: 1 });
 BookSchema.index({ featured: 1 });
 BookSchema.index({ ageGroup: 1 });
 BookSchema.index({ genre: 1 });
+BookSchema.index({ anticipated: 1 });
 
 // Ensure slug exists prior to validation
 BookSchema.pre('validate', function (next) {
@@ -118,6 +121,10 @@ if (mongoose.models.Book) {
 			genre: { type: String, enum: ['biography-memoir', 'business', 'historic-fiction', 'mega-comic', 'mystery-thriller', 'occult-paranormal', 'romance', 'self'], lowercase: true, trim: true },
 		});
 		try { BookModel.schema.index({ genre: 1 }); } catch {}
+	}
+	if (!BookModel.schema.path('anticipated')) {
+		BookModel.schema.add({ anticipated: { type: Boolean, default: false } });
+		try { BookModel.schema.index({ anticipated: 1 }); } catch {}
 	}
 } else {
 	BookModel = mongoose.model<IBook>('Book', BookSchema);

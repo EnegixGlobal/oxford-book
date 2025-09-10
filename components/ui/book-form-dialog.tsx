@@ -174,7 +174,8 @@ export function BookFormDialog({
   genre: formData.get('genre') || undefined,
       rating: 0,
       reviewCount: 0,
-      featured: false
+  featured: false,
+  anticipated: formData.get('anticipated') === 'on'
     };
   onSubmit(data);
     onOpenChange(false);
@@ -419,6 +420,13 @@ export function BookFormDialog({
                 <SelectItem value="marathi">Marathi</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="anticipated">Most Anticipated (optional)</Label>
+            <div className="flex items-center gap-2">
+              <input id="anticipated" name="anticipated" type="checkbox" aria-label="Most Anticipated" defaultChecked={!!initialData?.anticipated} />
+              <span className="text-sm text-gray-600">Mark as most anticipated</span>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="ageGroup">Age Group (optional)</Label>
