@@ -11,13 +11,14 @@ import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // API helpers
-const fetchBooks = async (page = 1, limit = 10, search = '', ageGroup = 'all') => {
+const fetchBooks = async (page = 1, limit = 10, search = '', ageGroup = 'all', genre = 'all') => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
   const url = new URL('/api/admin/books', window.location.origin);
   url.searchParams.set('page', String(page));
   url.searchParams.set('limit', String(limit));
   if (search) url.searchParams.set('search', search);
   if (ageGroup && ageGroup !== 'all') url.searchParams.set('ageGroup', ageGroup);
+  if (genre && genre !== 'all') url.searchParams.set('genre', genre);
   const res = await fetch(url.toString(), {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -73,6 +74,7 @@ export default function BooksPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [ageGroupFilter, setAgeGroupFilter] = useState('all');
+  const [genreFilter, setGenreFilter] = useState('all');
 
   const ageOptions = [
     { value: 'all', label: 'All Ages' },
@@ -84,11 +86,22 @@ export default function BooksPage() {
     { value: 'young-adult', label: 'Young Adult' },
     { value: 'old-man', label: 'Old Man' },
   ];
+  const genreOptions = [
+    { value: 'all', label: 'All Genres' },
+    { value: 'biography-memoir', label: 'Biography & Memoir' },
+    { value: 'business', label: 'Business' },
+    { value: 'historic-fiction', label: 'Historic Fiction' },
+    { value: 'mega-comic', label: 'Mega Comic' },
+    { value: 'mystery-thriller', label: 'Mystery Thriller' },
+    { value: 'occult-paranormal', label: 'Occult & Paranormal' },
+    { value: 'romance', label: 'Romance' },
+    { value: 'self', label: 'Self' },
+  ];
 
   const loadBooks = async () => {
     try {
       setLoading(true);
-  const result = await fetchBooks(currentPage, itemsPerPage, searchTerm, ageGroupFilter);
+  const result = await fetchBooks(currentPage, itemsPerPage, searchTerm, ageGroupFilter, genreFilter);
       if (result?.success) {
         setBooks(result.data || []);
         setTotalItems(result.pagination?.totalItems || 0);
@@ -105,7 +118,7 @@ export default function BooksPage() {
 
   useEffect(() => {
     loadBooks();
-  }, [currentPage, searchTerm, ageGroupFilter]);
+  }, [currentPage, searchTerm, ageGroupFilter, genreFilter]);
 
   // Reset to first page when search changes
   const handleSearchChange = (value: string) => {
@@ -157,6 +170,7 @@ export default function BooksPage() {
               binding: data.binding,
               language: data.language,
               ageGroup: data.ageGroup || undefined,
+              genre: data.genre || undefined,
               featured: !!data.featured,
             };
             const res = dialogMode === 'add'
@@ -206,6 +220,24 @@ export default function BooksPage() {
             </SelectContent>
           </Select>
         </div>
+        <div className="w-[220px]">
+          <Select
+            value={genreFilter}
+            onValueChange={(v) => {
+              setGenreFilter(v);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Genre" />
+            </SelectTrigger>
+            <SelectContent>
+              {genreOptions.map((o) => (
+                <SelectItem key={o.value || 'all'} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Books Table */}
@@ -216,6 +248,7 @@ export default function BooksPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age Group</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Genre</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -241,6 +274,13 @@ export default function BooksPage() {
                     <span className="text-gray-400">—</span>
                   )}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {book.genre ? (
+                    <Badge variant="secondary">{String(book.genre).replace('-', ' ')}</Badge>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{book.discountedPrice?.toFixed ? book.discountedPrice.toFixed(2) : book.discountedPrice}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge className={(book.inStock ? 'bg-green-500' : 'bg-red-500') + ' text-white'}>
@@ -262,6 +302,7 @@ export default function BooksPage() {
                           category: book.categorySlug,
                           subcategory: book.subcategorySlug,
                           ageGroup: book.ageGroup,
+                          genre: book.genre,
                         });
                         setIsDialogOpen(true);
                       }}

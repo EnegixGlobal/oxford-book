@@ -67,11 +67,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const search = searchParams.get('search') || '';
+  const search = searchParams.get('search') || '';
   const category = searchParams.get('category') || '';
     const subcategory = searchParams.get('subcategory') || '';
     const featured = searchParams.get('featured');
   const ageGroup = searchParams.get('ageGroup') || '';
+  const genre = searchParams.get('genre') || '';
 
     await connectDB();
 
@@ -84,10 +85,11 @@ export async function GET(request: NextRequest) {
       ];
     }
     if (category) query.categorySlug = category;
-    if (subcategory) query.subcategorySlug = subcategory;
+  if (subcategory) query.subcategorySlug = subcategory;
   if (featured === 'true') query.featured = true;
     if (featured === 'false') query.featured = false;
   if (ageGroup) query.ageGroup = ageGroup;
+  if (genre) query.genre = genre;
 
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
@@ -128,10 +130,11 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const {
-      title, author, authorId, description, coverImage, category, subcategory,
+    title, author, authorId, description, coverImage, category, subcategory,
   stock, mrp, discountedPrice, discount, isbn, publisher, binding, language,
-      featured,
+    featured,
   ageGroup,
+    genre,
     } = body;
 
     if (!title || !author || !description || !category || mrp == null || discountedPrice == null || !isbn) {
@@ -154,8 +157,9 @@ export async function POST(request: NextRequest) {
       description,
       coverImage: typeof coverImage === 'string' && coverImage !== '{}' ? coverImage : undefined,
       categorySlug: category,
-      subcategorySlug: subcategory || undefined,
-      ageGroup: ageGroup || undefined,
+  subcategorySlug: subcategory || undefined,
+  ageGroup: ageGroup || undefined,
+  genre: genre || undefined,
       stock: Number(stock) || 0,
       inStock: (Number(stock) || 0) > 0,
       mrp: Number(mrp),
@@ -224,9 +228,10 @@ export async function PUT(request: NextRequest) {
     map('isbn', 'isbn');
     map('publisher', 'publisher');
     map('binding', 'binding');
-    map('language', 'language');
+  map('language', 'language');
     map('featured', 'featured', (v) => !!v);
   map('ageGroup', 'ageGroup');
+  map('genre', 'genre');
 
     // if title is being updated, recompute a unique slug
     if (typeof body.title === 'string' && body.title.trim().length > 0) {

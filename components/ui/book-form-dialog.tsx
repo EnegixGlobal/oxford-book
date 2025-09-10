@@ -47,6 +47,16 @@ export function BookFormDialog({
     { value: 'young-adult', label: 'Young Adult' },
     { value: 'old-man', label: 'Old Man' },
   ];
+  const genreOptions = [
+    { value: 'biography-memoir', label: 'Biography & Memoir' },
+    { value: 'business', label: 'Business' },
+    { value: 'historic-fiction', label: 'Historic Fiction' },
+    { value: 'mega-comic', label: 'Mega Comic' },
+    { value: 'mystery-thriller', label: 'Mystery Thriller' },
+    { value: 'occult-paranormal', label: 'Occult & Paranormal' },
+    { value: 'romance', label: 'Romance' },
+    { value: 'self', label: 'Self' },
+  ];
 
   // Reset dialog-local state when opening or when initialData changes
   useEffect(() => {
@@ -161,6 +171,7 @@ export function BookFormDialog({
       binding: formData.get('binding'),
       language: formData.get('language'),
   ageGroup: formData.get('ageGroup') || undefined,
+  genre: formData.get('genre') || undefined,
       rating: 0,
       reviewCount: 0,
       featured: false
@@ -188,6 +199,19 @@ export function BookFormDialog({
               placeholder="Enter book title"
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="genre">Genre (optional)</Label>
+            <Select name="genre" defaultValue={initialData?.genre}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select genre (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {genreOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="author">Author</Label>

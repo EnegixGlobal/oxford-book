@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const subcategory = searchParams.get('subcategory') || '';
   const featured = searchParams.get('featured');
   const ageGroup = searchParams.get('ageGroup') || '';
+  const genre = searchParams.get('genre') || '';
   const authorId = searchParams.get('authorId');
   const authorSlug = searchParams.get('authorSlug');
   const authorNameParam = searchParams.get('authorName');
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
   if (featured === 'true') andClauses.push({ featured: true });
   if (featured === 'false') andClauses.push({ featured: false });
   if (ageGroup) andClauses.push({ ageGroup });
+  if (genre) andClauses.push({ genre });
 
     // Author filters: support authorId, authorSlug, authorName
     let resolvedAuthorId: string | null = null;

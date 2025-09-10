@@ -10,6 +10,7 @@ export interface IBook extends Document {
 	categorySlug: string;
 	subcategorySlug?: string;
 	ageGroup?: '0-2' | '3-5' | '6-8' | '9-12' | 'teen' | 'young-adult' | 'old-man';
+	genre?: 'biography-memoir' | 'business' | 'historic-fiction' | 'mega-comic' | 'mystery-thriller' | 'occult-paranormal' | 'romance' | 'self';
 	inStock: boolean;
 	stock: number;
 	mrp: number;
@@ -35,6 +36,7 @@ const BookSchema: Schema<IBook> = new Schema(
 		categorySlug: { type: String, required: true, lowercase: true, trim: true },
 		subcategorySlug: { type: String, lowercase: true, trim: true },
 		ageGroup: { type: String, enum: ['0-2', '3-5', '6-8', '9-12', 'teen', 'young-adult', 'old-man'], lowercase: true, trim: true },
+		genre: { type: String, enum: ['biography-memoir', 'business', 'historic-fiction', 'mega-comic', 'mystery-thriller', 'occult-paranormal', 'romance', 'self'], lowercase: true, trim: true },
 		inStock: { type: Boolean, default: true },
 		stock: { type: Number, required: true, min: 0, default: 0 },
 		mrp: { type: Number, required: true, min: 0 },
@@ -51,13 +53,21 @@ const BookSchema: Schema<IBook> = new Schema(
 	{ timestamps: true }
 );
 
-// Text index for search
-BookSchema.index({ title: 'text', description: 'text', authorName: 'text' });
+// Text index for search. Set language_override to a non-conflicting field name so
+// our 'language' property can store values like 'hindi' or 'marathi' without errors.
+// Text index for search (avoid using doc 'language' as language override)
+// Using default_language: 'none' prevents unsupported language override errors (e.g., 'hindi')
+// and language_override points to a non-existent field so doc 'language' is not used.
+BookSchema.index(
+	{ title: 'text', description: 'text', authorName: 'text' },
+	{ default_language: 'none', language_override: 'textLanguage' }
+);
 // Filter indexes
 BookSchema.index({ categorySlug: 1 });
 BookSchema.index({ subcategorySlug: 1 });
 BookSchema.index({ featured: 1 });
 BookSchema.index({ ageGroup: 1 });
+BookSchema.index({ genre: 1 });
 
 // Ensure slug exists prior to validation
 BookSchema.pre('validate', function (next) {
@@ -102,6 +112,12 @@ if (mongoose.models.Book) {
 			ageGroup: { type: String, enum: ['0-2', '3-5', '6-8', '9-12', 'teen', 'young-adult', 'old-man'], lowercase: true, trim: true },
 		});
 		try { BookModel.schema.index({ ageGroup: 1 }); } catch {}
+	}
+	if (!BookModel.schema.path('genre')) {
+		BookModel.schema.add({
+			genre: { type: String, enum: ['biography-memoir', 'business', 'historic-fiction', 'mega-comic', 'mystery-thriller', 'occult-paranormal', 'romance', 'self'], lowercase: true, trim: true },
+		});
+		try { BookModel.schema.index({ genre: 1 }); } catch {}
 	}
 } else {
 	BookModel = mongoose.model<IBook>('Book', BookSchema);
