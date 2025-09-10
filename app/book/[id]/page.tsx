@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Star, ShoppingCart, Share2, Heart, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -10,19 +10,67 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/components/providers/CartProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { sampleBooks, sampleReviews } from '@/lib/sampleData';
+import { sampleReviews } from '@/lib/sampleData';
 import { toast } from 'sonner';
 
-export default function BookPage({ params }: any) {
+export default function BookPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState('');
-  const [reviews, setReviews] = useState(sampleReviews.filter(review => review.bookId === params.id));
+  const [reviews, setReviews] = useState(sampleReviews.filter(review => review.bookId === id));
   const { addToCart } = useCart();
   const { user } = useAuth();
 
-  const book = sampleBooks.find(b => b.id === params.id);
+  const [book, setBook] = useState<any | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  if (!book) {
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/books/${encodeURIComponent(id)}`, { cache: 'no-store' });
+        const json = await res.json();
+        if (!alive) return;
+        if (json?.success && json.data) {
+          const b = json.data;
+          setBook({
+            id: b._id || b.id,
+            title: b.title,
+            isbn: b.isbn,
+            author: b.authorName || b.author,
+            publisher: b.publisher || '',
+            binding: (b.binding || 'paperback').toString(),
+            weight: '',
+            language: b.language || 'english',
+            description: b.description || '',
+            mrp: b.mrp,
+            discountedPrice: b.discountedPrice,
+            rating: b.rating || 0,
+            reviewCount: b.reviewCount || 0,
+            category: b.categorySlug,
+            subcategory: b.subcategorySlug,
+            coverImage: b.coverImage || '/logo.png',
+            inStock: b.inStock,
+            featured: !!b.featured,
+          });
+        } else if (json?.data) {
+          // sample fallback shape already compatible
+          setBook(json.data);
+        } else {
+          setBook(null);
+        }
+      } catch {
+        if (alive) setBook(null);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+    if (id) load();
+    return () => { alive = false; };
+  }, [id]);
+
+  if (!book && !loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -61,7 +109,17 @@ export default function BookPage({ params }: any) {
     toast.success('Review submitted successfully!');
   };
 
-  const discountPercentage = Math.round(((book.mrp - book.discountedPrice) / book.mrp) * 100);
+  if (!book) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl text-gray-700">Loading book details...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  const discountPercentage = Math.round(((book.mrp - book.discountedPrice) / (book.mrp || 1)) * 100);
 
   return (
     <motion.div

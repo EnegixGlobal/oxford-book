@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Package, Settings, Lock } from 'lucide-react';
+import { User, Package, Settings, Lock, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const sidebarItems = [
@@ -24,13 +24,20 @@ const sidebarItems = [
     href: '/profile/change-password',
     description: 'Update your account password'
   },
-  {
+	{
     id: 'orders',
     label: 'My Orders',
     icon: Package,
     href: '/profile/orders',
     description: 'View your order history and track shipments'
-  }
+	},
+	{
+		id: 'shipping-address',
+		label: 'Shipping Address',
+		icon: MapPin,
+		href: '/profile/shipping-address',
+		description: 'Manage your shipping addresses for faster checkout'
+	}
 ];export default function ProfileLayout({
 	children,
 }: {

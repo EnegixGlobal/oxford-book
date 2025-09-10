@@ -134,6 +134,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
     localStorage.removeItem('bookhaven-user');
     localStorage.removeItem('bookhaven-token');
+  // Clear any user-coupled local state
+  localStorage.removeItem('bookhaven-shipping');
   };
 
   return (
