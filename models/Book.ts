@@ -25,6 +25,8 @@ export interface IBook extends Document {
 	featured: boolean;
 			anticipated?: boolean;
 		bestseller?: boolean;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 const BookSchema: Schema<IBook> = new Schema(

@@ -4,7 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, User, Search, Menu, X, LogOut } from 'lucide-react';
+import { ShoppingCart, User, Search, Menu, X, LogOut, Shield } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/providers/CartProvider';
@@ -52,27 +60,37 @@ const Header = () => {
             {/* Right Actions */}
             <div className="flex items-center space-x-4">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="hidden sm:inline text-sm text-gray-600">
-                    Hello, {user.name}
-                  </span>
-                  {user.role === 'admin' && (
-                    <Link href="/admin">
-                      <Button variant="ghost" size="sm">
-                        Admin
+                <div className="flex items-center space-x-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                        <User className="w-5 h-5" />
+                        <span className="hidden sm:inline max-w-[120px] truncate text-left">{user.name}</span>
                       </Button>
-                    </Link>
-                  )}
-                  <Link href="/profile">
-                    <Button variant="ghost" size="sm">
-                      <User className="w-4 h-4" />
-                      <span className="ml-2 hidden sm:inline">Profile</span>
-                    </Button>
-                  </Link>
-                  <Button variant="ghost" size="sm" onClick={logout}>
-                    <LogOut className="w-4 h-4" />
-                    <span className="ml-2 hidden sm:inline">Logout</span>
-                  </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel className="text-xs font-medium text-gray-500">Account</DropdownMenuLabel>
+                      {user.role === 'admin' && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin" className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-fuchsia-600" />
+                            <span>Admin</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile" className="flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          <span>Profile</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-red-600 focus:text-red-700">
+                        <LogOut className="w-4 h-4" />
+                        <span>Logout</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               ) : (
                 <Button 
@@ -85,17 +103,19 @@ const Header = () => {
                 </Button>
               )}
               
-              <Link href="/cart">
-                <Button variant="ghost" size="sm" className="relative">
-                  <ShoppingCart className="w-5 h-5" />
-                  {getTotalItems() > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {getTotalItems()}
-                    </span>
-                  )}
-                  <span className="ml-2 hidden sm:inline">Cart</span>
-                </Button>
-              </Link>
+              {(!user || user.role !== 'admin') && (
+                <Link href="/cart">
+                  <Button variant="ghost" size="sm" className="relative">
+                    <ShoppingCart className="w-5 h-5" />
+                    {getTotalItems() > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {getTotalItems()}
+                      </span>
+                    )}
+                    <span className="ml-2 hidden sm:inline">Cart</span>
+                  </Button>
+                </Link>
+              )}
 
               {/* Mobile Menu Button */}
               <Button

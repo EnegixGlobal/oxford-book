@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Package, Settings, Lock, MapPin } from 'lucide-react';
@@ -38,23 +37,45 @@ const sidebarItems = [
 		href: '/profile/shipping-address',
 		description: 'Manage your shipping addresses for faster checkout'
 	}
-];export default function ProfileLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+];
+
+
+export default function ProfileLayout({ children }: { children: React.ReactNode }) {
 	const { user } = useAuth();
 	const router = useRouter();
 	const pathname = usePathname();
 
-	useEffect(() => {
-		if (!user) {
-			router.push('/');
-			return;
-		}
-	}, [user, router]);
+	// Hidden sections for admin
+	const hiddenForAdmin = useMemo(() => new Set(['orders', 'shipping-address']), []);
+	const currentId = useMemo(
+		() => sidebarItems.find(i => i.href === pathname)?.id,
+		[pathname]
+	);
+	const isAdmin = user?.role === 'admin';
+	const shouldRedirectHidden = !!user && isAdmin && !!currentId && hiddenForAdmin.has(currentId!);
+	const isUnauthenticated = !user;
 
-	if (!user) {
+	// Redirect unauthenticated users to home
+	useEffect(() => {
+		if (isUnauthenticated) {
+			router.push('/');
+		}
+	}, [isUnauthenticated, router]);
+
+	// Redirect admin away from hidden routes
+	useEffect(() => {
+		if (shouldRedirectHidden) {
+			router.replace('/profile/profile-info');
+		}
+	}, [shouldRedirectHidden, router]);
+
+	const itemsToRender = useMemo(() => {
+		if (!user) return [] as typeof sidebarItems;
+		return isAdmin ? sidebarItems.filter(i => !hiddenForAdmin.has(i.id)) : sidebarItems;
+	}, [user, isAdmin, hiddenForAdmin]);
+
+	// While redirecting or unauthenticated, render nothing (hooks already run consistently)
+	if (isUnauthenticated || shouldRedirectHidden) {
 		return null;
 	}
 
@@ -72,7 +93,7 @@ const sidebarItems = [
 								</CardTitle>
 							</CardHeader>
 							<CardContent className="space-y-2">
-								{sidebarItems.map((item) => {
+								{itemsToRender.map((item: typeof sidebarItems[number]) => {
 									const Icon = item.icon;
 									const isActive = pathname === item.href;
 									return (

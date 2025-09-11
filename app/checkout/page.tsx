@@ -282,8 +282,8 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-lg shadow p-6 lg:sticky lg:top-8">
             <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
             <div className="space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between">
+              {cartItems.map((item, index) => (
+                <div key={item.id ? `summary-${item.id}` : `summary-idx-${index}`} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Image src={item.coverImage} alt={item.title} width={40} height={56} className="rounded object-cover" />
                     <div>

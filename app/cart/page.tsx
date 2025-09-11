@@ -64,9 +64,9 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item, index) => (
+      {cartItems.map((item, index) => (
               <motion.div
-                key={item.id}
+        key={item.id ? `cart-${item.id}` : `cart-idx-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -193,9 +193,9 @@ export default function CartPage() {
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recommendedBooks.map((book, index) => (
+        {recommendedBooks.map((book, index) => (
                 <motion.div
-                  key={book.id}
+          key={book.id ? `rec-${book.id}` : `rec-idx-${index}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 + index * 0.1 }}

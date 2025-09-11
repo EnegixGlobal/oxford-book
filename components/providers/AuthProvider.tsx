@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface User {
   id: string;
@@ -38,6 +39,8 @@ interface AuthProviderProps {
 const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Check if user is logged in on mount
@@ -131,11 +134,17 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = () => {
+    const wasAdmin = user?.role === 'admin';
     setUser(null);
     localStorage.removeItem('bookhaven-user');
     localStorage.removeItem('bookhaven-token');
-  // Clear any user-coupled local state
-  localStorage.removeItem('bookhaven-shipping');
+    localStorage.removeItem('bookhaven-shipping');
+    // If on admin pages or admin just logged out, redirect home
+    try {
+      if (pathname?.startsWith('/admin') || wasAdmin) {
+        router.push('/');
+      }
+    } catch {}
   };
 
   return (
