@@ -1,6 +1,6 @@
-'use client';
+"use client";
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
@@ -26,18 +26,17 @@ interface OrderData {
   trackingInfo?: any;
 }
 
-function SuccessClient() {
-  const params = useSearchParams();
+export default function PaymentSuccessClient({ orderId }: { orderId?: string }) {
   const router = useRouter();
   const { user } = useAuth();
-  const mongoOrderId = params.get('orderId');
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(true);
   const [order, setOrder] = useState<OrderData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch order details and attempt verification
   useEffect(() => {
-    if (!mongoOrderId) {
+    if (!orderId) {
       setError('Missing order reference');
       setLoading(false);
       setVerifying(false);
@@ -52,7 +51,7 @@ function SuccessClient() {
     const verifyOnce = async (initial = false) => {
       try {
         if (initial) setLoading(true);
-        const res = await fetch(`/api/orders/${mongoOrderId}`, { headers });
+        const res = await fetch(`/api/orders/${orderId}`, { headers });
         const json = await res.json();
         if (!res.ok || !json.success) {
           setError(json.message || 'Failed to load order');
@@ -70,7 +69,7 @@ function SuccessClient() {
         const vRes = await fetch('/api/payments/phonepe/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...headers },
-          body: JSON.stringify({ orderMongoId: mongoOrderId })
+          body: JSON.stringify({ orderMongoId: orderId })
         });
         const vJson = await vRes.json();
         if (vRes.ok && vJson.success) {
@@ -81,9 +80,8 @@ function SuccessClient() {
             return;
           }
         }
-      } catch {
-        // swallow errors in polling
-      } finally {
+      } catch {}
+      finally {
         setVerifying(false);
       }
     };
@@ -99,11 +97,12 @@ function SuccessClient() {
     }, 3000);
 
     return () => interval && clearInterval(interval);
-  }, [mongoOrderId]);
+  }, [orderId]);
 
   const isPaid = order?.paymentStatus === 'paid';
   const isFailed = order?.paymentStatus === 'failed';
 
+  // Auto redirect to orders page after a short delay once paid
   useEffect(() => {
     if (isPaid) {
       const t = setTimeout(() => {
@@ -197,13 +196,3 @@ function SuccessClient() {
     </motion.div>
   );
 }
-
-export function LoadingFallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 px-4 py-10">
-      <div className="text-center text-gray-600 text-sm">Loading...</div>
-    </div>
-  );
-}
-
-export default SuccessClient;
