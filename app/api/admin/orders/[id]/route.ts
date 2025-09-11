@@ -4,7 +4,7 @@ import { requireAuth, AuthenticatedRequest } from '@/middleware/auth';
 import Order from '@/models/Order';
 import mongoose from 'mongoose';
 
-export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await requireAuth(req);
     if (authResult) return authResult;
@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
     if (authReq.user?.role !== 'admin') {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
-  const { id } = await Promise.resolve(ctx.params);
+  const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 });
     }

@@ -4,13 +4,13 @@ import { requireAuth, AuthenticatedRequest } from '@/middleware/auth';
 import Order from '@/models/Order';
 import mongoose from 'mongoose';
 
-export async function GET(request: NextRequest, ctx: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await requireAuth(request);
     if (authResult) return authResult;
     const authReq = request as AuthenticatedRequest;
     const user = authReq.user!;
-  const { id } = await Promise.resolve(ctx.params);
+  const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid order id' }, { status: 400 });
     }
