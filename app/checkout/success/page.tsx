@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -27,7 +27,7 @@ interface OrderData {
   trackingInfo?: any;
 }
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const params = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -197,5 +197,24 @@ export default function PaymentSuccessPage() {
         )}
       </div>
     </motion.div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 px-4 py-10">
+          <div className="max-w-2xl w-full bg-white shadow-xl rounded-xl p-8">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
+              <p className="text-gray-600">Preparing your order details…</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }
