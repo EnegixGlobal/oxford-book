@@ -42,17 +42,22 @@ export async function POST(req: NextRequest) {
     }
 
     const client = getClient();
-    // Fallback status request builder: SDK type removed for compatibility; using loose any.
+    // Try multiple identifier strategies since SDKs differ
     let resp: any = null;
-    try {
-      const statusReq: any = { merchantOrderId: order.orderId };
-      // @ts-ignore dynamic method (depends on SDK version)
-      if (typeof (client as any).status === 'function') {
-        // @ts-ignore invoke status
-        resp = await (client as any).status(statusReq);
+    const attempts: any[] = [
+      { merchantTransactionId: order.merchantTransactionId || order.orderId },
+      { merchantOrderId: order.orderId },
+      { orderId: (order as any).paymentOrderId },
+    ];
+    for (const statusReq of attempts) {
+      try {
+        if (typeof (client as any).status === 'function') {
+          const r = await (client as any).status(statusReq);
+          if (r) { resp = r; break; }
+        }
+      } catch (err) {
+        console.warn('PhonePe status attempt failed (non-fatal)', { statusReq, err });
       }
-    } catch (err) {
-      console.warn('PhonePe status check failed (non-fatal)', err);
     }
 
     if (resp) {
@@ -83,7 +88,7 @@ export async function POST(req: NextRequest) {
         cancelled: { status: 'Payment failed', timestamp: now }
       } as any;
       await order.save();
-    } else if (!resp && process.env.NODE_ENV !== 'production' && order.paymentStatus === 'pending') {
+  } else if (!resp && process.env.NODE_ENV !== 'production' && order.paymentStatus === 'pending') {
       // Sandbox fallback: if SDK status not available, auto-complete as paid (simulator shows success)
       const now = new Date();
       if (!order.trackingInfo) (order as any).trackingInfo = {};
@@ -96,7 +101,7 @@ export async function POST(req: NextRequest) {
         confirmed: { status: 'Payment confirmed (sandbox auto)' , timestamp: now }
       } as any;
       await order.save();
-    }
+  }
 
   return NextResponse.json({ success: true, data: { order } });
   } catch (e) {
