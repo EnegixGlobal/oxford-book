@@ -11,6 +11,7 @@ import ShopByAge from '@/components/home/ShopByAge';
 import ShopGenre from '@/components/home/ShopGenre';
 import WhatsAppButton from '@/components/common/WhatsAppButton';
 import NavigationMenu from '@/components/layout/NavigationMenu';
+import WhyShopWithUs from '@/components/home/WhyShopWithUs';
 
 export default function Home() {
   return (
@@ -30,8 +31,8 @@ export default function Home() {
       <MostAnticipatedBooks />
       <ShopGenre />
       <ShopByAge />
-    
       <FeaturedAuthors />
+      <WhyShopWithUs />
       <WhatsAppButton />
     </motion.div>
   );

@@ -62,38 +62,46 @@ export default function CartPage() {
     );
   }
 
+  const steps = ['Cart', 'Checkout'];
+  const currentStep = 0;
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-8"
-    >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 space-y-4 sm:space-y-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center w-full">
-            <Link href="/" className="mb-3 sm:mb-0">
-              <Button variant="ghost" className="sm:mr-4 text-sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Continue Shopping
-              </Button>
-            </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              Your Cart ({getTotalItems()} items)
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative min-h-screen py-10 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(168,85,247,0.18),transparent_60%),radial-gradient(circle_at_85%_30%,rgba(236,72,153,0.18),transparent_65%)]" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        {/* Header & Steps */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600">
+              Your Cart <span className="text-gray-400 text-base font-normal">({getTotalItems()} items)</span>
             </h1>
+            <p className="text-sm text-gray-600 mt-1">Review your selected books and proceed to secure checkout.</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm font-medium">
+            {steps.map((s, i) => {
+              const active = i === currentStep;
+              const done = i < currentStep;
+              return (
+                <div key={s} className="flex items-center gap-2">
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center border text-xs ${active ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white border-transparent shadow-lg shadow-purple-300/40' : done ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-300'} transition-colors`}>{i+1}</div>
+                  <span className={`hidden sm:inline ${active ? 'text-purple-700' : done ? 'text-green-600' : 'text-gray-500'}`}>{s}</span>
+                  {i < steps.length - 1 && <div className={`w-10 h-[2px] rounded-full ${i < currentStep ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gray-300'}`} />}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-5">
       {cartItems.map((item, index) => (
               <motion.div
         key={item.id ? `cart-${item.id}` : `cart-idx-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-lg shadow-lg p-4 sm:p-6"
+                className="bg-white/85 backdrop-blur rounded-2xl shadow-xl shadow-purple-200/40 p-4 sm:p-6 border border-white/60"
               >
                 <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4">
                   <Image
@@ -111,21 +119,9 @@ export default function CartPage() {
                     
                     <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
                       <div className="flex items-center space-x-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        >
-                          <Minus className="w-4 h-4" />
-                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="hover:border-purple-400"> <Minus className="w-4 h-4" /></Button>
                         <span className="font-semibold text-lg min-w-8 text-center">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="hover:border-purple-400"> <Plus className="w-4 h-4" /></Button>
                       </div>
                       
                       <div className="flex items-center space-x-4">
@@ -140,12 +136,7 @@ export default function CartPage() {
                           )}
                         </div>
                         
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -163,7 +154,7 @@ export default function CartPage() {
             transition={{ delay: 0.3 }}
             className="lg:col-span-1 order-first lg:order-last"
           >
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:sticky lg:top-8">
+            <div className="bg-gradient-to-b from-white/95 via-white/90 to-white/70 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-8 shadow-xl shadow-pink-200/40 border border-white/60">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
               
               <div className="space-y-3 mb-6">
@@ -184,7 +175,7 @@ export default function CartPage() {
               </div>
               
               <Link href="/checkout" className="block">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-4 sm:py-6 mb-4">
+                <Button className="w-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:opacity-90 text-white text-lg py-4 sm:py-6 mb-4 shadow-lg shadow-purple-300/40">
                   Proceed to Checkout
                 </Button>
               </Link>
@@ -195,8 +186,8 @@ export default function CartPage() {
                 </Button>
               </Link>
               
-              <p className="text-sm text-gray-500 text-center">
-                Free shipping on all orders. Secure checkout guaranteed.
+              <p className="text-xs sm:text-sm text-gray-500 text-center">
+                Free shipping & secure checkout. No hidden fees.
               </p>
             </div>
           </motion.div>

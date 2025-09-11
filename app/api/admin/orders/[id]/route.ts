@@ -4,9 +4,8 @@ import { requireAuth, AuthenticatedRequest } from '@/middleware/auth';
 import Order from '@/models/Order';
 import mongoose from 'mongoose';
 
-// Next.js 15 dynamic API routes now provide params as a Promise that must be awaited.
-interface AsyncRouteContext { params: Promise<{ id: string }> }
-export async function PATCH(req: NextRequest, context: AsyncRouteContext) {
+interface RouteContext { params: { id: string } }
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
   try {
     const authResult = await requireAuth(req);
     if (authResult) return authResult;
@@ -14,7 +13,7 @@ export async function PATCH(req: NextRequest, context: AsyncRouteContext) {
     if (authReq.user?.role !== 'admin') {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
-  const { id } = await context.params; // await params per Next.js requirement
+  const { id } = params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 });
     }
