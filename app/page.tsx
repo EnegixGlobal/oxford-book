@@ -24,7 +24,7 @@ export default function Home() {
         <NavigationMenu />
       </div>
       <HeroSection />
-      <FeaturedCategories />
+      {/* <FeaturedCategories /> */}
       <BookCarousel />
       <BestSellers />
       <MostAnticipatedBooks />

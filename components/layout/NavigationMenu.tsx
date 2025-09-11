@@ -62,14 +62,14 @@ const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
     });
   };
 
-  const allSubcategories = categories.flatMap(cat => (cat.subcategories || []).map(s => s.name));
+  const allSubcategories = categories.flatMap(cat => (cat.subcategories || []).map(s => ({ name: s.name, slug: s.slug })));
 
   if (mobile) {
     return (
       <div className="p-4 space-y-4">
         {categories.map((category) => {
           const isOpen = openCategories.has(category.slug);
-          const subcats = category.slug === 'fiction' ? allSubcategories : (category.subcategories || []).map(s => s.name);
+          const subcats = category.slug === 'fiction' ? allSubcategories : (category.subcategories || []).map(s => ({ name: s.name, slug: s.slug }));
           return (
             <div key={category.slug}>
               <div
@@ -91,13 +91,13 @@ const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
                   transition={{ duration: 0.3 }}
                   className="ml-4 mt-2 space-y-1 overflow-hidden"
                 >
-                  {subcats.map((sub) => (
+          {subcats.map((sub) => (
                     <Link
-                      key={sub}
-                      href={`/category/${category.slug}/${sub.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+            key={sub.slug}
+            href={`/category/${category.slug}/${sub.slug}`}
                       className="block py-1 text-sm text-gray-600 hover:text-purple-600"
                     >
-                      {sub}
+            {sub.name}
                     </Link>
                   ))}
                 </motion.div>

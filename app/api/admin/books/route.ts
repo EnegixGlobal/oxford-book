@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
   const ageGroup = searchParams.get('ageGroup') || '';
   const genre = searchParams.get('genre') || '';
   const anticipated = searchParams.get('anticipated');
+  const bestseller = searchParams.get('bestseller');
 
     await connectDB();
 
@@ -93,6 +94,8 @@ export async function GET(request: NextRequest) {
   if (genre) query.genre = genre;
   if (anticipated === 'true') query.anticipated = true;
   if (anticipated === 'false') query.anticipated = false;
+  if (bestseller === 'true') query.bestseller = true;
+  if (bestseller === 'false') query.bestseller = false;
 
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
@@ -137,6 +140,7 @@ export async function POST(request: NextRequest) {
   stock, mrp, discountedPrice, discount, isbn, publisher, binding, language,
   featured,
   anticipated,
+  bestseller,
   ageGroup,
     genre,
     } = body;
@@ -175,6 +179,7 @@ export async function POST(request: NextRequest) {
       language,
   featured: !!featured,
   anticipated: !!anticipated,
+  bestseller: !!bestseller,
     });
 
     await newBook.save();
@@ -238,6 +243,7 @@ export async function PUT(request: NextRequest) {
   map('ageGroup', 'ageGroup');
   map('genre', 'genre');
   map('anticipated', 'anticipated', (v) => !!v);
+  map('bestseller', 'bestseller', (v) => !!v);
 
     // if title is being updated, recompute a unique slug
     if (typeof body.title === 'string' && body.title.trim().length > 0) {

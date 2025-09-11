@@ -150,50 +150,60 @@ export default function ReviewsPage() {
         />
       </div>
 
-      {/* Reviews Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentReviews.map((review) => (
-          <div
-            key={review.id}
-            className="bg-white rounded-lg shadow p-6 space-y-4 cursor-pointer hover:shadow-md transition"
-            onClick={(e) => {
-              // avoid card click when clicking buttons (stop propagation inside buttons)
-              openReview(review);
-            }}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">{review.book}</h3>
-                <p className="text-sm text-gray-500">by {review.user}</p>
-              </div>
-              {getStatusBadge(review.status)}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {renderStars(review.rating)}
-              <span className="text-sm text-gray-500">({review.rating}/5)</span>
-            </div>
-
-            <p className="text-gray-600 text-sm line-clamp-4">{review.comment}</p>
-
-            <div className="flex items-center justify-between pt-4">
-              <span className="text-sm text-gray-500">{review.date}</span>
-              <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                <Button variant="outline" size="sm" onClick={() => openReview(review)}>
-                  <MessageCircle className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700"
-                  onClick={() => handleDelete(review.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Reviews Table (Column-wise) */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {currentReviews.map((review) => (
+              <tr
+                key={review.id}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => openReview(review)}
+              >
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{review.book}</div>
+                    <div className="text-xs text-gray-500 line-clamp-1 max-w-[520px]">{review.comment}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{review.user}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    {renderStars(review.rating)}
+                    <span className="text-sm text-gray-500">({review.rating}/5)</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(review.status)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{review.date}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="outline" size="sm" onClick={() => openReview(review)}>
+                      <MessageCircle className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDelete(review.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}

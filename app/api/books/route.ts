@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category') || '';
   const subcategory = searchParams.get('subcategory') || '';
   const featured = searchParams.get('featured');
+  const bestseller = searchParams.get('bestseller');
   const anticipated = searchParams.get('anticipated');
   const ageGroup = searchParams.get('ageGroup') || '';
   const genre = searchParams.get('genre') || '';
@@ -44,6 +45,8 @@ export async function GET(request: NextRequest) {
     if (anticipated === 'false') andClauses.push({ anticipated: false });
   if (ageGroup) andClauses.push({ ageGroup });
   if (genre) andClauses.push({ genre });
+  if (bestseller === 'true') andClauses.push({ bestseller: true });
+  if (bestseller === 'false') andClauses.push({ bestseller: false });
 
     // Author filters: support authorId, authorSlug, authorName
     let resolvedAuthorId: string | null = null;
@@ -93,6 +96,7 @@ export async function GET(request: NextRequest) {
   if (ageGroup) books = books.filter((b: any) => (b as any).ageGroup === ageGroup);
     if (featured === 'true') books = books.filter(b => (b as any).featured);
   if (anticipated === 'true') books = books.filter((b: any) => (b as any).anticipated);
+    if (bestseller === 'true') books = books.filter((b: any) => (b as any).bestseller);
     const limited = books.slice(0, limit);
     return NextResponse.json({ success: true, data: limited, pagination: { page: 1, totalPages: 1, totalItems: limited.length, itemsPerPage: limit, hasNext: false, hasPrev: false } });
   }
