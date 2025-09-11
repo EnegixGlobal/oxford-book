@@ -26,7 +26,7 @@ type Address = {
 
 export default function CheckoutPage() {
   const { user, loading } = useAuth();
-  const { cartItems, getTotalItems, getTotalPrice } = useCart();
+  const { cartItems, getTotalItems, getTotalPrice, clearCart } = useCart();
   const [showAuth, setShowAuth] = useState(false);
   const [address, setAddress] = useState<Address>({ fullName: '', phone: '', line1: '', line2: '', city: '', state: '', postalCode: '' });
   const [addressSaved, setAddressSaved] = useState(false);
@@ -103,9 +103,64 @@ export default function CheckoutPage() {
     }
   }, [address, user]);
 
-  const canPay = useMemo(() => {
-    return !!user && addressSaved && getTotalItems() > 0;
-  }, [user, addressSaved, getTotalItems]);
+  const [paying, setPaying] = useState(false);
+  const canPay = useMemo(() => !!user && addressSaved && getTotalItems() > 0 && !paying, [user, addressSaved, getTotalItems, paying]);
+
+  const startPayment = async () => {
+    if (!canPay) return;
+    setPaying(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      // 1. Create order
+      const createRes = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          items: cartItems.map(ci => ({
+            title: ci.title,
+            price: ci.discountedPrice,
+            quantity: ci.quantity,
+            coverImage: ci.coverImage
+          })),
+            shippingAddress: address
+        })
+      });
+      const createJson = await createRes.json();
+      if (!createRes.ok || !createJson.success) {
+        toast.error(createJson.message || 'Failed to create order');
+        setPaying(false);
+        return;
+      }
+      const merchantOrderId = createJson.data.orderId;
+      // 2. Initiate payment
+      const payRes = await fetch('/api/payments/phonepe/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ orderId: merchantOrderId })
+      });
+      const payJson = await payRes.json();
+      if (!payRes.ok || !payJson.success) {
+        toast.error(payJson.message || 'Failed to initiate payment');
+        setPaying(false);
+        return;
+      }
+      // Clear cart pending redirect
+      clearCart();
+      const redirectUrl = payJson.data.redirectUrl;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        toast.success('Payment already completed');
+      }
+    } catch (e) {
+      console.error('Payment error', e);
+      toast.error('Payment failed to start');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   const selectSavedAddress = (id: string) => {
     setSelectedId(id);
@@ -303,7 +358,9 @@ export default function CheckoutPage() {
             <div className="mt-6 space-y-2">
               {!user && <p className="text-sm text-red-600">Please login to continue.</p>}
               {!addressSaved && <p className="text-sm text-orange-600">Save your shipping address to enable payment.</p>}
-              <Button disabled={!canPay} className="w-full bg-green-600 hover:bg-green-700">Pay Now</Button>
+              <Button disabled={!canPay} onClick={startPayment} className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-70">
+                {paying ? 'Processing...' : 'Pay Now'}
+              </Button>
               <Link href="/cart"><Button variant="outline" className="w-full">Back to Cart</Button></Link>
             </div>
           </div>

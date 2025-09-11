@@ -7,16 +7,39 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/components/providers/CartProvider';
 import BookCard from '@/components/books/BookCard';
-import { sampleBooks } from '@/lib/sampleData';
+import { useEffect, useState } from 'react';
 
 export default function CartPage() {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, getTotalItems } = useCart();
+  const [recommendedBooks, setRecommendedBooks] = useState<any[]>([]);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recError, setRecError] = useState<string | null>(null);
 
-  // Get recommended books (exclude items already in cart)
-  const cartBookIds = cartItems.map(item => item.id);
-  const recommendedBooks = sampleBooks
-    .filter(book => !cartBookIds.includes(book.id))
-    .slice(0, 4);
+  useEffect(() => {
+    const fetchRecs = async () => {
+      setRecError(null);
+      setRecLoading(true);
+      try {
+        const exclude = cartItems.map(ci => (ci as any)._id || ci.id).filter(Boolean);
+        const res = await fetch('/api/books/recommended', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ excludeIds: exclude, limit: 8 })
+        });
+        const json = await res.json();
+        if (json.success) {
+          setRecommendedBooks(json.data || []);
+        } else {
+          setRecError(json.message || 'Failed to load');
+        }
+      } catch {
+        setRecError('Failed to load');
+      } finally {
+        setRecLoading(false);
+      }
+    };
+    fetchRecs();
+  }, [cartItems]);
 
   if (cartItems.length === 0) {
     return (
@@ -180,7 +203,7 @@ export default function CartPage() {
         </div>
 
         {/* Recommended Books Section */}
-        {recommendedBooks.length > 0 && (
+        {(recLoading || recError || recommendedBooks.length > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -191,20 +214,48 @@ export default function CartPage() {
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Recommended Books</h2>
               <p className="text-gray-600 text-sm sm:text-base">You might also like these amazing books</p>
             </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {recommendedBooks.map((book, index) => (
-                <motion.div
-          key={book.id ? `rec-${book.id}` : `rec-idx-${index}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + index * 0.1 }}
-                  className="h-full"
-                >
-                  <BookCard book={book} />
-                </motion.div>
-              ))}
-            </div>
+            {recLoading && (
+              <div className="text-center text-sm text-gray-500 py-6">Loading recommendations...</div>
+            )}
+            {recError && !recLoading && (
+              <div className="text-center text-sm text-red-600 py-6">{recError}</div>
+            )}
+            {!recLoading && !recError && (
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {recommendedBooks.map((book, index) => (
+                  <motion.div
+                    key={(book as any)._id ? `rec-${(book as any)._id}` : book.id ? `rec-${book.id}` : `rec-idx-${index}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                    className="h-full"
+                  >
+                    <BookCard book={{
+                      // adapt DB shape to BookCard expected sample shape
+                      id: (book as any)._id || book.id,
+                      title: book.title,
+                      isbn: book.isbn || 'NA',
+                      author: (book as any).authorName || book.author || 'Unknown',
+                      publisher: book.publisher || 'Unknown',
+                      binding: (book.binding || 'paperback') as any,
+                      weight: '0',
+                      language: book.language || 'english',
+                      description: book.description || '',
+                      mrp: book.mrp,
+                      discountedPrice: book.discountedPrice,
+                      rating: book.rating || 0,
+                      reviewCount: book.reviewCount || 0,
+                      category: (book as any).categorySlug || book.category || 'general',
+                      subcategory: (book as any).subcategorySlug,
+                      ageGroup: (book as any).ageGroup,
+                      coverImage: book.coverImage || '/frame.png',
+                      inStock: book.inStock !== false,
+                      featured: (book as any).featured || false,
+                    }} />
+                  </motion.div>
+                ))}
+              </div>
+            )}
             
             <div className="text-center mt-6 sm:mt-8">
               <Link href="/">

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Eye } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,44 +9,8 @@ import { OrderDetailsDialog } from '@/components/ui/order-details-dialog';
 import { AdminPagination } from '@/components/ui/admin-pagination';
 import { toast } from 'sonner';
 
-const sampleOrders = [
-  {
-    id: 'ORD-001',
-    customer: 'John Doe',
-    date: '2025-09-07',
-    total: 2499,
-    status: 'Delivered',
-    items: 3,
-    paymentStatus: 'Paid'
-  },
-  {
-    id: 'ORD-002',
-    customer: 'Jane Smith',
-    date: '2025-09-06',
-    total: 1899,
-    status: 'Processing',
-    items: 2,
-    paymentStatus: 'Paid'
-  },
-  {
-    id: 'ORD-003',
-    customer: 'Mike Johnson',
-    date: '2025-09-06',
-    total: 3299,
-    status: 'Shipped',
-    items: 4,
-    paymentStatus: 'Paid'
-  },
-  {
-    id: 'ORD-004',
-    customer: 'Sarah Williams',
-    date: '2025-09-05',
-    total: 999,
-    status: 'Pending',
-    items: 1,
-    paymentStatus: 'Pending'
-  },
-];
+interface AdminOrderRow { _id:string; orderId:string; customer:string; createdAt:string; totalAmount:number; status:string; itemsCount:number; paymentStatus?: string; }
+type SelectedOrder = AdminOrderRow & { [key:string]: any };
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -65,8 +29,21 @@ const getStatusColor = (status: string) => {
 
 export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [orders, setOrders] = useState(sampleOrders);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [orders, setOrders] = useState<AdminOrderRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('bookhaven-token');
+    fetch('/api/admin/orders', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) setOrders(j.data || []); else setError(j.message || 'Failed to load');
+      })
+      .catch(() => setError('Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+  const [selectedOrder, setSelectedOrder] = useState<SelectedOrder | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -76,16 +53,18 @@ export default function OrdersPage() {
     setDetailsOpen(true);
   };
 
-  const handleUpdateOrder = (id: string, fields: any) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...fields } : o)));
-    setSelectedOrder((prev: any) => (prev && prev.id === id ? { ...prev, ...fields } : prev));
+  const handleUpdateOrder = (orderId: string, fields: any) => {
+    setOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, ...fields } : o)));
+    setSelectedOrder((prev: any) => (prev && prev.orderId === orderId ? { ...prev, ...fields } : prev));
     toast.success('Order updated');
   };
 
-  const filteredOrders = orders.filter(order => 
-    order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrders = orders.filter(order => {
+    const term = searchTerm.toLowerCase();
+    const oid = (order.orderId || '').toString().toLowerCase();
+    const cust = (order.customer || '').toString().toLowerCase();
+    return oid.includes(term) || cust.includes(term);
+  });
 
   // Pagination logic
   const totalItems = filteredOrders.length;
@@ -138,32 +117,38 @@ export default function OrdersPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {currentOrders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
+            {loading && (
+              <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500"><Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Loading orders...</td></tr>
+            )}
+            {error && !loading && (
+              <tr><td colSpan={8} className="px-6 py-8 text-center text-red-600">{error}</td></tr>
+            )}
+            {!loading && !error && currentOrders.map((order) => (
+              <tr key={order._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {order.id}
+                  {order.orderId}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {order.customer}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {order.date}
+                  {new Date(order.createdAt).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                  ₹{order.total}
+                  ₹{order.totalAmount}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={getStatusColor(order.status)}>
-                    {order.status}
-                  </Badge>
+                  <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {order.items}
+                  {order.itemsCount}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge variant={order.paymentStatus === 'Paid' ? 'default' : 'secondary'}>
-                    {order.paymentStatus}
-                  </Badge>
+                  {order.paymentStatus && (
+                    <Badge variant={order.paymentStatus === 'paid' ? 'default' : order.paymentStatus === 'failed' ? 'destructive' : 'secondary'}>
+                      {order.paymentStatus}
+                    </Badge>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>

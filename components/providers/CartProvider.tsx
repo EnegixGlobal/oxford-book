@@ -6,6 +6,8 @@ import type { Book } from '@/lib/sampleData';
 
 interface CartItem extends Book {
   quantity: number;
+  // ensure every cart item has a stable id even if source book used _id
+  id: string;
 }
 
 interface CartContextType {
@@ -48,23 +50,41 @@ const CartProvider = ({ children }: CartProviderProps) => {
     localStorage.setItem('bookhaven-cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (book: Book) => {
+  const addToCart = (book: Book | (Book & { _id?: any })) => {
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === book.id);
-      
+      // derive a stable id (support backend _id or isbn fallback)
+      const rawId: any = (book as any).id ?? (book as any)._id ?? (book as any).isbn;
+      const normalizedId = typeof rawId === 'string' ? rawId : rawId?.toString?.() || `tmp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+
+      const existingItem = prevItems.find(item => item.id === normalizedId);
       if (existingItem) {
         toast.success(`Updated quantity for "${book.title}"`);
         return prevItems.map(item =>
-          item.id === book.id 
+          item.id === normalizedId
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
-      } else {
-        toast.success(`"${book.title}" added to cart`);
-        return [...prevItems, { ...book, quantity: 1 }];
       }
+      toast.success(`"${book.title}" added to cart`);
+      // ensure we store the normalized id even if original lacked id
+      return [...prevItems, { ...book, id: normalizedId, quantity: 1 } as CartItem];
     });
   };
+
+  // One-time normalization for any legacy items without id (to avoid merging)
+  useEffect(() => {
+    setCartItems(prev => {
+      let changed = false;
+      const mapped = prev.map(it => {
+        if (!it.id) {
+          changed = true;
+          return { ...it, id: `fix-${Date.now()}-${Math.random().toString(36).slice(2,8)}` };
+        }
+        return it;
+      });
+      return changed ? mapped : prev;
+    });
+  }, []);
 
   const removeFromCart = (bookId: string) => {
     setCartItems(prevItems => {
