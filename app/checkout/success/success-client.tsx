@@ -45,7 +45,7 @@ export default function PaymentSuccessClient({ orderId }: { orderId?: string }) 
     const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
     const headers: Record<string,string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-    let attempts = 0;
+  let attempts = 0;
     let interval: any;
 
     const verifyOnce = async (initial = false) => {
@@ -89,7 +89,7 @@ export default function PaymentSuccessClient({ orderId }: { orderId?: string }) 
     verifyOnce(true);
     interval = setInterval(() => {
       attempts++;
-      if (attempts >= 5) {
+      if (attempts >= 10) { // extend attempts for slower confirmations
         clearInterval(interval);
         return;
       }

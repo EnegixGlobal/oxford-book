@@ -13,7 +13,9 @@ import {
 const clientId = String(process.env.PHONEPAY_PG_CLIENT_ID || '');
 const clientSecret = String(process.env.PHONEPAY_PG_CLIENT_SECRET || '');
 const clientVersion = Number(process.env.PHONEPAY_PG_CLIENT_VERSION || 2);
-const env = Env.SANDBOX; // TODO: switch based on NODE_ENV / custom env var
+// Allow overriding environment explicitly (PHONEPE_ENV=PRODUCTION) otherwise default SANDBOX
+const phonepeEnv = (process.env.PHONEPE_ENV || 'SANDBOX').toUpperCase();
+const env = phonepeEnv === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
 
 let phonepeClient: StandardCheckoutClient | null = null;
 function getClient() {
@@ -53,8 +55,10 @@ export async function POST(req: NextRequest) {
     }
 
     const metaInfo = MetaInfo.builder().udf1('udf1').udf2('udf2').build();
-    const baseUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
-    const redirectUrl = `${baseUrl}/checkout/success?orderId=${order._id}`;
+  const baseUrl = process.env.PUBLIC_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const redirectUrl = `${baseUrl}/checkout/success?orderId=${order._id}`;
+  // Optional server-side callback (recommended for reliable confirmation)
+  const callbackUrl = process.env.PHONEPE_CALLBACK_URL || `${baseUrl}/api/payments/phonepe/callback`;
 
     // Amount must be integer paise and >= 100 (₹1). Truncate any decimals and enforce min.
     const paiseAmount = Math.max(100, Math.trunc(order.totalAmount * 100));
@@ -68,6 +72,15 @@ export async function POST(req: NextRequest) {
       .redirectUrl(redirectUrl)
       .metaInfo(metaInfo);
 
+    // Attach callbackUrl if SDK supports it (some versions expose callbackUrl function)
+    try {
+      if (typeof builder.callbackUrl === 'function') {
+        builder.callbackUrl(callbackUrl);
+      }
+    } catch (e) {
+      console.warn('[PHONEPE][CREATE] Unable to set callbackUrl', e);
+    }
+
     // Opportunistically add merchantUserId / mobileNumber if SDK supports & we have data
     try {
       if (typeof builder.merchantUserId === 'function') builder.merchantUserId(userId);
@@ -78,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     const payReq = builder.build();
-    console.log('[PHONEPE][CREATE] Request', { merchantOrderId: order.orderId, amount: paiseAmount, redirectUrl });
+  console.log('[PHONEPE][CREATE] Request', { merchantOrderId: order.orderId, amount: paiseAmount, redirectUrl, env: phonepeEnv });
 
     const client = getClient();
   const response = await client.pay(payReq);

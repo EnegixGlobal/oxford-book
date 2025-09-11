@@ -7,7 +7,8 @@ import { StandardCheckoutClient, Env } from 'pg-sdk-node';
 const clientId = String(process.env.PHONEPAY_PG_CLIENT_ID || '');
 const clientSecret = String(process.env.PHONEPAY_PG_CLIENT_SECRET || '');
 const clientVersion = Number(process.env.PHONEPAY_PG_CLIENT_VERSION || 2);
-const env = Env.SANDBOX;
+const phonepeEnv = (process.env.PHONEPE_ENV || 'SANDBOX').toUpperCase();
+const env = phonepeEnv === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
 let phonepeClient: StandardCheckoutClient | null = null;
 function getClient() {
   if (!phonepeClient) {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const client = getClient();
     // Fallback status request builder: SDK type removed for compatibility; using loose any.
-    let resp: any = null;
+  let resp: any = null;
     try {
       const statusReq: any = { merchantOrderId: order.orderId };
       // @ts-ignore dynamic method (depends on SDK version)
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
         cancelled: { status: 'Payment failed', timestamp: now }
       } as any;
       await order.save();
-    } else if (!resp && process.env.NODE_ENV !== 'production' && order.paymentStatus === 'pending') {
+    } else if (!resp && phonepeEnv !== 'PRODUCTION' && order.paymentStatus === 'pending') {
       // Sandbox fallback: if SDK status not available, auto-complete as paid (simulator shows success)
       const now = new Date();
       if (!order.trackingInfo) (order as any).trackingInfo = {};
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
       await order.save();
     }
 
-  return NextResponse.json({ success: true, data: { order } });
+  return NextResponse.json({ success: true, data: { order, env: phonepeEnv, gatewayState: resp?.state || null } });
   } catch (e) {
     console.error('PhonePe verify err', e);
     return NextResponse.json({ success: false, message: 'Verification failed' }, { status: 500 });
