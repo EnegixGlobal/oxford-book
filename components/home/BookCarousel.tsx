@@ -21,8 +21,25 @@ function nineRound(n: number) {
 
 const BookCarousel = () => {
   const [books, setBooks] = useState<any[]>([]);
-  const booksPerSlide = 6; // 6 on desktop
-  const totalSlides = useMemo(() => Math.ceil(books.length / booksPerSlide), [books.length]);
+  const [booksPerSlide, setBooksPerSlide] = useState(6); // desktop default
+  // responsive: single row on mobile (2 items), keep existing (6) on md+ so layout unchanged on desktop
+  useEffect(() => {
+    const compute = () => {
+      if (window.innerWidth < 640) { // < sm
+        setBooksPerSlide(2);
+      } else if (window.innerWidth < 768) { // sm to < md
+        setBooksPerSlide(3);
+      } else if (window.innerWidth < 1024) { // md to < lg
+        setBooksPerSlide(4);
+      } else {
+        setBooksPerSlide(6);
+      }
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
+  const totalSlides = useMemo(() => (booksPerSlide > 0 ? Math.ceil(books.length / booksPerSlide) : 0), [books.length, booksPerSlide]);
   // Infinite carousel state uses cloned first/last slides with index starting at 1 (first real slide)
   const [index, setIndex] = useState(1);
   const [withTransition, setWithTransition] = useState(false);
@@ -48,7 +65,7 @@ const BookCarousel = () => {
       slides.push(page);
     }
     return slides;
-  }, [books, totalSlides]);
+  }, [books, totalSlides, booksPerSlide]);
 
   // Build a long band: many cycles of slides so it never feels like there are only 2 clones
   const cycles = totalSlides >= 1 ?  nineCycles(totalSlides) : 0;
@@ -215,7 +232,7 @@ const BookCarousel = () => {
               const realSlideIndex = ((displayIndex % totalSlides) + totalSlides) % totalSlides;
               const pageBooks = slideContent[realSlideIndex] || [];
               return (
-                <div key={`slide-${displayIndex}`} className="flex-none w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 px-4">
+                <div key={`slide-${displayIndex}`} className="flex-none w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 px-4">
       {pageBooks.map((book, pos) => (
                   <motion.div
     key={`${(book._id || book.id)}-${displayIndex}-${pos}`}
