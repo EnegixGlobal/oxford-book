@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +25,22 @@ const Header = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { getTotalItems } = useCart();
   const { user, logout } = useAuth();
+
+  // Lock body scroll when drawer is open & handle ESC key
+  useEffect(() => {
+    if (isMenuOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsMenuOpen(false);
+      };
+      window.addEventListener('keydown', handleKey);
+      return () => {
+        document.body.style.overflow = original;
+        window.removeEventListener('keydown', handleKey);
+      };
+    }
+  }, [isMenuOpen]);
 
   return (
     <>
@@ -122,9 +138,13 @@ const Header = () => {
                 variant="ghost"
                 size="sm"
                 className="lg:hidden"
+                aria-haspopup="dialog"
+                aria-expanded={isMenuOpen}
+                aria-controls="mobile-nav-drawer"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </div>
           </div>
@@ -142,20 +162,71 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white border-t"
-            >
-              <NavigationMenu mobile />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
+
+      {/* Mobile Side Drawer & Overlay */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Overlay */}
+            <motion.button
+              key="overlay"
+              aria-label="Close navigation menu"
+              className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-40 lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+            />
+            {/* Drawer */}
+            <motion.div
+              key="drawer"
+              id="mobile-nav-drawer"
+              role="dialog"
+              aria-modal="true"
+              className="fixed top-0 left-0 h-full w-72 max-w-full bg-white shadow-xl z-50 flex flex-col lg:hidden"
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: 'tween', duration: 0.28 }}
+            >
+              <div className="flex items-center justify-between px-4 h-16 border-b">
+                <Link href="/" className="flex items-center space-x-2" onClick={() => setIsMenuOpen(false)}>
+                  <Image src="/oxford-logo.png" alt="Oxford Logo" width={110} height={36} className="h-9 w-auto" />
+                </Link>
+                <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(false)}>
+                  <X className="w-5 h-5" />
+                  <span className="sr-only">Close menu</span>
+                </Button>
+              </div>
+              <div className="overflow-y-auto flex-1">
+                <NavigationMenu mobile />
+              </div>
+              <div className="p-4 border-t space-y-2">
+                {user ? (
+                  <>
+                    <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Profile</Link>
+                    {user.role === 'admin' && (
+                      <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Admin Dashboard</Link>
+                    )}
+                    <button
+                      onClick={() => { logout(); setIsMenuOpen(false); }}
+                      className="w-full text-left text-sm font-medium text-red-600 hover:text-red-700"
+                    >Logout</button>
+                  </>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
+                  >Login / Register</Button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <AuthModal 
         isOpen={isAuthModalOpen}
