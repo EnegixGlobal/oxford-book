@@ -242,13 +242,13 @@ const BookCarousel = () => {
                     className="group flex flex-col items-center"
                   >
           <Link href={`/book/${(book as any).slug ?? book._id ?? book.id}`}>
-                      <div className="bg-white rounded-lg shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden w-44">
+                      <div className="bg-white rounded-lg hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden w-44">
                         <div className="relative aspect-[1/1] overflow-hidden">
                           <Image
               src={book.coverImage || '/logo.png'}
                             alt={book.title}
                             fill
-                            className="object-cover"
+                            className="object-contain"
                           />
                           {calculateDiscount(book.mrp, book.discountedPrice) > 0 && (
                             <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">

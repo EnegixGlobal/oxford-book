@@ -101,7 +101,7 @@ export default function BooksPage() {
   const loadBooks = async () => {
     try {
       setLoading(true);
-  const result = await fetchBooks(currentPage, itemsPerPage, searchTerm, ageGroupFilter, genreFilter);
+      const result = await fetchBooks(currentPage, itemsPerPage, searchTerm, ageGroupFilter, genreFilter);
       if (result?.success) {
         setBooks(result.data || []);
         setTotalItems(result.pagination?.totalItems || 0);
@@ -128,6 +128,12 @@ export default function BooksPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Helper to insert break opportunity every 13 characters
+  const wrapTitle = (title: string) => {
+    if (!title) return '';
+    return title.match(/.{1,13}/g)?.join('\u200b') || title; // zero-width space allows wrap
   };
 
   return (
@@ -243,104 +249,98 @@ export default function BooksPage() {
 
       {/* Books Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age Group</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Genre</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {books.map((book) => (
-              <tr key={book._id || book.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <img src={book.coverImage || '/logo.png'} alt={book.title} className="h-10 w-8 object-cover rounded" />
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{book.title}</div>
-                      <div className="text-sm text-gray-500">ISBN: {book.isbn}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{book.authorName || book.author}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {book.ageGroup ? (
-                    <Badge variant="outline">{book.ageGroup}</Badge>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {book.genre ? (
-                    <Badge variant="secondary">{String(book.genre).replace('-', ' ')}</Badge>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{book.discountedPrice?.toFixed ? book.discountedPrice.toFixed(2) : book.discountedPrice}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <Badge className={(book.inStock ? 'bg-green-500' : 'bg-red-500') + ' text-white'}>
-                      {book.inStock ? 'In Stock' : 'Out of Stock'}
-                    </Badge>
-                    {book.anticipated && (
-                      <Badge variant="secondary">Anticipated</Badge>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setDialogMode('edit');
-                        setSelectedBook({
-                          ...book,
-                          author: book.authorName || book.author,
-                          originalPrice: book.mrp,
-                          finalPrice: book.discountedPrice,
-                          category: book.categorySlug,
-                          subcategory: book.subcategorySlug,
-                          ageGroup: book.ageGroup,
-                          genre: book.genre,
-                          anticipated: !!book.anticipated,
-                        });
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-red-600 hover:text-red-700"
-                      onClick={async () => {
-                        if (confirm('Are you sure you want to delete this book?')) {
-                          const res = await deleteBook(book._id || book.id);
-                          if (res?.success) {
-                            toast.success('Book deleted successfully!');
-                            loadBooks();
-                          } else {
-                            toast.error(res?.message || 'Delete failed');
-                          }
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </td>
+        <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[750px]">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Age Group</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Genre</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {books.map((book) => (
+                <tr key={book._id || book.id} className="hover:bg-gray-50 align-top">
+                  <td className="px-4 md:px-6 py-4 text-sm text-gray-900 max-w-[350px] break-words whitespace-normal">
+                    <div className="flex items-start gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={book.coverImage || '/logo.png'} alt={book.title} className="h-12 w-9 object-cover rounded shrink-0" />
+                      <div className="space-y-1 min-w-0">
+                        <div className="font-medium leading-snug break-words break-all">{/* title wraps */}
+                          {wrapTitle(book.title)}
+                        </div>
+                        <div className="text-[11px] text-gray-500">ISBN: {book.isbn}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-4 whitespace-normal text-sm text-gray-500 max-w-[140px] break-words">{book.authorName || book.author}</td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                    {book.ageGroup ? <Badge variant="outline">{book.ageGroup}</Badge> : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                    {book.genre ? <Badge variant="secondary">{String(book.genre).replace('-', ' ')}</Badge> : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{book.discountedPrice?.toFixed ? book.discountedPrice.toFixed(2) : book.discountedPrice}</td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={(book.inStock ? 'bg-green-500' : 'bg-red-500') + ' text-white'}>
+                        {book.inStock ? 'In Stock' : 'Out of Stock'}
+                      </Badge>
+                      {book.anticipated && <Badge variant="secondary">Anticipated</Badge>}
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDialogMode('edit');
+                          setSelectedBook({
+                            ...book,
+                            author: book.authorName || book.author,
+                            originalPrice: book.mrp,
+                            finalPrice: book.discountedPrice,
+                            category: book.categorySlug,
+                            subcategory: book.subcategorySlug,
+                            ageGroup: book.ageGroup,
+                            genre: book.genre,
+                            anticipated: !!book.anticipated,
+                          });
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={async () => {
+                          if (confirm('Are you sure you want to delete this book?')) {
+                            const res = await deleteBook(book._id || book.id);
+                            if (res?.success) {
+                              toast.success('Book deleted successfully!');
+                              loadBooks();
+                            } else {
+                              toast.error(res?.message || 'Delete failed');
+                            }
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {/* Pagination */}
         <AdminPagination
           currentPage={currentPage}
