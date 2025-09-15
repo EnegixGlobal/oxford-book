@@ -88,15 +88,14 @@ const ChangePasswordPage = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Lock className="w-5 h-5" />
-          <span>Change Password</span>
+        <CardTitle className="flex flex-col xs:flex-row items-start xs:items-center gap-2 text-lg sm:text-xl">
+          <span className="flex items-center gap-2"><Lock className="w-5 h-5" /><span>Change Password</span></span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">Current Password</Label>
+            <Label htmlFor="currentPassword" className="text-xs sm:text-sm">Current Password</Label>
             <div className="relative">
               <Input
                 id="currentPassword"
@@ -104,12 +103,12 @@ const ChangePasswordPage = () => {
                 value={formData.currentPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
                 placeholder="Enter your current password"
-                className="pr-10"
+                className="pr-10 h-9 sm:h-10 text-sm"
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('current')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -117,7 +116,7 @@ const ChangePasswordPage = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
+            <Label htmlFor="newPassword" className="text-xs sm:text-sm">New Password</Label>
             <div className="relative">
               <Input
                 id="newPassword"
@@ -125,12 +124,12 @@ const ChangePasswordPage = () => {
                 value={formData.newPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
                 placeholder="Enter your new password"
-                className="pr-10"
+                className="pr-10 h-9 sm:h-10 text-sm"
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('new')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -138,7 +137,7 @@ const ChangePasswordPage = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Label htmlFor="confirmPassword" className="text-xs sm:text-sm">Confirm New Password</Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
@@ -146,12 +145,12 @@ const ChangePasswordPage = () => {
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                 placeholder="Confirm your new password"
-                className="pr-10"
+                className="pr-10 h-9 sm:h-10 text-sm"
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('confirm')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -159,9 +158,9 @@ const ChangePasswordPage = () => {
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-md">
-          <h4 className="text-sm font-medium text-blue-800 mb-2">Password Requirements:</h4>
-          <ul className="text-sm text-blue-700 space-y-1">
+        <div className="bg-blue-50 p-3 sm:p-4 rounded-md">
+          <h4 className="text-xs sm:text-sm font-medium text-blue-800 mb-2">Password Requirements:</h4>
+          <ul className="text-[11px] sm:text-sm text-blue-700 space-y-1">
             <li>• At least 6 characters long</li>
             <li>• Contains at least one uppercase letter</li>
             <li>• Contains at least one lowercase letter</li>
@@ -169,18 +168,21 @@ const ChangePasswordPage = () => {
           </ul>
         </div>
 
-        <div className="flex space-x-4 pt-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
           <Button
             onClick={handleChangePassword}
             disabled={isLoading || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword}
-            className="flex-1"
+            className="flex-1 min-h-9 sm:min-h-10"
+            size="sm"
           >
-            {isLoading ? 'Changing Password...' : 'Change Password'}
+            {isLoading ? 'Changing...' : 'Change Password'}
           </Button>
           <Button
             variant="outline"
             onClick={() => setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' })}
             disabled={isLoading}
+            size="sm"
+            className="sm:min-w-[120px]"
           >
             Clear
           </Button>

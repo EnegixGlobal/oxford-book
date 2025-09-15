@@ -63,43 +63,48 @@ const ProfileInfoPage = () => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Profile Information</CardTitle>
-          <Button
-            onClick={() => setIsEditing(!isEditing)}
-            variant={isEditing ? "outline" : "default"}
-          >
-            {isEditing ? 'Cancel' : 'Edit Profile'}
-          </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-between">
+          <CardTitle className="text-lg sm:text-xl">Profile Information</CardTitle>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              variant={isEditing ? "outline" : "default"}
+              size="sm"
+              className="min-w-[110px]"
+            >
+              {isEditing ? 'Cancel' : 'Edit Profile'}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name" className="text-xs sm:text-sm">Full Name</Label>
             {isEditing ? (
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="h-9 sm:h-10 text-sm"
               />
             ) : (
-              <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md">
+              <div className="flex items-center space-x-2 p-2.5 sm:p-3 bg-gray-50 rounded-md text-sm">
                 <User className="w-4 h-4 text-gray-400" />
-                <span>{user.name}</span>
+                <span className="truncate">{user.name}</span>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md">
-              <span>{user.email}</span>
+            <Label htmlFor="email" className="text-xs sm:text-sm">Email Address</Label>
+            <div className="flex items-center space-x-2 p-2.5 sm:p-3 bg-gray-50 rounded-md text-sm">
+              <span className="truncate">{user.email}</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone" className="text-xs sm:text-sm">Phone Number</Label>
             {isEditing ? (
               <Input
                 id="phone"
@@ -107,25 +112,26 @@ const ProfileInfoPage = () => {
                 value={formData.phone}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="Enter your phone number"
+                className="h-9 sm:h-10 text-sm"
               />
             ) : (
-              <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md">
+              <div className="flex items-center space-x-2 p-2.5 sm:p-3 bg-gray-50 rounded-md text-sm">
                 <Phone className="w-4 h-4 text-gray-400" />
                 <span>{user.phone || 'Not provided'}</span>
               </div>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="role">Account Type</Label>
-            <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md">
-              <span className="capitalize">{user.role}</span>
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-xs sm:text-sm">Account Type</Label>
+              <div className="flex items-center space-x-2 p-2.5 sm:p-3 bg-gray-50 rounded-md text-sm">
+                <span className="capitalize">{user.role}</span>
+              </div>
             </div>
-          </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="address">Address</Label>
+          <Label htmlFor="address" className="text-xs sm:text-sm">Address</Label>
           {isEditing ? (
             <Textarea
               id="address"
@@ -133,43 +139,41 @@ const ProfileInfoPage = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
               placeholder="Enter your address"
               rows={3}
+              className="text-sm"
             />
           ) : (
-            <div className="flex items-start space-x-2 p-3 bg-gray-50 rounded-md">
+            <div className="flex items-start space-x-2 p-2.5 sm:p-3 bg-gray-50 rounded-md text-sm">
               <MapPin className="w-4 h-4 text-gray-400 mt-1" />
-              <span>{user.address || 'Not provided'}</span>
+              <span className="whitespace-pre-line break-words">{user.address || 'Not provided'}</span>
             </div>
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>Account Status</Label>
-          <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-              user.isActive
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
-            }`}>
-              {user.isActive ? 'Active' : 'Inactive'}
-            </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="space-y-2">
+            <Label className="text-xs sm:text-sm">Account Status</Label>
+            <div className="flex items-center space-x-2 p-2.5 sm:p-3 bg-gray-50 rounded-md">
+              <span className={`px-2 py-1 rounded-full text-[10px] sm:text-xs font-medium ${
+                user.isActive
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {user.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </div>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Member Since</Label>
-          <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md">
-            <span>{new Date(user.joinDate).toLocaleDateString()}</span>
+          <div className="space-y-2">
+            <Label className="text-xs sm:text-sm">Member Since</Label>
+            <div className="flex items-center space-x-2 p-2.5 sm:p-3 bg-gray-50 rounded-md text-sm">
+              <span>{new Date(user.joinDate).toLocaleDateString()}</span>
+            </div>
           </div>
         </div>
 
         {isEditing && (
-          <div className="flex space-x-4 pt-4">
-            <Button onClick={handleUpdateProfile}>
-              Save Changes
-            </Button>
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
+            <Button onClick={handleUpdateProfile} size="sm" className="sm:min-w-[140px]">Save Changes</Button>
+            <Button variant="outline" onClick={() => setIsEditing(false)} size="sm" className="sm:min-w-[120px]">Cancel</Button>
           </div>
         )}
       </CardContent>

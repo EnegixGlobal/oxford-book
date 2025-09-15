@@ -67,44 +67,62 @@ export function AdminPagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200">
-      <div className="text-sm text-gray-700">
-        Showing {startItem} to {endItem} of {totalItems} results
+    <div className="bg-white border-t border-gray-200">
+      {/* Mobile Simple Pagination */}
+      <div className="flex sm:hidden items-center justify-between px-3 py-2 gap-3 text-xs">
+        <button
+          onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
+          className={`px-2 h-7 rounded border text-[11px] font-medium ${currentPage === 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+          disabled={currentPage === 1}
+        >Prev</button>
+        <div className="flex flex-col items-center leading-tight">
+          <span className="font-semibold">Page {currentPage} / {totalPages}</span>
+          <span className="text-[10px] text-gray-500">{startItem}-{endItem} of {totalItems}</span>
+        </div>
+        <button
+          onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
+          className={`px-2 h-7 rounded border text-[11px] font-medium ${currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+          disabled={currentPage === totalPages}
+        >Next</button>
       </div>
 
-      <Pagination>
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
-              className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-            />
-          </PaginationItem>
-
-          {getVisiblePages().map((page, index) => (
-            <PaginationItem key={index}>
-              {page === '...' ? (
-                <PaginationEllipsis />
-              ) : (
-                <PaginationLink
-                  onClick={() => onPageChange(page as number)}
-                  isActive={currentPage === page}
-                  className="cursor-pointer"
-                >
-                  {page}
-                </PaginationLink>
-              )}
-            </PaginationItem>
-          ))}
-
-          <PaginationItem>
-            <PaginationNext
-              onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
-              className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+      {/* Desktop / Tablet Pagination */}
+      <div className="px-3 sm:px-4 py-2 sm:py-3 hidden sm:flex sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div className="text-sm text-gray-700 leading-4">Showing {startItem} to {endItem} of {totalItems} results</div>
+        <div className="w-full sm:w-auto">
+          <Pagination>
+            <PaginationContent className="flex flex-nowrap gap-1">
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50 min-w-[38px]' : 'cursor-pointer min-w-[38px]'}
+                />
+              </PaginationItem>
+              {getVisiblePages().map((page, index) => (
+                <PaginationItem key={index} className="flex-shrink-0">
+                  {page === '...' ? (
+                    <PaginationEllipsis className="px-2" />
+                  ) : (
+                    <PaginationLink
+                      onClick={() => onPageChange(page as number)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer min-w-[38px]"
+                    >
+                      {page}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50 min-w-[38px]' : 'cursor-pointer min-w-[38px]'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      </div>
     </div>
   );
 }

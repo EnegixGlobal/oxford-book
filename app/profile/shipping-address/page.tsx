@@ -91,37 +91,27 @@ export default function ShippingAddressPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold mb-4">Saved Addresses</h2>
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-4">Saved Addresses</h2>
         {addresses.length === 0 ? (
-          <p className="text-gray-500">No addresses saved yet.</p>
+          <p className="text-gray-500 text-sm sm:text-base">No addresses saved yet.</p>
         ) : (
           <div className="space-y-3">
             {addresses.map((a) => (
-              <div key={a._id} className={`border rounded p-3 flex items-center justify-between ${a.isDefault ? 'border-purple-400 bg-purple-50' : 'border-gray-200'}`}>
-                <div className="min-w-0">
-                  <div className="font-medium break-words">{a.fullName}</div>
-                  <div className="mt-1 grid grid-cols-[110px_1fr] gap-x-2 gap-y-1 text-sm">
-                    <div className="text-gray-500">Phone:</div>
-                    <div className="text-gray-700 break-words">{a.phone}</div>
-                    <div className="text-gray-500">Address:</div>
-                    <div className="text-gray-700 break-words">{a.line1}</div>
-                    {a.line2 && (
-                      <>
-                        <div className="text-gray-500">Second Address:</div>
-                        <div className="text-gray-700 break-words">{a.line2}</div>
-                      </>
-                    )}
-                    <div className="text-gray-500">City:</div>
-                    <div className="text-gray-700">{a.city}</div>
-                    <div className="text-gray-500">State:</div>
-                    <div className="text-gray-700">{a.state}</div>
-                    <div className="text-gray-500">PIN:</div>
-                    <div className="text-gray-700">{a.postalCode}</div>
+              <div key={a._id} className={`border rounded p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:items-center justify-between ${a.isDefault ? 'border-purple-400 bg-purple-50' : 'border-gray-200'}`}>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium break-words text-sm sm:text-base">{a.fullName}</div>
+                  <div className="mt-2 grid grid-cols-1 text-xs sm:text-sm gap-y-1">
+                    <div className="flex gap-2"><span className="text-gray-500 w-20 shrink-0">Phone:</span><span className="text-gray-700 break-words">{a.phone}</span></div>
+                    <div className="flex gap-2"><span className="text-gray-500 w-20 shrink-0">Address:</span><span className="text-gray-700 break-words">{a.line1}</span></div>
+                    {a.line2 && <div className="flex gap-2"><span className="text-gray-500 w-20 shrink-0">Address 2:</span><span className="text-gray-700 break-words">{a.line2}</span></div>}
+                    <div className="flex gap-2"><span className="text-gray-500 w-20 shrink-0">City:</span><span className="text-gray-700">{a.city}</span></div>
+                    <div className="flex gap-2"><span className="text-gray-500 w-20 shrink-0">State:</span><span className="text-gray-700">{a.state}</span></div>
+                    <div className="flex gap-2"><span className="text-gray-500 w-20 shrink-0">PIN:</span><span className="text-gray-700">{a.postalCode}</span></div>
                   </div>
-                  {a.isDefault && <div className="text-xs text-purple-700 font-semibold mt-2">Default</div>}
+                  {a.isDefault && <div className="text-[10px] sm:text-xs text-purple-700 font-semibold mt-2">Default</div>}
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => { setEditingId(a._id!); setForm({ fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, postalCode: a.postalCode }); setSetAsDefault(!!a.isDefault); }}>Edit</Button>
                   {!a.isDefault && <Button variant="outline" size="sm" onClick={() => makeDefault(a._id!)}>Make Default</Button>}
                   <Button variant="outline" size="sm" className="text-red-600" onClick={() => remove(a._id!)}>Delete</Button>
@@ -132,47 +122,47 @@ export default function ShippingAddressPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold mb-4">{editingId ? 'Edit Address' : 'Add New Address'}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-4">{editingId ? 'Edit Address' : 'Add New Address'}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input id="fullName" value={form.fullName} onChange={(e) => setForm(a => ({ ...a, fullName: e.target.value }))} />
+            <Label htmlFor="fullName" className="text-xs sm:text-sm">Full Name</Label>
+            <Input id="fullName" value={form.fullName} onChange={(e) => setForm(a => ({ ...a, fullName: e.target.value }))} className="h-9 sm:h-10 text-sm" />
           </div>
           <div>
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" value={form.phone} onChange={(e) => setForm(a => ({ ...a, phone: e.target.value }))} />
+            <Label htmlFor="phone" className="text-xs sm:text-sm">Phone</Label>
+            <Input id="phone" value={form.phone} onChange={(e) => setForm(a => ({ ...a, phone: e.target.value }))} className="h-9 sm:h-10 text-sm" />
           </div>
           <div className="md:col-span-2">
-            <Label htmlFor="line1">Address Line 1</Label>
-            <Input id="line1" value={form.line1} onChange={(e) => setForm(a => ({ ...a, line1: e.target.value }))} />
+            <Label htmlFor="line1" className="text-xs sm:text-sm">Address Line 1</Label>
+            <Input id="line1" value={form.line1} onChange={(e) => setForm(a => ({ ...a, line1: e.target.value }))} className="h-9 sm:h-10 text-sm" />
           </div>
           <div className="md:col-span-2">
-            <Label htmlFor="line2">Address Line 2 (optional)</Label>
-            <Input id="line2" value={form.line2} onChange={(e) => setForm(a => ({ ...a, line2: e.target.value }))} />
+            <Label htmlFor="line2" className="text-xs sm:text-sm">Address Line 2 (optional)</Label>
+            <Input id="line2" value={form.line2} onChange={(e) => setForm(a => ({ ...a, line2: e.target.value }))} className="h-9 sm:h-10 text-sm" />
           </div>
           <div>
-            <Label htmlFor="city">City</Label>
-            <Input id="city" value={form.city} onChange={(e) => setForm(a => ({ ...a, city: e.target.value }))} />
+            <Label htmlFor="city" className="text-xs sm:text-sm">City</Label>
+            <Input id="city" value={form.city} onChange={(e) => setForm(a => ({ ...a, city: e.target.value }))} className="h-9 sm:h-10 text-sm" />
           </div>
           <div>
-            <Label htmlFor="state">State</Label>
-            <Input id="state" value={form.state} onChange={(e) => setForm(a => ({ ...a, state: e.target.value }))} />
+            <Label htmlFor="state" className="text-xs sm:text-sm">State</Label>
+            <Input id="state" value={form.state} onChange={(e) => setForm(a => ({ ...a, state: e.target.value }))} className="h-9 sm:h-10 text-sm" />
           </div>
           <div>
-            <Label htmlFor="postal">PIN Code</Label>
-            <Input id="postal" value={form.postalCode} onChange={(e) => setForm(a => ({ ...a, postalCode: e.target.value }))} />
+            <Label htmlFor="postal" className="text-xs sm:text-sm">PIN Code</Label>
+            <Input id="postal" value={form.postalCode} onChange={(e) => setForm(a => ({ ...a, postalCode: e.target.value }))} className="h-9 sm:h-10 text-sm" />
           </div>
-          <div className="md:col-span-2 flex items-center gap-2">
-            <input id="default" type="checkbox" aria-label="Set as default address" checked={setAsDefault} onChange={(e) => setSetAsDefault(e.target.checked)} />
-            <Label htmlFor="default">Set as default</Label>
+          <div className="md:col-span-2 flex items-center gap-2 pt-1">
+            <input id="default" type="checkbox" aria-label="Set as default address" className="h-4 w-4" checked={setAsDefault} onChange={(e) => setSetAsDefault(e.target.checked)} />
+            <Label htmlFor="default" className="text-xs sm:text-sm">Set as default</Label>
           </div>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           {editingId && (
-            <Button variant="outline" onClick={() => { setEditingId(null); setForm({ fullName: '', phone: '', line1: '', line2: '', city: '', state: '', postalCode: '' }); setSetAsDefault(false); }}>Cancel</Button>
+            <Button variant="outline" size="sm" onClick={() => { setEditingId(null); setForm({ fullName: '', phone: '', line1: '', line2: '', city: '', state: '', postalCode: '' }); setSetAsDefault(false); }}>Cancel</Button>
           )}
-          <Button onClick={save} className="bg-purple-600 hover:bg-purple-700">{editingId ? 'Update Address' : 'Save Address'}</Button>
+          <Button onClick={save} size="sm" className="bg-purple-600 hover:bg-purple-700 min-w-[120px]">{editingId ? 'Update Address' : 'Save Address'}</Button>
         </div>
       </div>
     </motion.div>
