@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, FileDown } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,98 @@ export default function UserOrderDetailPage() {
       .finally(() => setLoading(false));
   }, [id, user]);
 
+  const handleDownloadInvoice = () => {
+    if (!order) return;
+    const txnNo = (order.trackingInfo && (order.trackingInfo.paymentId || order.trackingInfo.transactionId)) || order.orderId;
+    const created = new Date(order.createdAt).toLocaleString();
+    // Build items rows
+    const itemRows = order.items.map((it, idx) => {
+      const original = (it as any).mrp || it.price || it.subtotal / it.quantity;
+      const finalUnit = (it as any).discountedPrice || it.price || (it.subtotal / it.quantity);
+      const discountPerUnit = original - finalUnit;
+      const discountPct = original ? ((discountPerUnit / original) * 100).toFixed(0) : '0';
+      return `<tr>
+        <td style=\"padding:6px;border:1px solid #e5e7eb;font-size:12px;\">${idx + 1}</td>
+        <td style=\"padding:6px;border:1px solid #e5e7eb;font-size:12px;\">${it.title}</td>
+        <td style=\"padding:6px;border:1px solid #e5e7eb;text-align:center;font-size:12px;\">${it.quantity}</td>
+        <td style=\"padding:6px;border:1px solid #e5e7eb;text-align:right;font-size:12px;\">₹${original}</td>
+        <td style=\"padding:6px;border:1px solid #e5e7eb;text-align:right;font-size:12px;\;color:#dc2626\">${discountPct}%</td>
+        <td style=\"padding:6px;border:1px solid #e5e7eb;text-align:right;font-size:12px;\">₹${finalUnit}</td>
+        <td style=\"padding:6px;border:1px solid #e5e7eb;text-align:right;font-size:12px;font-weight:600;\">₹${it.subtotal}</td>
+      </tr>`;
+    }).join('');
+
+    const totalMrp = order.items.reduce((sum, it:any) => {
+      const original = it.mrp || it.price || it.subtotal / it.quantity; return sum + (original * it.quantity);
+    }, 0);
+    const totalFinal = order.totalAmount;
+    const totalDiscount = totalMrp - totalFinal;
+
+    const html = `<!DOCTYPE html><html><head><meta charset='utf-8'/><title>Invoice ${order.orderId}</title>
+      <style>
+        body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;padding:24px;color:#111827;}
+        h1{font-size:20px;margin:0 0 4px;font-weight:600;}
+        h2{font-size:14px;margin:24px 0 8px;font-weight:600;}
+        table{border-collapse:collapse;width:100%;}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;}
+        .box{border:1px solid #e5e7eb;border-radius:6px;padding:12px;}
+        .totals td{padding:4px 6px;font-size:12px;}
+        .right{text-align:right;}
+        @media print { .no-print { display:none !important;} body{padding:0;} }
+      </style></head><body>
+      <div style='display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;'>
+        <div>
+          <h1>Invoice</h1>
+          <div style='font-size:12px'>Order No: <strong>${order.orderId}</strong><br/>Transaction No: <strong>${txnNo}</strong><br/>Date: ${created}</div>
+        </div>
+        <div style='text-align:right;font-size:12px'>Status: <strong>${order.status}</strong><br/>Payment: <strong>${order.paymentStatus}</strong></div>
+      </div>
+      <div class='grid' style='margin-top:20px;'>
+        <div class='box'>
+          <div style='font-size:12px;font-weight:600;margin-bottom:6px;'>Billed / Shipped To</div>
+          <div style='font-size:12px;line-height:1.4;'>${order.shippingAddress ? `${order.shippingAddress.fullName}<br/>${order.shippingAddress.line1}${order.shippingAddress.line2 ? '<br/>' + order.shippingAddress.line2 : ''}<br/>${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.postalCode}<br/>Phone: ${order.shippingAddress.phone}` : 'No address'}</div>
+        </div>
+        <div class='box'>
+          <div style='font-size:12px;font-weight:600;margin-bottom:6px;'>Summary</div>
+          <table class='totals' style='width:100%;'>
+            <tbody>
+              <tr><td>Items Total (MRP)</td><td class='right'>₹${totalMrp.toFixed(2)}</td></tr>
+              <tr><td>Discount</td><td class='right' style='color:#dc2626'>-₹${totalDiscount.toFixed(2)}</td></tr>
+              <tr><td style='font-weight:600;'>Grand Total</td><td class='right' style='font-weight:600;'>₹${totalFinal.toFixed(2)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <h2 style='margin-top:28px;'>Items</h2>
+      <table style='margin-top:4px;'>
+        <thead>
+          <tr>
+            <th style='text-align:left;padding:6px;border:1px solid #e5e7eb;font-size:12px;'>S.no</th>
+            <th style='text-align:left;padding:6px;border:1px solid #e5e7eb;font-size:12px;'>Title</th>
+            <th style='text-align:center;padding:6px;border:1px solid #e5e7eb;font-size:12px;'>Qty</th>
+            <th style='text-align:right;padding:6px;border:1px solid #e5e7eb;font-size:12px;'>Original</th>
+            <th style='text-align:right;padding:6px;border:1px solid #e5e7eb;font-size:12px;'>Disc%</th>
+            <th style='text-align:right;padding:6px;border:1px solid #e5e7eb;font-size:12px;'>Final/Unit</th>
+            <th style='text-align:right;padding:6px;border:1px solid #e5e7eb;font-size:12px;'>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+      <p style='margin-top:32px;font-size:11px;color:#6b7280;'>This is a system generated invoice. For support visit the contact page.</p>
+      </body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      win.onload = () => { win.print(); };
+    } else {
+      const a = document.createElement('a');
+      a.href = url; a.download = `invoice-${order.orderId}.html`; a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
   if (!user) return null;
 
   if (loading) {
@@ -68,11 +160,14 @@ export default function UserOrderDetailPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => router.back()} className="flex items-center gap-1"><ArrowLeft className="w-4 h-4" /> Back</Button>
-        <h1 className="text-2xl font-bold">Order {order.orderId}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={() => router.back()} className="hidden sm:inline-flex items-center gap-1"><ArrowLeft className="w-4 h-4" /> Back</Button>
+        <h1 className="text-xl sm:text-2xl font-bold break-words">Order {order.orderId}</h1>
         <Badge>{order.status}</Badge>
         <Badge variant={order.paymentStatus === 'paid' ? 'default' : order.paymentStatus === 'failed' ? 'destructive' : 'secondary'}>{order.paymentStatus}</Badge>
+        <Button onClick={handleDownloadInvoice} size="sm" variant="outline" className="ml-auto sm:ml-0 flex items-center gap-1">
+          <FileDown className="w-4 h-4" /> Invoice
+        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
