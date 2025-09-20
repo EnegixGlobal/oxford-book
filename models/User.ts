@@ -10,6 +10,7 @@ export interface IUser extends Document {
   address?: string;
   joinDate: Date;
   isActive: boolean;
+  wishlist?: mongoose.Types.ObjectId[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -57,7 +58,13 @@ const UserSchema: Schema<IUser> = new Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  wishlist: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Book'
+    }
+  ]
 }, {
   timestamps: true
 });
@@ -92,5 +99,15 @@ UserSchema.methods.toJSON = function() {
   delete userObject.password;
   return userObject;
 };
+
+// In dev with Next.js hot reloading, model definitions can be cached without new fields.
+// If the existing compiled model lacks the wishlist path, delete it and recompile.
+const existing = mongoose.models.User as mongoose.Model<IUser> | undefined;
+if (existing) {
+  const hasWishlist = (existing.schema as any).paths['wishlist'] !== undefined;
+  if (!hasWishlist) {
+    delete mongoose.models.User;
+  }
+}
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

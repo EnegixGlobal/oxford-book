@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, User, Search, Menu, X, LogOut, Shield } from 'lucide-react';
+import { ShoppingCart, User, Search, Menu, X, LogOut, Shield, Heart } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,12 +19,14 @@ import { useCart } from '@/components/providers/CartProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
 import NavigationMenu from './NavigationMenu';
 import AuthModal from '@/components/auth/AuthModal';
+import { useWishlist } from '@/components/providers/WishlistProvider';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { getTotalItems } = useCart();
   const { user, logout } = useAuth();
+  const { wishlist } = useWishlist();
 
   // Lock body scroll when drawer is open & handle ESC key
   useEffect(() => {
@@ -75,6 +77,18 @@ const Header = () => {
 
             {/* Right Actions */}
             <div className="flex items-center space-x-4">
+              {/* Wishlist button */}
+              <Link href="/wishlist" className="hidden sm:block">
+                <Button variant="ghost" size="sm" className="relative">
+                  <Heart className="w-5 h-5" />
+                  {wishlist.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {wishlist.length}
+                    </span>
+                  )}
+                  <span className="ml-2 hidden lg:inline">Wishlist</span>
+                </Button>
+              </Link>
               {user ? (
                 <div className="flex items-center space-x-2">
                   <DropdownMenu>
@@ -100,6 +114,12 @@ const Header = () => {
                           <span>Profile</span>
                         </Link>
                       </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/wishlist" className="flex items-center gap-2">
+                            <Heart className="w-4 h-4 text-pink-600" />
+                            <span>Wishlist</span>
+                          </Link>
+                        </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-red-600 focus:text-red-700">
                         <LogOut className="w-4 h-4" />
@@ -206,6 +226,7 @@ const Header = () => {
                 {user ? (
                   <>
                     <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Profile</Link>
+                    <Link href="/wishlist" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-pink-600">Wishlist {wishlist.length > 0 && <span className="ml-1 text-xs text-pink-600">({wishlist.length})</span>}</Link>
                     {user.role === 'admin' && (
                       <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Admin Dashboard</Link>
                     )}

@@ -179,6 +179,7 @@ export default function BooksPage() {
               genre: data.genre || undefined,
               featured: !!data.featured,
               anticipated: !!data.anticipated,
+              newRelease: !!data.newRelease,
             };
             const res = dialogMode === 'add'
               ? await createBook(payload)
@@ -291,6 +292,7 @@ export default function BooksPage() {
                         {book.inStock ? 'In Stock' : 'Out of Stock'}
                       </Badge>
                       {book.anticipated && <Badge variant="secondary">Anticipated</Badge>}
+                      {book.newRelease && <Badge className="bg-blue-600 text-white">New Release</Badge>}
                     </div>
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -310,6 +312,7 @@ export default function BooksPage() {
                             ageGroup: book.ageGroup,
                             genre: book.genre,
                             anticipated: !!book.anticipated,
+                            newRelease: !!book.newRelease,
                           });
                           setIsDialogOpen(true);
                         }}

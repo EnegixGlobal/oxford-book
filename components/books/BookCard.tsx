@@ -12,10 +12,15 @@ import { sampleReviews } from '@/lib/sampleData';
 
 interface BookCardProps {
   book: Book;
+  showBuyNow?: boolean; // when true, render a Buy Now button below Add to Cart
+  showReviewSnippet?: boolean; // controls rendering of small latest review block (disabled in uniform grids)
 }
 
-const BookCard = ({ book }: BookCardProps) => {
+const BookCard = ({ book, showBuyNow = false, showReviewSnippet = false }: BookCardProps) => {
   const { addToCart } = useCart();
+  // Lazy import useRouter to avoid circular during SSR if needed
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const router = require('next/navigation').useRouter?.();
 
   // Get reviews for this book
   const bookReviews = sampleReviews.filter(review => review.bookId === book.id);
@@ -24,6 +29,12 @@ const BookCard = ({ book }: BookCardProps) => {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addToCart(book);
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addToCart(book);
+    router?.push('/checkout');
   };
 
   const discountPercentage = Math.round(((book.mrp - book.discountedPrice) / book.mrp) * 100);
@@ -35,7 +46,7 @@ const BookCard = ({ book }: BookCardProps) => {
       className="group"
     >
   <Link href={`/book/${(book as any).slug ?? book.id}`}>
-        <div className=" rounded-md overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col max-w-sm">
+  <div className=" rounded-md overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col max-w-sm min-h-[430px]">
           {/* Book Cover */}
           <div className="relative aspect-[1/1] overflow-hidden">
             <Image
@@ -63,11 +74,11 @@ const BookCard = ({ book }: BookCardProps) => {
 
           {/* Book Info */}
           <div className="p-3 flex-grow flex flex-col">
-            <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
+            <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors min-h-[40px]">
               {book.title}
             </h3>
             
-            <p className="text-xs text-gray-600 mb-2">by {book.author}</p>
+            <p className="text-xs text-gray-600 mb-2 min-h-[16px]">by {book.author}</p>
 
             {/* Rating */}
             <div className="flex items-center mb-2">
@@ -89,7 +100,7 @@ const BookCard = ({ book }: BookCardProps) => {
             </div>
 
             {/* Customer Review Section */}
-            {latestReview && (
+            {showReviewSnippet && latestReview && (
               <div className="mb-3 p-2 bg-gray-50 rounded-lg">
                 <div className="flex items-center mb-1">
                   <div className="flex">
@@ -134,15 +145,27 @@ const BookCard = ({ book }: BookCardProps) => {
                 </div>
               </div>
               
-              <Button
-                onClick={handleAddToCart}
-                className="w-full bg-fuchsia-800 hover:bg-purple-900 text-white transition-colors duration-300"
-                size="sm"
-                disabled={!book.inStock}
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                {book.inStock ? 'Add to Cart' : 'Out of Stock'}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  onClick={handleAddToCart}
+                  className="w-full bg-fuchsia-800 hover:bg-purple-900 text-white transition-colors duration-300"
+                  size="sm"
+                  disabled={!book.inStock}
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  {book.inStock ? 'Add to Cart' : 'Out of Stock'}
+                </Button>
+                {showBuyNow && (
+                  <Button
+                    onClick={handleBuyNow}
+                    disabled={!book.inStock}
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:opacity-90 text-white font-medium transition-colors duration-300"
+                  >
+                    Buy Now
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -7,11 +7,13 @@ import BestSellers from '@/components/home/BestSellers';
 import BookCarousel from '@/components/home/BookCarousel';
 import MostAnticipatedBooks from '@/components/home/MostAnticipatedBooks';
 import FeaturedAuthors from '@/components/home/FeaturedAuthors';
+import GoogleReviews from '@/components/home/GoogleReviews';
 import ShopByAge from '@/components/home/ShopByAge';
 import ShopGenre from '@/components/home/ShopGenre';
 import WhatsAppButton from '@/components/common/WhatsAppButton';
 import NavigationMenu from '@/components/layout/NavigationMenu';
 import WhyShopWithUs from '@/components/home/WhyShopWithUs';
+import NewReleases from '@/components/home/NewReleases';
 
 export default function Home() {
   return (
@@ -27,11 +29,13 @@ export default function Home() {
       <HeroSection />
       {/* <FeaturedCategories /> */}
       <BookCarousel />
+  <NewReleases />
       <BestSellers />
       <MostAnticipatedBooks />
       <ShopGenre />
-      <ShopByAge />
-      <FeaturedAuthors />
+      {/* <ShopByAge /> */}
+  <FeaturedAuthors />
+  <GoogleReviews />
       <WhyShopWithUs />
       <WhatsAppButton />
     </motion.div>

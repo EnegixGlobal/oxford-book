@@ -6,9 +6,12 @@ import { Star, ShoppingCart, Share2, Heart, ArrowLeft, CheckCircle2, Sparkles, B
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import BookCard from '@/components/books/BookCard';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/components/providers/CartProvider';
+import { useWishlist } from '@/components/providers/WishlistProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { sampleReviews } from '@/lib/sampleData';
 import { toast } from 'sonner';
@@ -20,12 +23,62 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
   const [reviews, setReviews] = useState(sampleReviews.filter(review => review.bookId === id));
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const router = useRouter();
 
   const [book, setBook] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [showFullDesc, setShowFullDesc] = useState(false);
-  const [wishlisted, setWishlisted] = useState(false);
+  const { has: hasWishlist, toggle: toggleWishlist } = useWishlist();
   const [sharing, setSharing] = useState(false);
+  const [related, setRelated] = useState<any[]>([]);
+  const [relatedHeading, setRelatedHeading] = useState<string>('');
+
+  // Related books strategy:
+  // 1. Try to fetch other books by the same author (using authorName) excluding current.
+  // 2. If that yields zero results, fall back to books in the same category (category slug) excluding current.
+  // 3. Limit display to 8 items. Heading changes based on which source succeeded.
+  useEffect(() => {
+    let active = true;
+    const loadRelated = async () => {
+      if (!book) return;
+      try {
+        // First attempt: same author (by name) excluding current
+        let chosen: any[] = [];
+        let heading = '';
+        if (book.author) {
+          const r = await fetch(`/api/books?authorName=${encodeURIComponent(book.author)}&limit=8&page=1`, { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+          if (r?.success && Array.isArray(r.data)) {
+            chosen = r.data.filter((b: any) => (b._id || b.id) !== book.id);
+            if (chosen.length > 0) {
+              heading = `More by ${book.author}`;
+            }
+          }
+        }
+        // Fallback to same category if author results insufficient (0) and we have a category
+        if ((!chosen || chosen.length === 0) && book.category) {
+          const r2 = await fetch(`/api/books?category=${encodeURIComponent(book.category)}&limit=8&page=1`, { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+          if (r2?.success && Array.isArray(r2.data)) {
+            const filtered = r2.data.filter((b: any) => (b._id || b.id) !== book.id);
+            if (filtered.length) {
+              chosen = filtered;
+              heading = 'More in this Category';
+            }
+          }
+        }
+        if (active) {
+          setRelated(chosen.slice(0, 8));
+          setRelatedHeading(heading);
+        }
+      } catch (e) {
+        if (active) {
+          setRelated([]);
+          setRelatedHeading('');
+        }
+      }
+    };
+    loadRelated();
+    return () => { active = false; };
+  }, [book]);
 
   useEffect(() => {
     let alive = true;
@@ -141,7 +194,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
     book.ageGroup && `Age: ${book.ageGroup}`,
     book.genre && `Genre: ${formatLabel(book.genre)}`,
     discountPercentage > 0 && `Save ${discountPercentage}% (₹${book.mrp - book.discountedPrice})`,
-    (typeof book.stock === 'number') && `Stock: ${book.stock}`,
+    // (typeof book.stock === 'number') && `Stock: ${book.stock}`, // Removed per request: hide numeric stock
     book.inStock ? 'In Stock – Ready to ship' : 'Currently Unavailable'
   ].filter(Boolean) as string[];
 
@@ -210,19 +263,32 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
               </div>
               
               <div className="mt-8 space-y-4">
-                <Button
-                  onClick={() => addToCart(book)}
-                  className="w-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:opacity-90 text-white text-lg py-5 shadow-lg shadow-purple-300/40 disabled:opacity-60"
-                  disabled={!book.inStock}
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  {book.inStock ? 'Add to Cart' : 'Out of Stock'}
-                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => addToCart(book)}
+                    className="w-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:opacity-90 text-white text-lg py-5 shadow-lg shadow-purple-300/40 disabled:opacity-60"
+                    disabled={!book.inStock}
+                  >
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    {book.inStock ? 'Add to Cart' : 'Out of Stock'}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (!book.inStock) return;
+                      addToCart(book);
+                      router.push('/checkout');
+                    }}
+                    className="w-full bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:opacity-90 text-white text-lg py-5 shadow-lg shadow-rose-300/40 disabled:opacity-60"
+                    disabled={!book.inStock}
+                  >
+                    Buy Now
+                  </Button>
+                </div>
                 
                 <div className="flex gap-3 sm:gap-4">
-                  <Button type="button" variant="outline" className={`flex-1 ${wishlisted ? 'border-pink-500 text-pink-600 bg-pink-50' : ''}`} onClick={() => setWishlisted(w => !w)}>
-                    <Heart className={`w-4 h-4 mr-2 ${wishlisted ? 'fill-pink-500 text-pink-500' : ''}`} />
-                    {wishlisted ? 'Wishlisted' : 'Wishlist'}
+                  <Button type="button" variant="outline" className={`flex-1 ${hasWishlist(book.id) ? 'border-pink-500 text-pink-600 bg-pink-50' : ''}`} onClick={() => toggleWishlist(book.id)}>
+                    <Heart className={`w-4 h-4 mr-2 ${hasWishlist(book.id) ? 'fill-pink-500 text-pink-500' : ''}`} />
+                    {hasWishlist(book.id) ? 'Wishlisted' : 'Wishlist'}
                   </Button>
                   <Button type="button" variant="outline" className="flex-1" onClick={handleShare} disabled={sharing}>
                     <Share2 className="w-4 h-4 mr-2" />
@@ -381,12 +447,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     <p className="font-semibold capitalize">{formatLabel(book.genre)}</p>
                   </div>
                 )}
-                {typeof book.stock === 'number' && (
-                  <div>
-                    <p className="text-sm text-gray-600">Stock</p>
-                    <p className="font-semibold">{book.stock}</p>
-                  </div>
-                )}
+                {/** Stock count removed per request */}
                 {typeof book.discount === 'number' && book.discount > 0 && (
                   <div>
                     <p className="text-sm text-gray-600">Discount</p>
@@ -495,6 +556,38 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
           </div>
         </motion.div>
       </div>
+      {/* Related Books Section */}
+      {relatedHeading && related.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mt-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-gray-900">
+              {relatedHeading}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {related.map((r, index) => {
+                const mapped: any = {
+                  id: r._id || r.id,
+                  title: r.title,
+                  author: r.authorName || r.author,
+                  coverImage: r.coverImage || '/logo.png',
+                  mrp: typeof r.mrp === 'number' ? r.mrp : (r.discountedPrice || 0),
+                  discountedPrice: typeof r.discountedPrice === 'number' ? r.discountedPrice : (r.mrp || 0),
+                  rating: r.rating || 0,
+                  reviewCount: r.reviewCount || 0,
+                  featured: !!r.featured,
+                  inStock: r.inStock !== false,
+                  slug: r.slug || (r._id || r.id),
+                };
+                return (
+                  <div key={mapped.id} className="h-full">
+                    <BookCard book={mapped} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

@@ -124,7 +124,7 @@ const MostAnticipatedBooks = () => {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="flex-shrink-0 w-60"
               >
-                <BookCard book={book} />
+                <BookCard book={book} showBuyNow />
               </motion.div>
             ))}
           </div>

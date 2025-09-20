@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Book, Users, Grid, ShoppingCart, MessageSquare, Home, User, Star, Flame } from 'lucide-react';
+import { Book, Users, Grid, ShoppingCart, MessageSquare, Home, User, Star, Flame, Zap } from 'lucide-react';
 
 const sidebarItems = [
   {
@@ -35,6 +35,11 @@ const sidebarItems = [
     title: 'Bestseller',
     href: '/admin/bestseller',
     icon: Flame
+  },
+  {
+    title: 'New Releases',
+    href: '/admin/new-releases',
+    icon: Zap
   },
   {
     title: 'Categories',

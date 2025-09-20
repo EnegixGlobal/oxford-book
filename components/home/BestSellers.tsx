@@ -49,7 +49,7 @@ const BestSellers = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <BookCard book={book as any} />
+              <BookCard book={book as any} showBuyNow />
             </motion.div>
           ))}
         </div>

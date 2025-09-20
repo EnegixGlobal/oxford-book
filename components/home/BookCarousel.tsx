@@ -206,7 +206,7 @@ const BookCarousel = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Featured <span className="text-fuchsia-600">Books</span>
+           Forthcoming  <span className="text-fuchsia-600">Books</span>
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Discover our handpicked selection of bestselling books

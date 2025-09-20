@@ -146,9 +146,9 @@ export function BookFormDialog({
       }
     }
 
-    const originalPrice = Number(formData.get('originalPrice'));
+  const originalPrice = Math.round(Number(formData.get('originalPrice')) || 0);
     const discount = Number(formData.get('discount'));
-    const finalPrice = Number(formData.get('finalPrice'));
+  const finalPrice = Math.round(Number(formData.get('finalPrice')) || 0);
 
     const authorId = selectedAuthorId || (formData.get('authorId') as string | null) || undefined;
     const authorName = authorId ? (authors.find(a => a._id === authorId)?.name || '') : (formData.get('author') as string);
@@ -175,7 +175,8 @@ export function BookFormDialog({
       rating: 0,
       reviewCount: 0,
   featured: false,
-  anticipated: formData.get('anticipated') === 'on'
+  anticipated: formData.get('anticipated') === 'on',
+  newRelease: formData.get('newRelease') === 'on'
     };
   onSubmit(data);
     onOpenChange(false);
@@ -279,7 +280,7 @@ export function BookFormDialog({
                   if (discountInput && finalPriceInput && originalPrice) {
                     const discount = parseFloat(discountInput.value) || 0;
                     const finalPrice = originalPrice - (originalPrice * discount / 100);
-                    finalPriceInput.value = finalPrice.toFixed(2);
+                    finalPriceInput.value = String(Math.round(finalPrice));
                   }
                 }}
               />
@@ -305,7 +306,7 @@ export function BookFormDialog({
                     const originalPrice = parseFloat(originalPriceInput.value);
                     if (originalPrice) {
                       const finalPrice = originalPrice - (originalPrice * discount / 100);
-                      finalPriceInput.value = finalPrice.toFixed(2);
+                      finalPriceInput.value = String(Math.round(finalPrice));
                     }
                   }
                 }}
@@ -320,7 +321,7 @@ export function BookFormDialog({
                 name="finalPrice"
                 type="number"
                 step="0.01"
-                defaultValue={initialData?.discountedPrice || initialData?.price}
+                defaultValue={initialData?.discountedPrice ? Math.round(initialData.discountedPrice) : (initialData?.price ? Math.round(initialData.price) : undefined)}
                 placeholder="Final price after discount"
                 required
                 readOnly
@@ -426,6 +427,13 @@ export function BookFormDialog({
             <div className="flex items-center gap-2">
               <input id="anticipated" name="anticipated" type="checkbox" aria-label="Most Anticipated" defaultChecked={!!initialData?.anticipated} />
               <span className="text-sm text-gray-600">Mark as most anticipated</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="newRelease">New Release (optional)</Label>
+            <div className="flex items-center gap-2">
+              <input id="newRelease" name="newRelease" type="checkbox" aria-label="New Release" defaultChecked={!!initialData?.newRelease} />
+              <span className="text-sm text-gray-600">Mark as newly released</span>
             </div>
           </div>
           <div className="space-y-2">
