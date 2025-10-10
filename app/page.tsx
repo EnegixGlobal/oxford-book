@@ -28,14 +28,15 @@ export default function Home() {
       </div>
       <HeroSection />
       {/* <FeaturedCategories /> */}
-      <BookCarousel />
-  <NewReleases />
+      {/* <BookCarousel /> */}
+      <ShopGenre />
+      <NewReleases />
       <BestSellers />
       <MostAnticipatedBooks />
-      <ShopGenre />
+
       {/* <ShopByAge /> */}
-  <FeaturedAuthors />
-  <GoogleReviews />
+      <FeaturedAuthors />
+      <GoogleReviews />
       <WhyShopWithUs />
       <WhatsAppButton />
     </motion.div>
