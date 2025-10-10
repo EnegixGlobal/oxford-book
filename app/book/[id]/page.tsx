@@ -216,7 +216,12 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="relative min-h-screen py-10 overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="relative min-h-screen py-10 overflow-hidden"
+    >
       {/* Decorative background */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(168,85,247,0.18),transparent_60%),radial-gradient(circle_at_80%_20%,rgba(236,72,153,0.18),transparent_65%)]" />
       <div className="max-w-7xl relative mx-auto px-4 sm:px-6 lg:px-8">
@@ -235,9 +240,13 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
           )}
         </div>
 
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
           {/* Book Image and Actions */}
-          <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <div className="sticky top-8">
               <div className="relative group">
                 <Image
@@ -257,11 +266,13 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                 )}
                 {!book.inStock && (
                   <div className="absolute top-4 right-4">
-                    <Badge className="bg-gray-700 text-white text-xs px-2 py-1">Out of Stock</Badge>
+                    <Badge className="bg-gray-700 text-white text-xs px-2 py-1">
+                      Out of Stock
+                    </Badge>
                   </div>
                 )}
               </div>
-              
+
               <div className="mt-8 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <Button
@@ -270,13 +281,13 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     disabled={!book.inStock}
                   >
                     <ShoppingCart className="w-5 h-5 mr-2" />
-                    {book.inStock ? 'Add to Cart' : 'Out of Stock'}
+                    {book.inStock ? "Add to Cart" : "Out of Stock"}
                   </Button>
                   <Button
                     onClick={() => {
                       if (!book.inStock) return;
                       addToCart(book);
-                      router.push('/checkout');
+                      router.push("/checkout");
                     }}
                     className="w-full bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:opacity-90 text-white text-lg py-5 shadow-lg shadow-rose-300/40 disabled:opacity-60"
                     disabled={!book.inStock}
@@ -284,23 +295,47 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     Buy Now
                   </Button>
                 </div>
-                
+
                 <div className="flex gap-3 sm:gap-4">
-                  <Button type="button" variant="outline" className={`flex-1 ${hasWishlist(book.id) ? 'border-pink-500 text-pink-600 bg-pink-50' : ''}`} onClick={() => toggleWishlist(book.id)}>
-                    <Heart className={`w-4 h-4 mr-2 ${hasWishlist(book.id) ? 'fill-pink-500 text-pink-500' : ''}`} />
-                    {hasWishlist(book.id) ? 'Wishlisted' : 'Wishlist'}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={`flex-1 ${
+                      hasWishlist(book.id)
+                        ? "border-pink-500 text-pink-600 bg-pink-50"
+                        : ""
+                    }`}
+                    onClick={() => toggleWishlist(book.id)}
+                  >
+                    <Heart
+                      className={`w-4 h-4 mr-2 ${
+                        hasWishlist(book.id)
+                          ? "fill-pink-500 text-pink-500"
+                          : ""
+                      }`}
+                    />
+                    {hasWishlist(book.id) ? "Wishlisted" : "Wishlist"}
                   </Button>
-                  <Button type="button" variant="outline" className="flex-1" onClick={handleShare} disabled={sharing}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleShare}
+                    disabled={sharing}
+                  >
                     <Share2 className="w-4 h-4 mr-2" />
-                    {sharing ? 'Sharing...' : 'Share'}
+                    {sharing ? "Sharing..." : "Share"}
                   </Button>
                 </div>
                 {/* Mobile Highlights / Benefits */}
                 <div className="block lg:hidden pt-2 space-y-4">
                   <div className="bg-white/70 backdrop-blur rounded-xl p-4 shadow-md ring-1 ring-white/60">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2"><BookOpen className="h-4 w-4 text-purple-600" /> Highlights</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-purple-600" />{" "}
+                      Highlights
+                    </h3>
                     <ul className="text-xs text-gray-700 grid gap-1.5">
-                      {highlights.slice(0,4).map(h => (
+                      {highlights.slice(0, 4).map((h) => (
                         <li key={h} className="flex items-start gap-2">
                           <span className="mt-1 h-1.5 w-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
                           <span className="leading-snug">{h}</span>
@@ -309,10 +344,22 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     </ul>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-[10px]">
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-purple-50 to-white border border-purple-100"><ShieldCheck className="h-3.5 w-3.5 text-purple-600" /><span>Secure</span></div>
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-pink-50 to-white border border-pink-100"><Truck className="h-3.5 w-3.5 text-pink-600" /><span>Fast Ship</span></div>
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-fuchsia-50 to-white border border-fuchsia-100"><RefreshCw className="h-3.5 w-3.5 text-fuchsia-600" /><span>Easy Return</span></div>
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-rose-50 to-white border border-rose-100"><Sparkles className="h-3.5 w-3.5 text-rose-600" /><span>Quality</span></div>
+                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-purple-50 to-white border border-purple-100">
+                      <ShieldCheck className="h-3.5 w-3.5 text-purple-600" />
+                      <span>Secure</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-pink-50 to-white border border-pink-100">
+                      <Truck className="h-3.5 w-3.5 text-pink-600" />
+                      <span>Fast Ship</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-fuchsia-50 to-white border border-fuchsia-100">
+                      <RefreshCw className="h-3.5 w-3.5 text-fuchsia-600" />
+                      <span>Easy Return</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-br from-rose-50 to-white border border-rose-100">
+                      <Sparkles className="h-3.5 w-3.5 text-rose-600" />
+                      <span>Quality</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -325,7 +372,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     <BookOpen className="h-5 w-5 text-purple-600" /> Highlights
                   </h3>
                   <ul className="text-sm text-gray-700 grid grid-cols-1 gap-2">
-                    {highlights.map(h => (
+                    {highlights.map((h) => (
                       <li key={h} className="flex items-start gap-2">
                         <span className="mt-1 h-1.5 w-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
                         <span>{h}</span>
@@ -356,21 +403,72 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
           </motion.div>
 
           {/* Book Details */}
-          <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="space-y-8">
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="space-y-8"
+          >
             <div className="space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600">
                 {book.title}
               </h1>
-              <p className="text-lg text-gray-700">by <span className="font-semibold text-gray-900">{book.author}</span></p>
+              <p className="text-lg text-gray-700">
+                by{" "}
+                <span className="font-semibold text-gray-900">
+                  {book.author}
+                </span>
+              </p>
               <p className="text-sm text-gray-500">{book.publisher}</p>
               <div className="flex flex-wrap gap-2 pt-1">
-                {book.category && <Badge variant="secondary" className="bg-purple-100 text-purple-700">{book.category}</Badge>}
-                {book.subcategory && <Badge variant="secondary" className="bg-pink-100 text-pink-600">{book.subcategory}</Badge>}
-                {book.language && <Badge variant="outline" className="border-gray-300 text-gray-600">{book.language}</Badge>}
-                {book.ageGroup && <Badge variant="outline" className="border-purple-200 text-purple-600">Age: {book.ageGroup}</Badge>}
-                {book.genre && <Badge variant="outline" className="border-pink-200 text-pink-600">{formatLabel(book.genre)}</Badge>}
-                {book.bestseller && <Badge className="bg-amber-500 text-white">Bestseller</Badge>}
-                {book.anticipated && <Badge className="bg-indigo-500 text-white">Anticipated</Badge>}
+                {book.category && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-purple-100 text-purple-700"
+                  >
+                    {book.category}
+                  </Badge>
+                )}
+                {book.subcategory && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-pink-100 text-pink-600"
+                  >
+                    {book.subcategory}
+                  </Badge>
+                )}
+                {book.language && (
+                  <Badge
+                    variant="outline"
+                    className="border-gray-300 text-gray-600"
+                  >
+                    {book.language}
+                  </Badge>
+                )}
+                {book.ageGroup && (
+                  <Badge
+                    variant="outline"
+                    className="border-purple-200 text-purple-600"
+                  >
+                    Age: {book.ageGroup}
+                  </Badge>
+                )}
+                {book.genre && (
+                  <Badge
+                    variant="outline"
+                    className="border-pink-200 text-pink-600"
+                  >
+                    {formatLabel(book.genre)}
+                  </Badge>
+                )}
+                {book.bestseller && (
+                  <Badge className="bg-amber-500 text-white">Bestseller</Badge>
+                )}
+                {book.anticipated && (
+                  <Badge className="bg-indigo-500 text-white">
+                    Anticipated
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -381,15 +479,18 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                   <Star
                     key={i}
                     className={`w-6 h-6 ${
-                      i < Math.floor(book.rating) 
-                        ? 'text-yellow-400 fill-current' 
-                        : 'text-gray-300'
+                      i < Math.floor(book.rating)
+                        ? "text-yellow-400 fill-current"
+                        : "text-gray-300"
                     }`}
                   />
                 ))}
               </div>
               <span className="text-sm sm:text-lg font-semibold text-gray-800">
-                {book.rating} <span className="font-normal text-gray-500">({book.reviewCount} reviews)</span>
+                {book.rating}{" "}
+                <span className="font-normal text-gray-500">
+                  ({book.reviewCount} reviews)
+                </span>
               </span>
             </div>
 
@@ -398,28 +499,41 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">₹{book.discountedPrice}</span>
+                    <span className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+                      ₹{book.discountedPrice}
+                    </span>
                     {book.mrp > book.discountedPrice && (
-                      <span className="text-base sm:text-xl text-gray-500 line-through">₹{book.mrp}</span>
+                      <span className="text-base sm:text-xl text-gray-500 line-through">
+                        ₹{book.mrp}
+                      </span>
                     )}
                     {discountPercentage > 0 && (
-                      <span className="text-xs sm:text-sm font-medium text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">-{discountPercentage}%</span>
+                      <span className="text-xs sm:text-sm font-medium text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
+                        -{discountPercentage}%
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
                   <p className="text-xs sm:text-sm text-gray-600">You save</p>
                   <p className="text-base sm:text-lg font-semibold text-green-600">
-                    ₹{book.mrp - book.discountedPrice}
+                    ₹{Math.round(book.mrp - book.discountedPrice)}
                   </p>
-                  {discountPercentage > 0 && <p className="text-[10px] sm:text-xs text-green-500 font-medium">Inclusive of all discounts</p>}
+
+                  {discountPercentage > 0 && (
+                    <p className="text-[10px] sm:text-xs text-green-500 font-medium">
+                      Inclusive of all discounts
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Book Details */}
             <div className="bg-white/80 backdrop-blur rounded-xl p-6 shadow-lg shadow-purple-200/30 ring-1 ring-white/60">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Book Details</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Book Details
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-sm text-gray-600">ISBN</p>
@@ -427,12 +541,16 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Binding</p>
-                  <p className="font-semibold capitalize">{formatLabel(book.binding)}</p>
+                  <p className="font-semibold capitalize">
+                    {formatLabel(book.binding)}
+                  </p>
                 </div>
                 {book.language && (
                   <div>
                     <p className="text-sm text-gray-600">Language</p>
-                    <p className="font-semibold capitalize">{formatLabel(book.language)}</p>
+                    <p className="font-semibold capitalize">
+                      {formatLabel(book.language)}
+                    </p>
                   </div>
                 )}
                 {book.ageGroup && (
@@ -444,20 +562,26 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                 {book.genre && (
                   <div>
                     <p className="text-sm text-gray-600">Genre</p>
-                    <p className="font-semibold capitalize">{formatLabel(book.genre)}</p>
+                    <p className="font-semibold capitalize">
+                      {formatLabel(book.genre)}
+                    </p>
                   </div>
                 )}
                 {/** Stock count removed per request */}
-                {typeof book.discount === 'number' && book.discount > 0 && (
+                {typeof book.discount === "number" && book.discount > 0 && (
                   <div>
                     <p className="text-sm text-gray-600">Discount</p>
-                    <p className="font-semibold text-green-600">{book.discount}%</p>
+                    <p className="font-semibold text-green-600">
+                      {book.discount}%
+                    </p>
                   </div>
                 )}
                 {book.createdAt && (
                   <div>
                     <p className="text-sm text-gray-600">Added</p>
-                    <p className="font-semibold">{new Date(book.createdAt).toLocaleDateString()}</p>
+                    <p className="font-semibold">
+                      {new Date(book.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
                 )}
               </div>
@@ -465,17 +589,19 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
 
             {/* Description */}
             <div className="bg-white/80 backdrop-blur rounded-xl p-6 shadow-lg shadow-pink-200/30 ring-1 ring-white/60 relative">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Description</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Description
+              </h3>
               <div className="relative">
                 <AnimatePresence initial={false}>
                   <motion.p
-                    key={showFullDesc ? 'full' : 'truncated'}
+                    key={showFullDesc ? "full" : "truncated"}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     className="text-gray-700 leading-relaxed text-sm md:text-base whitespace-pre-line"
                   >
-                    {displayDescription || 'No description available.'}
+                    {displayDescription || "No description available."}
                   </motion.p>
                 </AnimatePresence>
                 {isLong && !showFullDesc && (
@@ -484,8 +610,13 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
               </div>
               {isLong && (
                 <div className="mt-4">
-                  <Button variant="outline" size="sm" onClick={() => setShowFullDesc(v => !v)} className="border-dashed">
-                    {showFullDesc ? 'Show Less' : 'Read More'}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFullDesc((v) => !v)}
+                    className="border-dashed"
+                  >
+                    {showFullDesc ? "Show Less" : "Read More"}
                   </Button>
                 </div>
               )}
@@ -494,14 +625,28 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
         </div>
 
         {/* Reviews Section */}
-        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4 }} className="mt-16">
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mt-16"
+        >
           <div className="bg-white/85 backdrop-blur rounded-2xl p-8 shadow-xl shadow-purple-200/30 ring-1 ring-white/60">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-2">Customer Reviews {reviews.length > 0 && <span className="text-sm text-gray-500 font-normal">({reviews.length})</span>}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-2">
+              Customer Reviews{" "}
+              {reviews.length > 0 && (
+                <span className="text-sm text-gray-500 font-normal">
+                  ({reviews.length})
+                </span>
+              )}
+            </h2>
 
             {/* Submit Review */}
             {user && (
               <div className="mb-8 p-6 bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 rounded-xl ring-1 ring-purple-100/40">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Write a Review</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Write a Review
+                </h3>
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">Rating</p>
                   <div className="flex items-center">
@@ -509,7 +654,9 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                       <Star
                         key={i}
                         className={`w-6 h-6 cursor-pointer ${
-                          i < userRating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          i < userRating
+                            ? "text-yellow-400 fill-current"
+                            : "text-gray-300"
                         }`}
                         onClick={() => setUserRating(i + 1)}
                       />
@@ -523,7 +670,10 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                   className="mb-4 focus-visible:ring-purple-500"
                   rows={4}
                 />
-                <Button onClick={handleSubmitReview} className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:opacity-90 shadow">
+                <Button
+                  onClick={handleSubmitReview}
+                  className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:opacity-90 shadow"
+                >
                   Submit Review
                 </Button>
               </div>
@@ -531,9 +681,15 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
 
             <div className="space-y-6">
               {reviews.map((review) => (
-                <div key={review.id} className="border-b border-gray-200/70 pb-6 last:border-b-0">
+                <div
+                  key={review.id}
+                  className="border-b border-gray-200/70 pb-6 last:border-b-0"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900 flex items-center gap-1">{review.userName} <CheckCircle2 className="h-3 w-3 text-green-500" /></h4>
+                    <h4 className="font-semibold text-gray-900 flex items-center gap-1">
+                      {review.userName}{" "}
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    </h4>
                     <span className="text-sm text-gray-500">{review.date}</span>
                   </div>
                   <div className="flex items-center mb-3">
@@ -541,16 +697,22 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                       <Star
                         key={i}
                         className={`w-4 h-4 ${
-                          i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          i < review.rating
+                            ? "text-yellow-400 fill-current"
+                            : "text-gray-300"
                         }`}
                       />
                     ))}
                   </div>
-                  <p className="text-gray-700 text-sm leading-relaxed">{review.comment}</p>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {review.comment}
+                  </p>
                 </div>
               ))}
               {reviews.length === 0 && (
-                <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to review this book!</p>
+                <p className="text-gray-500 text-center py-8">
+                  No reviews yet. Be the first to review this book!
+                </p>
               )}
             </div>
           </div>
@@ -558,7 +720,12 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
       </div>
       {/* Related Books Section */}
       {relatedHeading && related.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mt-20">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mt-20"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl md:text-3xl font-bold mb-8 text-gray-900">
               {relatedHeading}
@@ -569,14 +736,18 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                   id: r._id || r.id,
                   title: r.title,
                   author: r.authorName || r.author,
-                  coverImage: r.coverImage || '/logo.png',
-                  mrp: typeof r.mrp === 'number' ? r.mrp : (r.discountedPrice || 0),
-                  discountedPrice: typeof r.discountedPrice === 'number' ? r.discountedPrice : (r.mrp || 0),
+                  coverImage: r.coverImage || "/logo.png",
+                  mrp:
+                    typeof r.mrp === "number" ? r.mrp : r.discountedPrice || 0,
+                  discountedPrice:
+                    typeof r.discountedPrice === "number"
+                      ? r.discountedPrice
+                      : r.mrp || 0,
                   rating: r.rating || 0,
                   reviewCount: r.reviewCount || 0,
                   featured: !!r.featured,
                   inStock: r.inStock !== false,
-                  slug: r.slug || (r._id || r.id),
+                  slug: r.slug || r._id || r.id,
                 };
                 return (
                   <div key={mapped.id} className="h-full">
