@@ -500,7 +500,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                 <div>
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-                      ₹{book.discountedPrice}
+                      ₹{Math.round(book.discountedPrice)}
                     </span>
                     {book.mrp > book.discountedPrice && (
                       <span className="text-base sm:text-xl text-gray-500 line-through">
