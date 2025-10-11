@@ -32,7 +32,7 @@ export default function Home() {
       <ShopGenre />
       <NewReleases />
       <BestSellers />
-      <MostAnticipatedBooks />
+      {/* <MostAnticipatedBooks /> */}
 
       {/* <ShopByAge /> */}
       <FeaturedAuthors />
