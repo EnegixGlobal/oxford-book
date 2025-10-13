@@ -62,15 +62,20 @@ const HeroSection = () => {
     <>
       <section className="relative text-white py-0 sm:py-6 lg:py-24 flex items-center overflow-hidden min-h-[500px] sm:min-h-[600px] lg:min-h-[550px]">
         {/* Background Images */}
-        {backgroundImages.map((image, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ${
-              index === currentImageIndex ? "opacity-100" : "opacity-0"
-            }`}
-            style={{ backgroundImage: `url(${image})` }}
-          />
-        ))}
+        <div className="absolute inset-y-0 left-4 right-4 sm:left-16 sm:right-16 lg:left-8 lg:right-8">
+          {backgroundImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 bg-center bg-no-repeat transition-opacity duration-1000 ${
+                index === currentImageIndex ? "opacity-100" : "opacity-0"
+              }`}
+              style={{
+                backgroundImage: `url(${image})`,
+                backgroundSize: "100% 100%",
+              }}
+            />
+          ))}
+        </div>
 
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black/20 sm:bg-black/10"></div>
@@ -79,7 +84,7 @@ const HeroSection = () => {
         <div className="hidden sm:block">
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-all duration-300 group"
+            className="absolute left-12 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-all duration-300 group"
             aria-label="Previous slide"
           >
             <svg
@@ -99,7 +104,7 @@ const HeroSection = () => {
 
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-all duration-300 group"
+            className="absolute right-12 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-all duration-300 group"
             aria-label="Next slide"
           >
             <svg
