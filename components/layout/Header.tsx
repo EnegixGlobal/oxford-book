@@ -28,6 +28,37 @@ const Header = () => {
   const { user, logout } = useAuth();
   const { wishlist } = useWishlist();
 
+  // book data check
+  const [searchResults, setSearchResults] = useState([]);
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // 🔍 handleSearch function
+  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+
+
+    if (term.trim().length > 1) {
+      const url = new URL('/api/books', window.location.origin);
+      url.searchParams.set('search', term);
+
+      // smart logic: agar chhoti search hai, limit lagao
+      if (term.length < 3) url.searchParams.set('limit', '8');
+
+      try {
+        const res = await fetch(url.toString(), { cache: 'no-store' });
+        const data = await res.json();
+        setSearchResults(data?.data || []);
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+
   // Lock body scroll when drawer is open & handle ESC key
   useEffect(() => {
     if (isMenuOpen) {
@@ -61,7 +92,6 @@ const Header = () => {
             </Link>
 
             {/* Desktop Navigation */}
-            
 
             {/* Search Bar */}
             <div className="hidden md:flex items-center space-x-4 flex-1 max-w-md mx-8">
@@ -71,7 +101,32 @@ const Header = () => {
                   type="text"
                   placeholder="Search for books, authors, or ISBN..."
                   className="pl-10 pr-4 py-2 w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500"
+                  onChange={handleSearch}
+                  value={searchTerm}
                 />
+
+                {/*  Live Search Suggestions */}
+                {searchTerm.length > 1 && searchResults.length > 0 && (
+                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {searchResults.map((book: any) => (
+                      <Link
+                        key={book._id}
+                        href={`/book/${book._id}`}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                        onClick={() => setSearchTerm('')}
+                      >
+                        {book.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {/* No result */}
+                {searchTerm.length > 1 && searchResults.length === 0 && (
+                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-500 p-2">
+                    No books found.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -89,17 +144,22 @@ const Header = () => {
                   <span className="ml-2 hidden lg:inline">Wishlist</span>
                 </Button>
               </Link>
+
               {user ? (
                 <div className="flex items-center space-x-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="flex items-center gap-2">
                         <User className="w-5 h-5" />
-                        <span className="hidden sm:inline max-w-[120px] truncate text-left">{user.name}</span>
+                        <span className="hidden sm:inline max-w-[120px] truncate text-left">
+                          {user.name}
+                        </span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel className="text-xs font-medium text-gray-500">Account</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs font-medium text-gray-500">
+                        Account
+                      </DropdownMenuLabel>
                       {user.role === 'admin' && (
                         <DropdownMenuItem asChild>
                           <Link href="/admin" className="flex items-center gap-2">
@@ -114,14 +174,17 @@ const Header = () => {
                           <span>Profile</span>
                         </Link>
                       </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/wishlist" className="flex items-center gap-2">
-                            <Heart className="w-4 h-4 text-pink-600" />
-                            <span>Wishlist</span>
-                          </Link>
-                        </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/wishlist" className="flex items-center gap-2">
+                          <Heart className="w-4 h-4 text-pink-600" />
+                          <span>Wishlist</span>
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-red-600 focus:text-red-700">
+                      <DropdownMenuItem
+                        onClick={logout}
+                        className="flex items-center gap-2 text-red-600 focus:text-red-700"
+                      >
                         <LogOut className="w-4 h-4" />
                         <span>Logout</span>
                       </DropdownMenuItem>
@@ -129,8 +192,8 @@ const Header = () => {
                   </DropdownMenu>
                 </div>
               ) : (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => setIsAuthModalOpen(true)}
                 >
@@ -138,7 +201,7 @@ const Header = () => {
                   <span className="ml-2 hidden sm:inline">Login</span>
                 </Button>
               )}
-              
+
               {(!user || user.role !== 'admin') && (
                 <Link href="/cart">
                   <Button variant="ghost" size="sm" className="relative">
@@ -181,7 +244,6 @@ const Header = () => {
             </div>
           </div>
         </div>
-
       </header>
 
       {/* Mobile Side Drawer & Overlay */}
@@ -211,8 +273,18 @@ const Header = () => {
               transition={{ type: 'tween', duration: 0.28 }}
             >
               <div className="flex items-center justify-between px-4 h-16 border-b">
-                <Link href="/" className="flex items-center space-x-2" onClick={() => setIsMenuOpen(false)}>
-                  <Image src="/oxford-logo.png" alt="Oxford Logo" width={110} height={36} className="h-9 w-auto" />
+                <Link
+                  href="/"
+                  className="flex items-center space-x-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Image
+                    src="/oxford-logo.png"
+                    alt="Oxford Logo"
+                    width={110}
+                    height={36}
+                    className="h-9 w-auto"
+                  />
                 </Link>
                 <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(false)}>
                   <X className="w-5 h-5" />
@@ -225,23 +297,55 @@ const Header = () => {
               <div className="p-4 border-t space-y-2">
                 {user ? (
                   <>
-                    <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Profile</Link>
-                    <Link href="/wishlist" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-pink-600">Wishlist {wishlist.length > 0 && <span className="ml-1 text-xs text-pink-600">({wishlist.length})</span>}</Link>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600"
+                    >
+                      Profile
+                    </Link>
+                    <Link
+                      href="/wishlist"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block w-full text-left text-sm font-medium text-gray-700 hover:text-pink-600"
+                    >
+                      Wishlist {wishlist.length > 0 && (
+                        <span className="ml-1 text-xs text-pink-600">
+                          ({wishlist.length})
+                        </span>
+                      )}
+                    </Link>
                     {user.role === 'admin' && (
-                      <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Admin Dashboard</Link>
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600"
+                      >
+                        Admin Dashboard
+                      </Link>
                     )}
                     <button
-                      onClick={() => { logout(); setIsMenuOpen(false); }}
+                      onClick={() => {
+                        logout();
+                        setIsMenuOpen(false);
+                      }}
                       className="w-full text-left text-sm font-medium text-red-600 hover:text-red-700"
-                    >Logout</button>
+                    >
+                      Logout
+                    </button>
                   </>
                 ) : (
                   <Button
                     variant="default"
                     size="sm"
                     className="w-full"
-                    onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
-                  >Login / Register</Button>
+                    onClick={() => {
+                      setIsAuthModalOpen(true);
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Login / Register
+                  </Button>
                 )}
               </div>
             </motion.div>
@@ -249,7 +353,7 @@ const Header = () => {
         )}
       </AnimatePresence>
 
-      <AuthModal 
+      <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
