@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
     if (bestseller === 'true') andClauses.push({ bestseller: true });
     if (bestseller === 'false') andClauses.push({ bestseller: false });
 
+
     // Author filters: support authorId, authorSlug, authorName
     let resolvedAuthorId: string | null = null;
     let resolvedAuthorName: string | null = authorNameParam && authorNameParam.trim() ? authorNameParam.trim() : null;
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
       Book.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Book.countDocuments(query)
     ]);
+
 
     return NextResponse.json({
       success: true,

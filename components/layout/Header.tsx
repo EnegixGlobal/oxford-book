@@ -30,14 +30,12 @@ const Header = () => {
 
   // book data check
   const [searchResults, setSearchResults] = useState([]);
-
   const [searchTerm, setSearchTerm] = useState('');
 
   // 🔍 handleSearch function
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
     setSearchTerm(term);
-
 
     if (term.trim().length > 1) {
       const url = new URL('/api/books', window.location.origin);
@@ -57,7 +55,6 @@ const Header = () => {
       setSearchResults([]);
     }
   };
-
 
   // Lock body scroll when drawer is open & handle ESC key
   useEffect(() => {
@@ -91,9 +88,7 @@ const Header = () => {
               />
             </Link>
 
-            {/* Desktop Navigation */}
-
-            {/* Search Bar */}
+            {/* Desktop Search Bar */}
             <div className="hidden md:flex items-center space-x-4 flex-1 max-w-md mx-8">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -105,7 +100,7 @@ const Header = () => {
                   value={searchTerm}
                 />
 
-                {/*  Live Search Suggestions */}
+                {/* Desktop Live Search */}
                 {searchTerm.length > 1 && searchResults.length > 0 && (
                   <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
                     {searchResults.map((book: any) => (
@@ -120,8 +115,6 @@ const Header = () => {
                     ))}
                   </div>
                 )}
-
-                {/* No result */}
                 {searchTerm.length > 1 && searchResults.length === 0 && (
                   <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-500 p-2">
                     No books found.
@@ -132,7 +125,7 @@ const Header = () => {
 
             {/* Right Actions */}
             <div className="flex items-center space-x-4">
-              {/* Wishlist button */}
+              {/* Wishlist */}
               <Link href="/wishlist" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className="relative">
                   <Heart className="w-5 h-5" />
@@ -232,126 +225,40 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Mobile Search */}
-          <div className="md:hidden pb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Search books..."
-                className="pl-10 pr-4 py-2 w-full"
-              />
-            </div>
+          {/*  Mobile Search  */}
+          <div className="md:hidden pb-4 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Search books..."
+              className="pl-10 pr-4 py-2 w-full"
+              onChange={handleSearch}       
+              value={searchTerm}           
+            />
+
+            {/*  Mobile search results */}
+            {searchTerm.length > 1 && searchResults.length > 0 && (
+              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                {searchResults.map((book: any) => (
+                  <Link
+                    key={book._id}
+                    href={`/book/${book._id}`}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    {book.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+            {searchTerm.length > 1 && searchResults.length === 0 && (
+              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-500 p-2">
+                No books found.
+              </div>
+            )}
           </div>
         </div>
       </header>
-
-      {/* Mobile Side Drawer & Overlay */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            {/* Overlay */}
-            <motion.button
-              key="overlay"
-              aria-label="Close navigation menu"
-              className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-40 lg:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-            />
-            {/* Drawer */}
-            <motion.div
-              key="drawer"
-              id="mobile-nav-drawer"
-              role="dialog"
-              aria-modal="true"
-              className="fixed top-0 left-0 h-full w-72 max-w-full bg-white shadow-xl z-50 flex flex-col lg:hidden"
-              initial={{ x: -320 }}
-              animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              transition={{ type: 'tween', duration: 0.28 }}
-            >
-              <div className="flex items-center justify-between px-4 h-16 border-b">
-                <Link
-                  href="/"
-                  className="flex items-center space-x-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Image
-                    src="/oxford-logo.png"
-                    alt="Oxford Logo"
-                    width={110}
-                    height={36}
-                    className="h-9 w-auto"
-                  />
-                </Link>
-                <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(false)}>
-                  <X className="w-5 h-5" />
-                  <span className="sr-only">Close menu</span>
-                </Button>
-              </div>
-              <div className="overflow-y-auto flex-1">
-                <NavigationMenu mobile />
-              </div>
-              <div className="p-4 border-t space-y-2">
-                {user ? (
-                  <>
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600"
-                    >
-                      Profile
-                    </Link>
-                    <Link
-                      href="/wishlist"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="block w-full text-left text-sm font-medium text-gray-700 hover:text-pink-600"
-                    >
-                      Wishlist {wishlist.length > 0 && (
-                        <span className="ml-1 text-xs text-pink-600">
-                          ({wishlist.length})
-                        </span>
-                      )}
-                    </Link>
-                    {user.role === 'admin' && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600"
-                      >
-                        Admin Dashboard
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        logout();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full text-left text-sm font-medium text-red-600 hover:text-red-700"
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => {
-                      setIsAuthModalOpen(true);
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    Login / Register
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       <AuthModal
         isOpen={isAuthModalOpen}
