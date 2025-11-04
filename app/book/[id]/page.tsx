@@ -39,6 +39,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
   // 3. Limit display to 8 items. Heading changes based on which source succeeded.
   useEffect(() => {
     let active = true;
+
     const loadRelated = async () => {
       if (!book) return;
       try {
@@ -193,7 +194,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
     book.binding && `Format: ${formatLabel(book.binding)}`,
     book.ageGroup && `Age: ${book.ageGroup}`,
     book.genre && `Genre: ${formatLabel(book.genre)}`,
-    discountPercentage > 0 && `Save ${discountPercentage}% (₹${book.mrp - book.discountedPrice})`,
+    discountPercentage > 0 && `Save ${discountPercentage}% (₹${Math.round( book.mrp - book.discountedPrice)})`,
     // (typeof book.stock === 'number') && `Stock: ${book.stock}`, // Removed per request: hide numeric stock
     book.inStock ? 'In Stock – Ready to ship' : 'Currently Unavailable'
   ].filter(Boolean) as string[];

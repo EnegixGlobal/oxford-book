@@ -10,8 +10,11 @@ const ForthComing = () => {
   const [forthComingBooks, setForthComingBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const isPaused = useRef(false);
+  const direction = useRef<"right" | "left">("right");
+  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
-  //  Fetch featured books from API on component mount
+  // 📘 Fetch forthcoming books
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -28,31 +31,71 @@ const ForthComing = () => {
           setForthComingBooks(data.data);
           setLoading(false);
         } else {
-          setLoading(true); // agar data empty ya error, to loading dikhte rahe
+          setLoading(true);
         }
       } catch (err) {
         console.error("Error fetching forthcoming books:", err);
-        setLoading(true); // error me bhi loading dikhe
+        setLoading(true);
       }
     };
 
     load();
   }, []);
 
-  //  Horizontal scroll for the carousel
+  // 🔁 Auto-scroll (same as NewReleases/BestSellers)
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || loading) return;
+
+    const step = 1; // pixels per tick
+    const interval = 15; // ms
+
+    const startScroll = () => {
+      autoScrollRef.current = setInterval(() => {
+        if (!container || isPaused.current) return;
+
+        const maxScroll = container.scrollWidth - container.clientWidth;
+
+        if (direction.current === "right") {
+          container.scrollLeft += step;
+          if (container.scrollLeft >= maxScroll) direction.current = "left";
+        } else {
+          container.scrollLeft -= step;
+          if (container.scrollLeft <= 0) direction.current = "right";
+        }
+      }, interval);
+    };
+
+    startScroll();
+
+    const handleMouseEnter = () => (isPaused.current = true);
+    const handleMouseLeave = () => (isPaused.current = false);
+
+    container.addEventListener("mouseenter", handleMouseEnter);
+    container.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
+      container.removeEventListener("mouseenter", handleMouseEnter);
+      container.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [forthComingBooks, loading]);
+
+  // ⏩ Manual scroll buttons
   const scroll = (direction: "left" | "right") => {
     const container = scrollRef.current;
     if (!container) return;
+    isPaused.current = true;
     const scrollAmount = 300;
     container.scrollBy({
       left: direction === "left" ? -scrollAmount : scrollAmount,
       behavior: "smooth",
     });
+    setTimeout(() => (isPaused.current = false), 2000);
   };
 
   return (
-    //  Main Section Wrapper
-    <section className="py-16 bg-gray-50 relative">
+    <section className="py-16 bg-gray-50 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 🔸 Section Heading */}
         <motion.div
@@ -69,14 +112,13 @@ const ForthComing = () => {
           </p>
         </motion.div>
 
-        {/* 🔸 Left & Right Scroll Buttons */}
+        {/* 🔸 Left & Right Buttons */}
         <button
           onClick={() => scroll("left")}
           className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 shadow-md p-2 rounded-full hover:bg-purple-100 z-10"
         >
           <ChevronLeft className="w-6 h-6 text-purple-700" />
         </button>
-
         <button
           onClick={() => scroll("right")}
           className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 shadow-md p-2 rounded-full hover:bg-purple-100 z-10"
@@ -84,14 +126,11 @@ const ForthComing = () => {
           <ChevronRight className="w-6 h-6 text-purple-700" />
         </button>
 
-        {/*  Books Carousel + Skeleton Loading */}
+        {/* 🔸 Carousel + Skeleton Loading */}
         <div
           ref={scrollRef}
           className="flex overflow-x-auto overflow-y-hidden space-x-6 pb-4 scroll-smooth"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <style jsx>{`
             div::-webkit-scrollbar {
@@ -117,7 +156,6 @@ const ForthComing = () => {
             }
           `}</style>
 
-          {/*  Skeleton Loader (while fetching) */}
           {loading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <div
@@ -127,10 +165,10 @@ const ForthComing = () => {
               ))
             : forthComingBooks.map((book, index) => (
                 <motion.div
-                  key={book._id || book.id}
+                  key={book._id || index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  transition={{ duration: 0.6, delay: index * 0.05 }}
                   className="flex-shrink-0 w-64"
                 >
                   <BookCard book={book as any} showBuyNow />
@@ -138,8 +176,7 @@ const ForthComing = () => {
               ))}
         </div>
 
-        {/*  "View All" Button */}
-        {/* View All Button */}
+        {/* 🔸 View All Button */}
         <div className="text-center mt-12">
           <motion.div
             initial={{ opacity: 0 }}
@@ -155,7 +192,9 @@ const ForthComing = () => {
                     : "bg-purple-600 hover:bg-purple-700 text-white"
                 }`}
               >
-                {loading ? "View All Forthcoming Books..." : "View All Forthcoming Books"}
+                {loading
+                  ? "View All Forthcoming Books..."
+                  : "View All Forthcoming Books"}
               </button>
             </Link>
           </motion.div>

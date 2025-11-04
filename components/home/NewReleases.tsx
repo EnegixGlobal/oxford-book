@@ -1,11 +1,10 @@
 "use client";
-import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import BookCard from '@/components/books/BookCard';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { motion } from "framer-motion";
+import Link from "next/link";
+import BookCard from "@/components/books/BookCard";
+import { useEffect, useState, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface BookDto {
   _id: string;
@@ -17,157 +16,164 @@ interface BookDto {
   discount: number;
 }
 
-export default function NewReleases() {
+const NewReleases = () => {
   const [books, setBooks] = useState<BookDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null); 
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const isPaused = useRef(false);
+  const direction = useRef<"right" | "left">("right");
+  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 📘 Fetch new releases
   useEffect(() => {
-    let mounted = true;
-    const load = async () => {
+    const loadBooks = async () => {
       try {
-        const res = await fetch('/api/books?newRelease=true&limit=12', { cache: 'no-store' });
-        const json = await res.json();
-        // console.log("this is book data", json)
-        if (mounted && json?.success && Array.isArray(json.data)) {
-          setBooks(json.data);
+        const url = new URL("/api/books", window.location.origin);
+        url.searchParams.set("newRelease", "true");
+        url.searchParams.set("limit", "12");
+        const res = await fetch(url.toString(), { cache: "no-store" });
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.data)) {
+          setBooks(data.data);
         }
-      } finally {
-        if (mounted) setLoading(false);
+      } catch (error) {
+        console.error("Failed to load new releases:", error);
       }
     };
-    load();
-    return () => { mounted = false; };
+    loadBooks();
   }, []);
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const { scrollLeft, clientWidth } = scrollRef.current;
-      const scrollAmount = clientWidth * 0.9;
-      scrollRef.current.scrollTo({
-        left: direction === 'left' ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
-        behavior: 'smooth',
-      });
-    }
-  };
+  // 🔁 Auto scroll (same as BestSellers)
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
 
-  if (loading && books.length === 0) {
-    return (
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-6">
-            <div className="h-8 w-56 mx-auto bg-purple-200/40 rounded animate-pulse mb-4" />
-            <div className="h-4 w-72 mx-auto bg-gray-200/40 rounded animate-pulse" />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-lg bg-gray-200/40 animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+    const step = 1; // pixels per frame
+    const interval = 15; // ms per tick
+
+    const startScroll = () => {
+      autoScrollRef.current = setInterval(() => {
+        if (!container || isPaused.current) return;
+
+        const maxScroll = container.scrollWidth - container.clientWidth;
+
+        if (direction.current === "right") {
+          container.scrollLeft += step;
+          if (container.scrollLeft >= maxScroll) direction.current = "left";
+        } else {
+          container.scrollLeft -= step;
+          if (container.scrollLeft <= 0) direction.current = "right";
+        }
+      }, interval);
+    };
+
+    startScroll();
+
+    const handleMouseEnter = () => (isPaused.current = true);
+    const handleMouseLeave = () => (isPaused.current = false);
+
+    container.addEventListener("mouseenter", handleMouseEnter);
+    container.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
+      container.removeEventListener("mouseenter", handleMouseEnter);
+      container.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [books]);
+
+  // ⏩ Manual scroll buttons
+  const scroll = (dir: "left" | "right") => {
+    const container = scrollRef.current;
+    if (!container) return;
+    isPaused.current = true;
+    const scrollAmount = 300;
+    container.scrollBy({
+      left: dir === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+    setTimeout(() => (isPaused.current = false), 2000);
+  };
 
   if (!books.length) return null;
 
   return (
-    <section className="py-16 bg-white relative">
+    <section className="py-16 bg-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-6"
+          className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-            Latest <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600">New</span> Releases
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Latest{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600">
+              New
+            </span>{" "}
+            Releases
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Fresh arrivals just added to the catalog
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex items-center justify-end mb-8"
+        {/* Left/Right Buttons */}
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 shadow-md p-2 rounded-full hover:bg-purple-100 z-10"
         >
-          <Link href="/new-releases" className="text-sm font-medium text-purple-600 hover:text-purple-700">View all</Link>
-        </motion.div>
+          <ChevronLeft className="w-6 h-6 text-purple-700" />
+        </button>
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 shadow-md p-2 rounded-full hover:bg-purple-100 z-10"
+        >
+          <ChevronRight className="w-6 h-6 text-purple-700" />
+        </button>
 
-        {/*  Horizontal scroll layout added here */}
-        <div className="relative">
-          {/* Left scroll button */}
-          <button
-            onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-white shadow-md hover:bg-purple-50 text-purple-600 rounded-full p-2 z-10"
+        {/* Carousel */}
+        <div
+          ref={scrollRef}
+          className="flex overflow-x-auto overflow-y-hidden space-x-6 pb-4 scroll-smooth"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          <style jsx>{`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+
+          {books.map((book, index) => (
+            <motion.div
+              key={book._id || index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.05 }}
+              className="flex-shrink-0 w-64"
+            >
+              <BookCard book={book as any} showBuyNow />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* View All */}
+        <div className="text-center mt-12">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-
-          {/* Scrollable book list */}
-          <div
-            ref={scrollRef}
-            className="flex overflow-x-auto overflow-y-hidden space-x-4 pb-4 scroll-smooth"
-            style={{
-              scrollbarWidth: 'none',          // Firefox ke liye
-              msOverflowStyle: 'none',         // IE ke liye
-            }}
-          >
-            {/* Chrome ke liye scrollbar hide */}
-            <style jsx>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-
-            {books.map((b, idx) => {
-              const mapped: any = {
-                id: b._id,
-                title: b.title,
-                author: (b as any).authorName || 'Unknown',
-                coverImage: b.coverImage || '/logo.png',
-                mrp: b.mrp,
-                discountedPrice: b.discountedPrice,
-                rating: 0,
-                reviewCount: 0,
-                featured: false,
-                inStock: true,
-              };
-              return (
-                <motion.div
-                  key={b._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.04 }}
-                  className="flex-shrink-0 w-56"
-                >
-                  <div className="w-full">
-                    <div className="relative">
-                      {/* NEW badge overlay (specific to new releases) */}
-                      {/* <div className="absolute top-2 right-2 z-10">
-                        <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-semibold px-2 py-1 rounded shadow">NEW</span>
-                      </div> */}
-                      {/* Discount badge removed here to avoid duplication; BookCard already shows discount */}
-                      <BookCard book={mapped} showBuyNow showReviewSnippet={false} />
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Right scroll button */}
-          <button
-            onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 bg-white shadow-md hover:bg-purple-50 text-purple-600 rounded-full p-2 z-10"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+            <Link href="/new-releases">
+              <button className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors duration-300">
+                View All New Releases
+              </button>
+            </Link>
+          </motion.div>
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default NewReleases;

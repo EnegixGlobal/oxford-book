@@ -3,36 +3,46 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, User, Search, Menu, X, LogOut, Shield, Heart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  ShoppingCart,
+  User,
+  Search,
+  Menu,
+  X,
+  LogOut,
+  Shield,
+  Heart,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/providers/CartProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
-import NavigationMenu from './NavigationMenu';
 import AuthModal from '@/components/auth/AuthModal';
 import { useWishlist } from '@/components/providers/WishlistProvider';
 
 const Header = () => {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { getTotalItems } = useCart();
   const { user, logout } = useAuth();
   const { wishlist } = useWishlist();
 
-  // book data check
-  const [searchResults, setSearchResults] = useState([]);
+  // search states
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isNavigating, setIsNavigating] = useState(false); // 🔥 prevent flicker on Enter
 
-  // 🔍 handleSearch function
+  // 🔍 handleSearch
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
     setSearchTerm(term);
@@ -41,7 +51,6 @@ const Header = () => {
       const url = new URL('/api/books', window.location.origin);
       url.searchParams.set('search', term);
 
-      // smart logic: agar chhoti search hai, limit lagao
       if (term.length < 3) url.searchParams.set('limit', '8');
 
       try {
@@ -56,7 +65,24 @@ const Header = () => {
     }
   };
 
-  // Lock body scroll when drawer is open & handle ESC key
+  //  Key Enter Search
+  const handleEnterPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!searchTerm.trim()) return;
+
+      if (searchResults && searchResults.length > 0) {
+        setIsNavigating(true);
+        (e.target as HTMLInputElement).blur();
+
+        router.push(`/book/${searchResults[0]._id}`);
+
+        setSearchTerm('');
+      }
+    }
+  };
+
+  // lock body scroll on mobile menu open
   useEffect(() => {
     if (isMenuOpen) {
       const original = document.body.style.overflow;
@@ -97,27 +123,29 @@ const Header = () => {
                   placeholder="Search for books, authors, or ISBN..."
                   className="pl-10 pr-4 py-2 w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500"
                   onChange={handleSearch}
+                  onKeyDown={handleEnterPress}
                   value={searchTerm}
                 />
 
                 {/* Desktop Live Search */}
-                {searchTerm.length > 1 && searchResults.length > 0 && (
+                {searchTerm.length > 1 && !isNavigating && (
                   <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                    {searchResults.map((book: any) => (
-                      <Link
-                        key={book._id}
-                        href={`/book/${book._id}`}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
-                        onClick={() => setSearchTerm('')}
-                      >
-                        {book.title}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-                {searchTerm.length > 1 && searchResults.length === 0 && (
-                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-500 p-2">
-                    No books found.
+                    {searchResults.length > 0 ? (
+                      searchResults.map((book: any) => (
+                        <Link
+                          key={book._id}
+                          href={`/book/${book._id}`}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                          onClick={() => setSearchTerm('')}
+                        >
+                          {book.title}
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 p-2">
+                        No books found.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -142,7 +170,11 @@ const Header = () => {
                 <div className="flex items-center space-x-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
                         <User className="w-5 h-5" />
                         <span className="hidden sm:inline max-w-[120px] truncate text-left">
                           {user.name}
@@ -219,41 +251,45 @@ const Header = () => {
                 aria-controls="mobile-nav-drawer"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                {isMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </div>
           </div>
 
-          {/*  Mobile Search  */}
+          {/* Mobile Search */}
           <div className="md:hidden pb-4 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               type="text"
               placeholder="Search books..."
               className="pl-10 pr-4 py-2 w-full"
-              onChange={handleSearch}       
-              value={searchTerm}           
+              onChange={handleSearch}
+              onKeyDown={handleEnterPress}
+              value={searchTerm}
             />
 
-            {/*  Mobile search results */}
-            {searchTerm.length > 1 && searchResults.length > 0 && (
+            {/* Mobile search results */}
+            {searchTerm.length > 1 && !isNavigating && (
               <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                {searchResults.map((book: any) => (
-                  <Link
-                    key={book._id}
-                    href={`/book/${book._id}`}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
-                    onClick={() => setSearchTerm('')}
-                  >
-                    {book.title}
-                  </Link>
-                ))}
-              </div>
-            )}
-            {searchTerm.length > 1 && searchResults.length === 0 && (
-              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-500 p-2">
-                No books found.
+                {searchResults.length > 0 ? (
+                  searchResults.map((book: any) => (
+                    <Link
+                      key={book._id}
+                      href={`/book/${book._id}`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                      onClick={() => setSearchTerm('')}
+                    >
+                      {book.title}
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-500 p-2">No books found.</div>
+                )}
               </div>
             )}
           </div>
