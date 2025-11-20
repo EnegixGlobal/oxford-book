@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import HeroSection from '@/components/home/HeroSection';
 import FeaturedCategories from '@/components/home/FeaturedCategories';
 import BestSellers from '@/components/home/BestSellers';
+import FouthComing from '@/components/home/FouthComing';
 import BookCarousel from '@/components/home/BookCarousel';
 import MostAnticipatedBooks from '@/components/home/MostAnticipatedBooks';
 import FeaturedAuthors from '@/components/home/FeaturedAuthors';
@@ -32,6 +33,7 @@ export default function Home() {
       <ShopGenre />
       <NewReleases />
       <BestSellers />
+      <FouthComing />
       {/* <MostAnticipatedBooks /> */}
 
       {/* <ShopByAge /> */}

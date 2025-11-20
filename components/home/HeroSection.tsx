@@ -8,6 +8,7 @@ const backgroundImages = [
   "/book/book3.jpg",
   "/book/book4.jpg",
   "/book/book5.jpg",
+  // "/book/book6.jpg",
 ];
 
 const HeroSection = () => {
@@ -59,13 +60,13 @@ const HeroSection = () => {
 
   return (
     <>
-      <section className="relative text-white py-0 sm:py-6 lg:py-24 flex items-center overflow-hidden min-h-[500px] sm:min-h-[600px] lg:min-h-[550px]">
+      <section className="banner-section relative text-white py-0 sm:py-6 lg:py-20 flex items-center overflow-hidden min-h-[200px] sm:min-h-[600px] lg:min-h-[420px]">
         {/* Background Images */}
         <div className="absolute inset-y-0 left-4 right-4 sm:left-16 sm:right-16 lg:left-8 lg:right-8">
           {backgroundImages.map((image, index) => (
             <div
               key={index}
-              className={`absolute inset-0 bg-center bg-no-repeat transition-opacity duration-1000 ${
+              className={`banner-img absolute inset-0 bg-center bg-no-repeat transition-opacity duration-1000 ${
                 index === currentImageIndex ? "opacity-100" : "opacity-0"
               }`}
               style={{
@@ -125,7 +126,7 @@ const HeroSection = () => {
       </section>
 
       {/* Slider Progress / Dots BELOW hero */}
-      <div className="relative z-10 mt-5 sm:mt-8 mb-8 flex justify-center">
+      <div className="relative z-10 mt-2 sm:mt-4 mb-4 flex justify-center">
         <div className="flex space-x-2 sm:space-x-3 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
           {backgroundImages.map((_, index) => (
             <button

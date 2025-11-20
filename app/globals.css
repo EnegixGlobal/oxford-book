@@ -136,3 +136,16 @@ html {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+
+
+/* banner image */
+@media screen and (max-width: 640px) {
+  .banner-section{
+     height: 250px; 
+  }
+  .banner-img {
+    height: 250px;          
+    object-fit: contain;    
+  }
+}

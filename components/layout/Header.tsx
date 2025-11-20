@@ -3,32 +3,86 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, User, Search, Menu, X, LogOut, Shield, Heart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  ShoppingCart,
+  User,
+  Search,
+  Menu,
+  X,
+  LogOut,
+  Shield,
+  Heart,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/providers/CartProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
-import NavigationMenu from './NavigationMenu';
 import AuthModal from '@/components/auth/AuthModal';
 import { useWishlist } from '@/components/providers/WishlistProvider';
 
 const Header = () => {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { getTotalItems } = useCart();
   const { user, logout } = useAuth();
   const { wishlist } = useWishlist();
 
-  // Lock body scroll when drawer is open & handle ESC key
+  // search states
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isNavigating, setIsNavigating] = useState(false); // 🔥 prevent flicker on Enter
+
+  // 🔍 handleSearch
+  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+
+    if (term.trim().length > 1) {
+      const url = new URL('/api/books', window.location.origin);
+      url.searchParams.set('search', term);
+
+      if (term.length < 3) url.searchParams.set('limit', '8');
+
+      try {
+        const res = await fetch(url.toString(), { cache: 'no-store' });
+        const data = await res.json();
+        setSearchResults(data?.data || []);
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  //  Key Enter Search
+  const handleEnterPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!searchTerm.trim()) return;
+
+      if (searchResults && searchResults.length > 0) {
+        setIsNavigating(true);
+        (e.target as HTMLInputElement).blur();
+
+        router.push(`/book/${searchResults[0]._id}`);
+
+        setSearchTerm('');
+      }
+    }
+  };
+
+  // lock body scroll on mobile menu open
   useEffect(() => {
     if (isMenuOpen) {
       const original = document.body.style.overflow;
@@ -60,10 +114,7 @@ const Header = () => {
               />
             </Link>
 
-            {/* Desktop Navigation */}
-            
-
-            {/* Search Bar */}
+            {/* Desktop Search Bar */}
             <div className="hidden md:flex items-center space-x-4 flex-1 max-w-md mx-8">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -71,13 +122,38 @@ const Header = () => {
                   type="text"
                   placeholder="Search for books, authors, or ISBN..."
                   className="pl-10 pr-4 py-2 w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500"
+                  onChange={handleSearch}
+                  onKeyDown={handleEnterPress}
+                  value={searchTerm}
                 />
+
+                {/* Desktop Live Search */}
+                {searchTerm.length > 1 && !isNavigating && (
+                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {searchResults.length > 0 ? (
+                      searchResults.map((book: any) => (
+                        <Link
+                          key={book._id}
+                          href={`/book/${book._id}`}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                          onClick={() => setSearchTerm('')}
+                        >
+                          {book.title}
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 p-2">
+                        No books found.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Right Actions */}
             <div className="flex items-center space-x-4">
-              {/* Wishlist button */}
+              {/* Wishlist */}
               <Link href="/wishlist" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className="relative">
                   <Heart className="w-5 h-5" />
@@ -89,17 +165,26 @@ const Header = () => {
                   <span className="ml-2 hidden lg:inline">Wishlist</span>
                 </Button>
               </Link>
+
               {user ? (
                 <div className="flex items-center space-x-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
                         <User className="w-5 h-5" />
-                        <span className="hidden sm:inline max-w-[120px] truncate text-left">{user.name}</span>
+                        <span className="hidden sm:inline max-w-[120px] truncate text-left">
+                          {user.name}
+                        </span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel className="text-xs font-medium text-gray-500">Account</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs font-medium text-gray-500">
+                        Account
+                      </DropdownMenuLabel>
                       {user.role === 'admin' && (
                         <DropdownMenuItem asChild>
                           <Link href="/admin" className="flex items-center gap-2">
@@ -114,14 +199,17 @@ const Header = () => {
                           <span>Profile</span>
                         </Link>
                       </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/wishlist" className="flex items-center gap-2">
-                            <Heart className="w-4 h-4 text-pink-600" />
-                            <span>Wishlist</span>
-                          </Link>
-                        </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/wishlist" className="flex items-center gap-2">
+                          <Heart className="w-4 h-4 text-pink-600" />
+                          <span>Wishlist</span>
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-red-600 focus:text-red-700">
+                      <DropdownMenuItem
+                        onClick={logout}
+                        className="flex items-center gap-2 text-red-600 focus:text-red-700"
+                      >
                         <LogOut className="w-4 h-4" />
                         <span>Logout</span>
                       </DropdownMenuItem>
@@ -129,8 +217,8 @@ const Header = () => {
                   </DropdownMenu>
                 </div>
               ) : (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => setIsAuthModalOpen(true)}
                 >
@@ -138,7 +226,7 @@ const Header = () => {
                   <span className="ml-2 hidden sm:inline">Login</span>
                 </Button>
               )}
-              
+
               {(!user || user.role !== 'admin') && (
                 <Link href="/cart">
                   <Button variant="ghost" size="sm" className="relative">
@@ -163,93 +251,52 @@ const Header = () => {
                 aria-controls="mobile-nav-drawer"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                {isMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </div>
           </div>
 
           {/* Mobile Search */}
-          <div className="md:hidden pb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Search books..."
-                className="pl-10 pr-4 py-2 w-full"
-              />
-            </div>
-          </div>
-        </div>
-
-      </header>
-
-      {/* Mobile Side Drawer & Overlay */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            {/* Overlay */}
-            <motion.button
-              key="overlay"
-              aria-label="Close navigation menu"
-              className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-40 lg:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
+          <div className="md:hidden pb-4 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Search books..."
+              className="pl-10 pr-4 py-2 w-full"
+              onChange={handleSearch}
+              onKeyDown={handleEnterPress}
+              value={searchTerm}
             />
-            {/* Drawer */}
-            <motion.div
-              key="drawer"
-              id="mobile-nav-drawer"
-              role="dialog"
-              aria-modal="true"
-              className="fixed top-0 left-0 h-full w-72 max-w-full bg-white shadow-xl z-50 flex flex-col lg:hidden"
-              initial={{ x: -320 }}
-              animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              transition={{ type: 'tween', duration: 0.28 }}
-            >
-              <div className="flex items-center justify-between px-4 h-16 border-b">
-                <Link href="/" className="flex items-center space-x-2" onClick={() => setIsMenuOpen(false)}>
-                  <Image src="/oxford-logo.png" alt="Oxford Logo" width={110} height={36} className="h-9 w-auto" />
-                </Link>
-                <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(false)}>
-                  <X className="w-5 h-5" />
-                  <span className="sr-only">Close menu</span>
-                </Button>
-              </div>
-              <div className="overflow-y-auto flex-1">
-                <NavigationMenu mobile />
-              </div>
-              <div className="p-4 border-t space-y-2">
-                {user ? (
-                  <>
-                    <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Profile</Link>
-                    <Link href="/wishlist" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-pink-600">Wishlist {wishlist.length > 0 && <span className="ml-1 text-xs text-pink-600">({wishlist.length})</span>}</Link>
-                    {user.role === 'admin' && (
-                      <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block w-full text-left text-sm font-medium text-gray-700 hover:text-purple-600">Admin Dashboard</Link>
-                    )}
-                    <button
-                      onClick={() => { logout(); setIsMenuOpen(false); }}
-                      className="w-full text-left text-sm font-medium text-red-600 hover:text-red-700"
-                    >Logout</button>
-                  </>
+
+            {/* Mobile search results */}
+            {searchTerm.length > 1 && !isNavigating && (
+              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                {searchResults.length > 0 ? (
+                  searchResults.map((book: any) => (
+                    <Link
+                      key={book._id}
+                      href={`/book/${book._id}`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                      onClick={() => setSearchTerm('')}
+                    >
+                      {book.title}
+                    </Link>
+                  ))
                 ) : (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
-                  >Login / Register</Button>
+                  <div className="text-sm text-gray-500 p-2">No books found.</div>
                 )}
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            )}
+          </div>
+        </div>
+      </header>
 
-      <AuthModal 
+      <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
