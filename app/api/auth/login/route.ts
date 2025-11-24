@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       },
       process.env.JWT_SECRET!,
       {
-        expiresIn: '7d' // Token expires in 7 days
+        expiresIn: '28d' // Token expires in 28 days
       }
     );
 

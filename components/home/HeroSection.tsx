@@ -71,14 +71,17 @@ const HeroSection = () => {
               }`}
               style={{
                 backgroundImage: `url(${image})`,
-                backgroundSize: "100% 100%",
+                backgroundSize:
+                  typeof window !== "undefined" && window.innerWidth < 640
+                    ? "120% 70%"
+                    : "100% 100%", // 👈 mobile vs web
               }}
             />
           ))}
         </div>
 
         {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/20 sm:bg-black/10"></div>
+        {/* <div className="absolute inset-0 bg-black/20 sm:bg-black/10"></div> */}
 
         {/* Navigation Arrows */}
         <div className="hidden sm:block">

@@ -16,7 +16,7 @@ interface BookCardProps {
   showReviewSnippet?: boolean; // controls rendering of small latest review block (disabled in uniform grids)
 }
 
-const BookCard = ({ book, showBuyNow = false, showReviewSnippet = false }: BookCardProps) => {
+const BookCard = ({ book, showBuyNow = true, showReviewSnippet = false }: BookCardProps) => {
 
   const { addToCart } = useCart();
   // Lazy import useRouter to avoid circular during SSR if needed
@@ -148,33 +148,46 @@ const BookCard = ({ book, showBuyNow = false, showReviewSnippet = false }: BookC
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex gap-2">
+                  {/* Add to Cart – 60% */}
                   <Button
                     onClick={handleAddToCart}
-                    className="w-full bg-fuchsia-800 hover:bg-purple-900 text-white transition-colors duration-300"
+                    className="w-[55%] bg-fuchsia-700 hover:bg-fuchsia-900 text-white transition-colors duration-300"
                     size="sm"
                     disabled={!book.inStock}
                   >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    {book.inStock ? 'Add to Cart' : 'Out of Stock'}
+                    <img
+                      src="/icons/basket.png"
+                      alt="Cart"
+                      className="w-5 h-5 mr-1"
+                    />
+                    {book.inStock ? "Add to Cart" : "Out of Stock"}
                   </Button>
+
+                  {/* Buy Now – 40% */}
                   {showBuyNow && (
                     <Button
                       onClick={handleBuyNow}
                       disabled={!book.inStock}
                       size="sm"
-                      className="w-full bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:opacity-90 text-white font-medium transition-colors duration-300"
+                      className="w-[45%] bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:opacity-90 text-white font-medium transition-colors duration-300"
                     >
+                      <img
+                        src="/icons/shopping-bag.png"
+                        alt="Buy Now"
+                        className="w-5 h-5 mr-1"
+                      />
                       Buy Now
                     </Button>
                   )}
                 </div>
+
               </div>
             </div>
           </div>
         </Link>
       </div>
-     
+
     </motion.div>
   );
 };

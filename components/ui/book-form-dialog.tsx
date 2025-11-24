@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,12 +16,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 interface AuthorDto { _id: string; name: string; slug: string }
 interface CategoryDto { slug: string; name: string; subcategories?: { slug: string; name: string }[] }
 
+type Option = { value: string; label: string }
+
 interface BookFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: 'add' | 'edit'
   initialData?: any
   onSubmit: (data: any) => void
+  ageOptions?: Option[]
+  genreOptions?: Option[]
 }
 
 export function BookFormDialog({
@@ -29,7 +33,9 @@ export function BookFormDialog({
   onOpenChange,
   mode,
   initialData,
-  onSubmit
+  onSubmit,
+  ageOptions: customAgeOptions,
+  genreOptions: customGenreOptions
 }: BookFormDialogProps) {
   const [authors, setAuthors] = useState<AuthorDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -38,25 +44,27 @@ export function BookFormDialog({
   const [availableSubcategories, setAvailableSubcategories] = useState<Array<{ slug: string; name: string }>>([]);
   const [imageOption, setImageOption] = useState<'url' | 'file'>(initialData?.imageFile ? 'file' : 'url');
   const [previewUrl, setPreviewUrl] = useState<string>(initialData?.coverImage || '');
-  const ageOptions = [
-    { value: '0-2', label: '0-2' },
-    { value: '3-5', label: '3-5' },
-    { value: '6-8', label: '6-8' },
-    { value: '9-12', label: '9-12' },
-    { value: 'teen', label: 'Teen' },
-    { value: 'young-adult', label: 'Young Adult' },
-    { value: 'old-man', label: 'Old Man' },
-  ];
-  const genreOptions = [
-    { value: 'biography-memoir', label: 'Biography & Memoir' },
-    { value: 'business', label: 'Business' },
-    { value: 'historic-fiction', label: 'Historic Fiction' },
-    { value: 'mega-comic', label: 'Mega Comic' },
-    { value: 'mystery-thriller', label: 'Mystery Thriller' },
-    { value: 'occult-paranormal', label: 'Occult & Paranormal' },
-    { value: 'romance', label: 'Romance' },
-    { value: 'self', label: 'Self' },
-  ];
+  const resolvedAgeOptions = useMemo(() => {
+    const base = (customAgeOptions || []).map(o => ({
+      value: o.value,
+      label: o.label
+    }));
+    if (initialData?.ageGroup && !base.some(o => o.value === initialData.ageGroup)) {
+      return [...base, { value: initialData.ageGroup, label: initialData.ageGroup }];
+    }
+    return base;
+  }, [customAgeOptions, initialData?.ageGroup]);
+
+  const resolvedGenreOptions = useMemo(() => {
+    const base = (customGenreOptions || []).map(o => ({
+      value: o.value,
+      label: o.label
+    }));
+    if (initialData?.genre && !base.some(o => o.value === initialData.genre)) {
+      return [...base, { value: initialData.genre, label: initialData.genre }];
+    }
+    return base;
+  }, [customGenreOptions, initialData?.genre]);
 
   // Reset dialog-local state when opening or when initialData changes
   useEffect(() => {
@@ -98,7 +106,7 @@ export function BookFormDialog({
         if (mounted && cj?.success && Array.isArray(cj.data)) {
           setCategories(cj.data);
         }
-      } catch {}
+      } catch { }
     };
     load();
     return () => { mounted = false; };
@@ -108,7 +116,7 @@ export function BookFormDialog({
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const imageOption = formData.get('imageOption');
-    
+
     let coverImage: string | undefined = undefined;
     if (imageOption === 'url') {
       const url = (formData.get('coverImage') as string || '').trim();
@@ -146,9 +154,9 @@ export function BookFormDialog({
       }
     }
 
-  const originalPrice = Math.round(Number(formData.get('originalPrice')) || 0);
+    const originalPrice = Math.round(Number(formData.get('originalPrice')) || 0);
     const discount = Number(formData.get('discount'));
-  const finalPrice = Math.round(Number(formData.get('finalPrice')) || 0);
+    const finalPrice = Math.round(Number(formData.get('finalPrice')) || 0);
 
     const authorId = selectedAuthorId || (formData.get('authorId') as string | null) || undefined;
     const authorName = authorId ? (authors.find(a => a._id === authorId)?.name || '') : (formData.get('author') as string);
@@ -159,7 +167,7 @@ export function BookFormDialog({
       authorId: authorId,
       description: formData.get('description'),
       stock: formData.get('stock'),
-  coverImage: coverImage,
+      coverImage: coverImage,
       category: formData.get('category'),
       subcategory: formData.get('subcategory'),
       inStock: Number(formData.get('stock')) > 0,
@@ -170,28 +178,29 @@ export function BookFormDialog({
       publisher: formData.get('publisher'),
       binding: formData.get('binding'),
       language: formData.get('language'),
-  ageGroup: formData.get('ageGroup') || undefined,
-  genre: formData.get('genre') || undefined,
+      ageGroup: formData.get('ageGroup') || undefined,
+      genre: formData.get('genre') || undefined,
       rating: 0,
       reviewCount: 0,
-  featured: false,
-  anticipated: formData.get('anticipated') === 'on',
-  newRelease: formData.get('newRelease') === 'on'
+      featured: false,
+      anticipated: formData.get('anticipated') === 'on',
+      newRelease: formData.get('newRelease') === 'on'
     };
-  onSubmit(data);
+    onSubmit(data);
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] md:max-w-[700px] h-[90vh] max-h-[800px] flex flex-col">
+      <DialogContent className="sm:max-w-[1000px] md:max-w-[1200px] lg:max-w-[1400px] h-[90vh] max-h-[800px] flex flex-col">
         <DialogHeader>
           <DialogTitle>{mode === 'add' ? 'Add New Book' : 'Edit Book'}</DialogTitle>
           <DialogDescription>
             {mode === 'add' ? 'Add a new book to your inventory.' : 'Make changes to the book details.'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-4 pb-20">
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-4 pl-2 pb-20">
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -203,39 +212,68 @@ export function BookFormDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="genre">Genre (optional)</Label>
-            <Select name="genre" defaultValue={initialData?.genre}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select genre (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {genreOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Label htmlFor="genre">Genre (optional)</Label>
+              <Select name="genre" defaultValue={initialData?.genre ?? undefined}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select genre" />
+                </SelectTrigger>
+                <SelectContent>
+                  {resolvedGenreOptions.length
+                    ? resolvedGenreOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))
+                    : (
+                      <SelectItem disabled value="__no_genre__">No genres available</SelectItem>
+                    )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="author">Author</Label>
-            <Select
-              name="authorId"
-              value={selectedAuthorId}
-              onValueChange={(v) => setSelectedAuthorId(v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select an author" />
-              </SelectTrigger>
-              <SelectContent>
-                {authors.map((a) => (
-                  <SelectItem key={a._id} value={a._id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!selectedAuthorId && (
-              <Input id="author" name="author" defaultValue={initialData?.author} placeholder="Or type author name" />
-            )}
+          <div className="grid grid-cols-2 gap-4">
+         
+            <div className="space-y-2">
+              <Label htmlFor="author">Author</Label>
+              <Select
+                name="authorId"
+                value={selectedAuthorId}
+                onValueChange={(v) => setSelectedAuthorId(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an author" />
+                </SelectTrigger>
+                <SelectContent>
+                  {authors.map((a) => (
+                    <SelectItem key={a._id} value={a._id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!selectedAuthorId && (
+                <Input id="author" name="author" defaultValue={initialData?.author} placeholder="Or type author name" className="mt-2" />
+              )}
+            </div>
+            <div className="space-y-2">
+            <Label htmlFor="isbn">ISBN</Label>
+            <Input
+              id="isbn"
+              name="isbn"
+              defaultValue={initialData?.isbn}
+              placeholder="Enter ISBN (e.g., 9780123456472)"
+              required
+              maxLength={13}
+              pattern="^([0-9]{10}|[0-9]{13})$"
+              title="ISBN must be exactly 10 digits or 13 digits"
+              onChange={(e) => {
+                // Allow only digits
+                e.target.value = e.target.value.replace(/\D/g, "");
+              }}
+            />
+
+            <p className="text-sm text-gray-500 mt-1">
+              Enter a valid 10-digit or 13-digit ISBN (no hyphens).
+            </p>
           </div>
-          <div className="space-y-2">
+          </div>
+          {/* <div className="space-y-2">
             <Label htmlFor="isbn">ISBN</Label>
             <Input
               id="isbn"
@@ -261,7 +299,9 @@ export function BookFormDialog({
             <p className="text-sm text-gray-500 mt-1">
               Enter ISBN-10 or ISBN-13 without hyphens. Hyphens will be added automatically.
             </p>
-          </div>
+          </div> */}
+          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="originalPrice">Original Price (MRP)</Label>
@@ -294,7 +334,7 @@ export function BookFormDialog({
                 min="0"
                 max="100"
                 step="0.1"
-                defaultValue={initialData?.discount || ((initialData?.mrp && initialData?.discountedPrice) 
+                defaultValue={initialData?.discount || ((initialData?.mrp && initialData?.discountedPrice)
                   ? ((initialData.mrp - initialData.discountedPrice) / initialData.mrp * 100).toFixed(1)
                   : "0")}
                 placeholder="Enter discount percentage"
@@ -346,108 +386,119 @@ export function BookFormDialog({
               name="description"
               defaultValue={initialData?.description}
               placeholder="Enter book description"
-              required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select
-              name="category"
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.slug} value={category.slug}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subcategory">Subcategory</Label>
-            <Select
-              name="subcategory"
-              disabled={!selectedCategory}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a subcategory" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSubcategories.map((subcategory) => (
-                  <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                    {subcategory.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="publisher">Publisher</Label>
-            <Input
-              id="publisher"
-              name="publisher"
-              defaultValue={initialData?.publisher}
-              placeholder="Enter publisher name"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="binding">Binding</Label>
-            <Select name="binding" defaultValue={initialData?.binding}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select binding type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hardcover">Hardcover</SelectItem>
-                <SelectItem value="paperback">Paperback</SelectItem>
-                <SelectItem value="digital">Digital</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="language">Language</Label>
-            <Select name="language" defaultValue={initialData?.language}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="hindi">Hindi</SelectItem>
-                <SelectItem value="marathi">Marathi</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="anticipated">Most Anticipated (optional)</Label>
-            <div className="flex items-center gap-2">
-              <input id="anticipated" name="anticipated" type="checkbox" aria-label="Most Anticipated" defaultChecked={!!initialData?.anticipated} />
-              <span className="text-sm text-gray-600">Mark as most anticipated</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                name="category"
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.slug} value={category.slug}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subcategory">Subcategory</Label>
+              <Select
+                name="subcategory"
+                disabled={!selectedCategory}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSubcategories.map((subcategory) => (
+                    <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                      {subcategory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="newRelease">New Release (optional)</Label>
-            <div className="flex items-center gap-2">
-              <input id="newRelease" name="newRelease" type="checkbox" aria-label="New Release" defaultChecked={!!initialData?.newRelease} />
-              <span className="text-sm text-gray-600">Mark as newly released</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="publisher">Publisher</Label>
+              <Input
+                id="publisher"
+                name="publisher"
+                defaultValue={initialData?.publisher}
+                placeholder="Enter publisher name"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="binding">Binding</Label>
+              <Select name="binding" defaultValue={initialData?.binding}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select binding type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hardcover">Hardcover</SelectItem>
+                  <SelectItem value="paperback">Paperback</SelectItem>
+                  <SelectItem value="digital">Digital</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="ageGroup">Age Group (optional)</Label>
-            <Select name="ageGroup" defaultValue={initialData?.ageGroup}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select age group (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {ageOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="language">Language</Label>
+              <Select name="language" defaultValue={initialData?.language}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="english">English</SelectItem>
+                  <SelectItem value="hindi">Hindi</SelectItem>
+                  <SelectItem value="marathi">Marathi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ageGroup">Age Group (optional)</Label>
+              <Select name="ageGroup" defaultValue={initialData?.ageGroup ?? undefined}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select age group (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {resolvedAgeOptions.length
+                    ? resolvedAgeOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))
+                    : (
+                      <SelectItem disabled value="__no_age__">No age groups available</SelectItem>
+                    )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="anticipated">Most Anticipated (optional)</Label>
+              <div className="flex items-center gap-2">
+                <input id="anticipated" name="anticipated" type="checkbox" aria-label="Most Anticipated" defaultChecked={!!initialData?.anticipated} />
+                <span className="text-sm text-gray-600">Mark as most anticipated</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newRelease">New Release (optional)</Label>
+              <div className="flex items-center gap-2">
+                <input id="newRelease" name="newRelease" type="checkbox" aria-label="New Release" defaultChecked={!!initialData?.newRelease} />
+                <span className="text-sm text-gray-600">Mark as newly released</span>
+              </div>
+            </div>
           </div>
           <div className="space-y-4">
             <Label>Cover Image</Label>
@@ -544,7 +595,7 @@ export function BookFormDialog({
               </div>
             )}
           </div>
-          <div className="sticky bottom-0 bg-white pt-4 dark:bg-gray-950">
+          <div className=" bottom-0 bg-white pt-4 pr-12 dark:bg-gray-950">
             <DialogFooter>
               <Button type="submit">{mode === 'add' ? 'Add Book' : 'Save Changes'}</Button>
             </DialogFooter>

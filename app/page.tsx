@@ -30,7 +30,7 @@ export default function Home() {
       <HeroSection />
       {/* <FeaturedCategories /> */}
       {/* <BookCarousel /> */}
-      <ShopGenre />
+      {/* <ShopGenre /> */}
       <NewReleases />
       <BestSellers />
       <FouthComing />
