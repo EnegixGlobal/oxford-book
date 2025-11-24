@@ -5,12 +5,12 @@ export interface IBook extends Document {
 	slug: string;
 	authorName: string;
 	authorId?: mongoose.Types.ObjectId;
-	description: string;
+	description?: string;
 	coverImage?: string;
 	categorySlug: string;
 	subcategorySlug?: string;
-	ageGroup?: '0-2' | '3-5' | '6-8' | '9-12' | 'teen' | 'young-adult' | 'old-man';
-	genre?: 'biography-memoir' | 'business' | 'historic-fiction' | 'mega-comic' | 'mystery-thriller' | 'occult-paranormal' | 'romance' | 'self';
+	ageGroup?: string;
+	genre?: string;
 	inStock: boolean;
 	stock: number;
 	mrp: number;
@@ -36,12 +36,12 @@ const BookSchema: Schema<IBook> = new Schema(
 		slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
 		authorName: { type: String, required: true, trim: true, maxlength: 120 },
 		authorId: { type: Schema.Types.ObjectId, ref: 'Author' },
-		description: { type: String, required: true, trim: true, maxlength: 5000 },
+		description: { type: String, trim: true, maxlength: 5000 },
 		coverImage: { type: String, trim: true },
 		categorySlug: { type: String, required: true, lowercase: true, trim: true },
 		subcategorySlug: { type: String, lowercase: true, trim: true },
-		ageGroup: { type: String, enum: ['0-2', '3-5', '6-8', '9-12', 'teen', 'young-adult', 'old-man'], lowercase: true, trim: true },
-		genre: { type: String, enum: ['biography-memoir', 'business', 'historic-fiction', 'mega-comic', 'mystery-thriller', 'occult-paranormal', 'romance', 'self'], lowercase: true, trim: true },
+		ageGroup: { type: String, lowercase: true, trim: true },
+		genre: { type: String, lowercase: true, trim: true },
 		inStock: { type: Boolean, default: true },
 		stock: { type: Number, required: true, min: 0, default: 0 },
 		mrp: { type: Number, required: true, min: 0 },
@@ -118,17 +118,27 @@ BookSchema.pre('save', function (next) {
 let BookModel: Model<IBook>;
 if (mongoose.models.Book) {
 	BookModel = mongoose.models.Book as Model<IBook>;
-	if (!BookModel.schema.path('ageGroup')) {
+	const descPath = BookModel.schema.path('description');
+	if (descPath && (descPath as any).options?.required) {
+		(descPath as any).options.required = false;
+	}
+	const ageGroupPath = BookModel.schema.path('ageGroup');
+	if (!ageGroupPath) {
 		BookModel.schema.add({
-			ageGroup: { type: String, enum: ['0-2', '3-5', '6-8', '9-12', 'teen', 'young-adult', 'old-man'], lowercase: true, trim: true },
+			ageGroup: { type: String, lowercase: true, trim: true },
 		});
 		try { BookModel.schema.index({ ageGroup: 1 }); } catch {}
+	} else if ((ageGroupPath as any).options?.enum) {
+		delete (ageGroupPath as any).options.enum;
 	}
-	if (!BookModel.schema.path('genre')) {
+	const genrePath = BookModel.schema.path('genre');
+	if (!genrePath) {
 		BookModel.schema.add({
-			genre: { type: String, enum: ['biography-memoir', 'business', 'historic-fiction', 'mega-comic', 'mystery-thriller', 'occult-paranormal', 'romance', 'self'], lowercase: true, trim: true },
+			genre: { type: String, lowercase: true, trim: true },
 		});
 		try { BookModel.schema.index({ genre: 1 }); } catch {}
+	} else if ((genrePath as any).options?.enum) {
+		delete (genrePath as any).options.enum;
 	}
 	if (!BookModel.schema.path('anticipated')) {
 		BookModel.schema.add({ anticipated: { type: Boolean, default: false } });

@@ -71,8 +71,10 @@ const HeroSection = () => {
               }`}
               style={{
                 backgroundImage: `url(${image})`,
-                  backgroundSize:
-          window.innerWidth < 640 ? "120% 70%" : "100% 100%", // 👈 mobile vs web
+                backgroundSize:
+                  typeof window !== "undefined" && window.innerWidth < 640
+                    ? "120% 70%"
+                    : "100% 100%", // 👈 mobile vs web
               }}
             />
           ))}

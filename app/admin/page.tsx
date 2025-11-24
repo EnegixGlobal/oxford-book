@@ -14,6 +14,7 @@ import { sampleBooks } from '@/lib/sampleData';
 import { Badge } from '@/components/ui/badge';
 import { AuthorFormDialog } from '@/components/ui/author-form-dialog';
 import { CategoryFormDialog } from '@/components/ui/category-form-dialog';
+import { BookFormDialog } from '@/components/ui/book-form-dialog';
 
 interface DashboardData {
   userStats: {
@@ -66,6 +67,10 @@ export default function AdminDashboard() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [categoryDialogMode, setCategoryDialogMode] = useState<'add' | 'edit'>('add');
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  // Books state
+  const [bookDialogOpen, setBookDialogOpen] = useState(false);
+  const [bookDialogMode, setBookDialogMode] = useState<'add' | 'edit'>('add');
+  const [editingBook, setEditingBook] = useState<any | null>(null);
 
   // Generic helpers
   const adminHeaders = useMemo(() => ({
@@ -306,7 +311,14 @@ export default function AdminDashboard() {
               <TabsContent value="books" className="mt-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold">Recent Books</h3>
-                  <Button className="bg-purple-600 hover:bg-purple-700">
+                  <Button 
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={() => {
+                      setBookDialogMode('add');
+                      setEditingBook(null);
+                      setBookDialogOpen(true);
+                    }}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add New Book
                   </Button>
@@ -337,10 +349,77 @@ export default function AdminDashboard() {
                           <td className="py-3 px-4 text-sm text-gray-500">{new Date(book.createdAt).toLocaleDateString()}</td>
                           <td className="py-3 px-4">
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    // Fetch full book details for editing
+                                    const res = await fetch(`/api/books/${book.id}`, {
+                                      headers: adminHeaders,
+                                    });
+                                    const json = await res.json();
+                                    if (res.ok && json.success && json.data) {
+                                      const fullBook = json.data;
+                                      setBookDialogMode('edit');
+                                      setEditingBook({
+                                        ...fullBook,
+                                        _id: fullBook._id || fullBook.id,
+                                        id: fullBook._id || fullBook.id,
+                                        author: fullBook.authorName || fullBook.author,
+                                        originalPrice: fullBook.mrp,
+                                        finalPrice: fullBook.discountedPrice,
+                                        category: fullBook.categorySlug,
+                                        subcategory: fullBook.subcategorySlug,
+                                        ageGroup: fullBook.ageGroup,
+                                        genre: fullBook.genre,
+                                        anticipated: !!fullBook.anticipated,
+                                        bestseller: !!fullBook.bestseller,
+                                        newRelease: !!fullBook.newRelease,
+                                      });
+                                      setBookDialogOpen(true);
+                                    } else {
+                                      toast.error('Failed to load book details');
+                                    }
+                                  } catch (e) {
+                                    console.error('Error fetching book details', e);
+                                    toast.error('Error loading book details');
+                                  }
+                                }}
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-700"
+                                onClick={async () => {
+                                  if (confirm('Are you sure you want to delete this book?')) {
+                                    try {
+                                      const res = await fetch(`/api/admin/books?id=${book.id}`, {
+                                        method: 'DELETE',
+                                        headers: adminHeaders,
+                                      });
+                                      const json = await res.json();
+                                      if (res.ok && json.success) {
+                                        toast.success('Book deleted successfully');
+                                        // Refresh dashboard
+                                        const dashRes = await fetch('/api/admin/dashboard', {
+                                          headers: { Authorization: token ? `Bearer ${token}` : '' }
+                                        });
+                                        const dashJson = await dashRes.json();
+                                        if (dashRes.ok && dashJson.success) {
+                                          setDashboard(dashJson.data);
+                                        }
+                                      } else {
+                                        toast.error(json.message || 'Failed to delete book');
+                                      }
+                                    } catch (e) {
+                                      toast.error('Error deleting book');
+                                    }
+                                  }
+                                }}
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -357,6 +436,92 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+                <BookFormDialog
+                  open={bookDialogOpen}
+                  onOpenChange={(o) => { 
+                    setBookDialogOpen(o); 
+                    if (!o) setEditingBook(null); 
+                  }}
+                  mode={bookDialogMode}
+                  initialData={editingBook}
+                  onSubmit={async (data) => {
+                    try {
+                      const payload = {
+                        title: data.title,
+                        author: data.author,
+                        authorId: data.authorId,
+                        description: data.description,
+                        stock: Number(data.stock) || 0,
+                        coverImage: data.coverImage,
+                        category: data.category,
+                        subcategory: data.subcategory,
+                        mrp: Number(data.mrp ?? data.originalPrice ?? 0),
+                        discountedPrice: Number(data.discountedPrice ?? data.finalPrice ?? 0),
+                        discount: Number(data.discount ?? 0),
+                        isbn: data.isbn,
+                        publisher: data.publisher,
+                        binding: data.binding,
+                        language: data.language,
+                        ageGroup: data.ageGroup || undefined,
+                        genre: data.genre || undefined,
+                        featured: !!data.featured,
+                        anticipated: !!data.anticipated,
+                        bestseller: !!data.bestseller,
+                        newRelease: !!data.newRelease,
+                      };
+
+                      if (bookDialogMode === 'add') {
+                        const res = await fetch('/api/admin/books', {
+                          method: 'POST',
+                          headers: adminHeaders,
+                          body: JSON.stringify(payload),
+                        });
+                        const json = await res.json();
+                        if (res.ok && json.success) {
+                          toast.success('Book added successfully');
+                          setBookDialogOpen(false);
+                          setEditingBook(null);
+                          // Refresh dashboard
+                          const dashRes = await fetch('/api/admin/dashboard', {
+                            headers: { Authorization: token ? `Bearer ${token}` : '' }
+                          });
+                          const dashJson = await dashRes.json();
+                          if (dashRes.ok && dashJson.success) {
+                            setDashboard(dashJson.data);
+                          }
+                        } else {
+                          toast.error(json.message || 'Failed to add book');
+                        }
+                      } else if (editingBook?.id || editingBook?._id) {
+                        const bookId = editingBook.id || editingBook._id;
+                        const res = await fetch(`/api/admin/books?id=${bookId}`, {
+                          method: 'PUT',
+                          headers: adminHeaders,
+                          body: JSON.stringify(payload),
+                        });
+                        const json = await res.json();
+                        if (res.ok && json.success) {
+                          toast.success('Book updated successfully');
+                          setBookDialogOpen(false);
+                          setEditingBook(null);
+                          // Refresh dashboard
+                          const dashRes = await fetch('/api/admin/dashboard', {
+                            headers: { Authorization: token ? `Bearer ${token}` : '' }
+                          });
+                          const dashJson = await dashRes.json();
+                          if (dashRes.ok && dashJson.success) {
+                            setDashboard(dashJson.data);
+                          }
+                        } else {
+                          toast.error(json.message || 'Failed to update book');
+                        }
+                      }
+                    } catch (e) {
+                      console.error('Error saving book', e);
+                      toast.error('Error saving book');
+                    }
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="authors" className="mt-6">

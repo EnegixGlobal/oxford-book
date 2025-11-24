@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     genre,
     } = body;
 
-    if (!title || !author || !description || !category || mrp == null || discountedPrice == null || !isbn) {
+    if (!title || !author || !category || mrp == null || discountedPrice == null || !isbn) {
       return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
     }
 
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
       slug: uniqueSlug,
       authorName: author,
       authorId: authorId || undefined,
-      description,
+      description: typeof description === 'string' && description.trim() ? description.trim() : undefined,
       coverImage: typeof coverImage === 'string' && coverImage !== '{}' ? coverImage : undefined,
       categorySlug: category,
   subcategorySlug: subcategory || undefined,

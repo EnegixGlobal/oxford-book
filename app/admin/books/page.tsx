@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,19 @@ import { BookFormDialog } from '@/components/ui/book-form-dialog';
 import { AdminPagination } from '@/components/ui/admin-pagination';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+
+type MetaEntity = {
+  _id?: string;
+  id?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+};
 
 // API helpers
 const fetchBooks = async (page = 1, limit = 10, search = '', ageGroup = 'all', genre = 'all') => {
@@ -75,28 +88,35 @@ export default function BooksPage() {
   const [loading, setLoading] = useState(false);
   const [ageGroupFilter, setAgeGroupFilter] = useState('all');
   const [genreFilter, setGenreFilter] = useState('all');
-
-  const ageOptions = [
+  const [ageFilterOptions, setAgeFilterOptions] = useState<{ value: string; label: string }[]>([
     { value: 'all', label: 'All Ages' },
-    { value: '0-2', label: '0-2' },
-    { value: '3-5', label: '3-5' },
-    { value: '6-8', label: '6-8' },
-    { value: '9-12', label: '9-12' },
-    { value: 'teen', label: 'Teen' },
-    { value: 'young-adult', label: 'Young Adult' },
-    { value: 'old-man', label: 'Old Man' },
-  ];
-  const genreOptions = [
+  ]);
+  const [genreFilterOptions, setGenreFilterOptions] = useState<{ value: string; label: string }[]>([
     { value: 'all', label: 'All Genres' },
-    { value: 'biography-memoir', label: 'Biography & Memoir' },
-    { value: 'business', label: 'Business' },
-    { value: 'historic-fiction', label: 'Historic Fiction' },
-    { value: 'mega-comic', label: 'Mega Comic' },
-    { value: 'mystery-thriller', label: 'Mystery Thriller' },
-    { value: 'occult-paranormal', label: 'Occult & Paranormal' },
-    { value: 'romance', label: 'Romance' },
-    { value: 'self', label: 'Self' },
-  ];
+  ]);
+  const [formAgeOptions, setFormAgeOptions] = useState<{ value: string; label: string }[]>([]);
+  const [formGenreOptions, setFormGenreOptions] = useState<{ value: string; label: string }[]>([]);
+  const [ageGroups, setAgeGroups] = useState<MetaEntity[]>([]);
+  const [genres, setGenres] = useState<MetaEntity[]>([]);
+  const [metaLoading, setMetaLoading] = useState(false);
+  const [ageFormSaving, setAgeFormSaving] = useState(false);
+  const [genreFormSaving, setGenreFormSaving] = useState(false);
+  const createEmptyAgeForm = () => ({ name: '', description: '', sortOrder: '0', isActive: true });
+  const createEmptyGenreForm = () => ({ name: '', description: '', sortOrder: '0', isActive: true });
+  const [ageForm, setAgeForm] = useState(() => createEmptyAgeForm());
+  const [genreForm, setGenreForm] = useState(() => createEmptyGenreForm());
+  const [editingAgeId, setEditingAgeId] = useState<string | null>(null);
+  const [editingGenreId, setEditingGenreId] = useState<string | null>(null);
+
+  const getAuthHeaders = (): HeadersInit => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const resolveEntityId = (entity: MetaEntity) => {
+    const value = entity._id || entity.id;
+    return value ? String(value) : '';
+  };
 
   const loadBooks = async () => {
     try {
@@ -116,9 +136,172 @@ export default function BooksPage() {
     }
   };
 
+  const loadMetadata = useCallback(async () => {
+    try {
+      setMetaLoading(true);
+      const headers = getAuthHeaders();
+      const [ageRes, genreRes] = await Promise.all([
+        fetch('/api/admin/age-groups?includeInactive=true', { headers }),
+        fetch('/api/admin/genres?includeInactive=true', { headers }),
+      ]);
+      const ageJson = await ageRes.json();
+      const genreJson = await genreRes.json();
+      if (!ageJson?.success) throw new Error(ageJson?.message || 'Failed to load age groups');
+      if (!genreJson?.success) throw new Error(genreJson?.message || 'Failed to load genres');
+      const ageData: MetaEntity[] = Array.isArray(ageJson.data) ? ageJson.data : [];
+      const genreData: MetaEntity[] = Array.isArray(genreJson.data) ? genreJson.data : [];
+      const toOption = (item: MetaEntity) => ({ value: item.slug, label: item.name });
+      const activeAgeOptions = ageData.filter((item) => item.isActive !== false).map(toOption);
+      const activeGenreOptions = genreData.filter((item) => item.isActive !== false).map(toOption);
+      setAgeGroups(ageData);
+      setGenres(genreData);
+      setAgeFilterOptions([{ value: 'all', label: 'All Ages' }, ...activeAgeOptions]);
+      setGenreFilterOptions([{ value: 'all', label: 'All Genres' }, ...activeGenreOptions]);
+      setFormAgeOptions(activeAgeOptions);
+      setFormGenreOptions(activeGenreOptions);
+    } catch (error: any) {
+      console.error('Metadata load error:', error);
+      toast.error(error?.message || 'Failed to load age/genre lists');
+    } finally {
+      setMetaLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadBooks();
   }, [currentPage, searchTerm, ageGroupFilter, genreFilter]);
+
+  useEffect(() => {
+    loadMetadata();
+  }, [loadMetadata]);
+
+  const resetAgeForm = () => {
+    setAgeForm(createEmptyAgeForm());
+    setEditingAgeId(null);
+  };
+
+  const resetGenreForm = () => {
+    setGenreForm(createEmptyGenreForm());
+    setEditingGenreId(null);
+  };
+
+  const handleAgeFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!ageForm.name.trim()) {
+      toast.error('Age group name is required');
+      return;
+    }
+    try {
+      setAgeFormSaving(true);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      };
+      const payload = {
+        name: ageForm.name.trim(),
+        description: ageForm.description.trim() ? ageForm.description.trim() : undefined,
+        sortOrder: Number(ageForm.sortOrder) || 0,
+        isActive: ageForm.isActive,
+      };
+      const url = editingAgeId ? `/api/admin/age-groups?id=${editingAgeId}` : '/api/admin/age-groups';
+      const method = editingAgeId ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.message || 'Unable to save age group');
+      toast.success(editingAgeId ? 'Age group updated' : 'Age group added');
+      resetAgeForm();
+      await loadMetadata();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save age group');
+    } finally {
+      setAgeFormSaving(false);
+    }
+  };
+
+  const handleGenreFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!genreForm.name.trim()) {
+      toast.error('Genre name is required');
+      return;
+    }
+    try {
+      setGenreFormSaving(true);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      };
+      const payload = {
+        name: genreForm.name.trim(),
+        description: genreForm.description.trim() ? genreForm.description.trim() : undefined,
+        sortOrder: Number(genreForm.sortOrder) || 0,
+        isActive: genreForm.isActive,
+      };
+      const url = editingGenreId ? `/api/admin/genres?id=${editingGenreId}` : '/api/admin/genres';
+      const method = editingGenreId ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.message || 'Unable to save genre');
+      toast.success(editingGenreId ? 'Genre updated' : 'Genre added');
+      resetGenreForm();
+      await loadMetadata();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save genre');
+    } finally {
+      setGenreFormSaving(false);
+    }
+  };
+
+  const handleAgeEdit = (item: MetaEntity) => {
+    const id = resolveEntityId(item);
+    setEditingAgeId(id || null);
+    setAgeForm({
+      name: item.name || '',
+      description: item.description || '',
+      sortOrder: String(item.sortOrder ?? 0),
+      isActive: item.isActive !== false,
+    });
+  };
+
+  const handleGenreEdit = (item: MetaEntity) => {
+    const id = resolveEntityId(item);
+    setEditingGenreId(id || null);
+    setGenreForm({
+      name: item.name || '',
+      description: item.description || '',
+      sortOrder: String(item.sortOrder ?? 0),
+      isActive: item.isActive !== false,
+    });
+  };
+
+  const handleDeleteAgeGroup = async (id: string) => {
+    if (!confirm('Delete this age group? This cannot be undone.')) return;
+    try {
+      const headers = getAuthHeaders();
+      const res = await fetch(`/api/admin/age-groups?id=${id}`, { method: 'DELETE', headers });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.message || 'Unable to delete age group');
+      toast.success('Age group deleted');
+      if (editingAgeId === id) resetAgeForm();
+      await loadMetadata();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete age group');
+    }
+  };
+
+  const handleDeleteGenre = async (id: string) => {
+    if (!confirm('Delete this genre? This cannot be undone.')) return;
+    try {
+      const headers = getAuthHeaders();
+      const res = await fetch(`/api/admin/genres?id=${id}`, { method: 'DELETE', headers });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.message || 'Unable to delete genre');
+      toast.success('Genre deleted');
+      if (editingGenreId === id) resetGenreForm();
+      await loadMetadata();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete genre');
+    }
+  };
 
   // Reset to first page when search changes
   const handleSearchChange = (value: string) => {
@@ -158,6 +341,8 @@ export default function BooksPage() {
         onOpenChange={setIsDialogOpen}
         mode={dialogMode}
         initialData={selectedBook}
+        ageOptions={formAgeOptions}
+        genreOptions={formGenreOptions}
         onSubmit={async (data) => {
           try {
             const payload = {
@@ -222,7 +407,7 @@ export default function BooksPage() {
               <SelectValue placeholder="Age Group" />
             </SelectTrigger>
             <SelectContent>
-              {ageOptions.map((o) => (
+              {ageFilterOptions.map((o) => (
                 <SelectItem key={o.value || 'all'} value={o.value}>{o.label}</SelectItem>
               ))}
             </SelectContent>
@@ -240,7 +425,7 @@ export default function BooksPage() {
               <SelectValue placeholder="Genre" />
             </SelectTrigger>
             <SelectContent>
-              {genreOptions.map((o) => (
+              {genreFilterOptions.map((o) => (
                 <SelectItem key={o.value || 'all'} value={o.value}>{o.label}</SelectItem>
               ))}
             </SelectContent>

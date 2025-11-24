@@ -577,14 +577,14 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     </p>
                   </div>
                 )}
-                {book.createdAt && (
+                {/* {book.createdAt && (
                   <div>
                     <p className="text-sm text-gray-600">Added</p>
                     <p className="font-semibold">
                       {new Date(book.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
 
