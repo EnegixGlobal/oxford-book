@@ -172,7 +172,7 @@ export default function GenresPage() {
               />
             </div>
             <div className="flex items-center gap-3 pt-2 sm:pt-6">
-              <Switch
+              <Switch 
                 id="genreActive"
                 checked={form.isActive}
                 onCheckedChange={(checked) => setForm((prev) => ({ ...prev, isActive: checked }))}
@@ -181,7 +181,7 @@ export default function GenresPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={formSaving}>
+            <Button className='bg-purple-600 hover:bg-purple-700' type="submit" disabled={formSaving}>
               {formSaving ? 'Saving…' : editingId ? 'Update Genre' : 'Add Genre'}
             </Button>
             {editingId && (

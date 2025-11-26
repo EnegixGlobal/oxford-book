@@ -64,7 +64,6 @@ const CategorySchema: Schema<ICategory> = new Schema({
   slug: {
     type: String,
     required: [true, 'Category slug is required'],
-    unique: true,
     lowercase: true,
     trim: true
   },
@@ -93,7 +92,7 @@ const CategorySchema: Schema<ICategory> = new Schema({
 });
 
 // Indexes for better query performance
-// Note: "unique: true" on slug already creates an index; avoid duplicating it
+CategorySchema.index({ slug: 1 }, { unique: true });
 CategorySchema.index({ featured: 1 });
 CategorySchema.index({ name: 1 });
 
