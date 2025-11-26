@@ -136,13 +136,27 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const {
-    title, author, authorId, description, coverImage, category, subcategory,
-  stock, mrp, discountedPrice, discount, isbn, publisher, binding, language,
-  featured,
-  anticipated,
-  bestseller,
-  ageGroup,
-    genre,
+      title,
+      author,
+      authorId,
+      description,
+      coverImage,
+      category,
+      subcategory,
+      stock,
+      mrp,
+      discountedPrice,
+      discount,
+      isbn,
+      publisher,
+      binding,
+      language,
+      featured,
+      anticipated,
+      bestseller,
+      newRelease,
+      ageGroup,
+      genre,
     } = body;
 
     if (!title || !author || !category || mrp == null || discountedPrice == null || !isbn) {
@@ -177,9 +191,10 @@ export async function POST(request: NextRequest) {
       publisher,
       binding,
       language,
-  featured: !!featured,
-  anticipated: !!anticipated,
-  bestseller: !!bestseller,
+      featured: !!featured,
+      anticipated: !!anticipated,
+      bestseller: !!bestseller,
+      newRelease: !!newRelease,
     });
 
     await newBook.save();
@@ -239,11 +254,12 @@ export async function PUT(request: NextRequest) {
     map('publisher', 'publisher');
     map('binding', 'binding');
   map('language', 'language');
-    map('featured', 'featured', (v) => !!v);
+  map('featured', 'featured', (v) => !!v);
   map('ageGroup', 'ageGroup');
   map('genre', 'genre');
   map('anticipated', 'anticipated', (v) => !!v);
   map('bestseller', 'bestseller', (v) => !!v);
+  map('newRelease', 'newRelease', (v) => !!v);
 
     // if title is being updated, recompute a unique slug
     if (typeof body.title === 'string' && body.title.trim().length > 0) {

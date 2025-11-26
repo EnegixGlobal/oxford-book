@@ -20,7 +20,7 @@ const toSlug = (value: string) =>
 const GenreSchema: Schema<IGenre> = new Schema(
 	{
 		name: { type: String, required: true, trim: true, maxlength: 120, unique: true },
-		slug: { type: String, required: true, trim: true, lowercase: true, unique: true },
+		slug: { type: String, required: true, trim: true, lowercase: true },
 		description: { type: String, trim: true, maxlength: 280 },
 		sortOrder: { type: Number, default: 0, min: 0 },
 		isActive: { type: Boolean, default: true },

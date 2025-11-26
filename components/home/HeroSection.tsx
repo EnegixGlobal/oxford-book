@@ -2,20 +2,47 @@
 
 import { useState, useEffect } from "react";
 
-const backgroundImages = [
-  "/book/book1.jpg",
-  "/book/book2.jpg",
-  "/book/book3.jpg",
-  "/book/book4.jpg",
-  "/book/book5.jpg",
-  // "/book/book6.jpg",
-];
+type HeroSlide = {
+  _id?: string;
+  imageUrl: string;
+};
 
 const HeroSection = () => {
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    let mounted = true;
+
+    const fetchSlides = async () => {
+      try {
+        const res = await fetch("/api/hero-slides");
+        const data = await res.json();
+        if (mounted && data?.success && data.data?.length) {
+          setSlides(data.data);
+        }
+      } catch (error) {
+        console.error("Failed to load hero slides", error);
+      }
+    };
+
+    fetchSlides();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!slides.length) return;
+    if (currentImageIndex >= slides.length) {
+      setCurrentImageIndex(0);
+    }
+  }, [slides.length, currentImageIndex]);
+
+  useEffect(() => {
+    if (!slides.length) return;
     setProgress(0); // Reset progress when slide changes
 
     const progressInterval = setInterval(() => {
@@ -29,7 +56,7 @@ const HeroSection = () => {
 
     const slideInterval = setInterval(() => {
       setCurrentImageIndex(
-        (prevIndex) => (prevIndex + 1) % backgroundImages.length
+        (prevIndex) => (prevIndex + 1) % slides.length
       );
     }, 5000); // Change image every 5 seconds
 
@@ -37,7 +64,11 @@ const HeroSection = () => {
       clearInterval(progressInterval);
       clearInterval(slideInterval);
     };
-  }, [currentImageIndex]);
+  }, [currentImageIndex, slides.length]);
+
+  if (!slides.length) {
+    return null;
+  }
 
   const goToSlide = (index: number) => {
     setCurrentImageIndex(index);
@@ -46,14 +77,14 @@ const HeroSection = () => {
 
   const nextSlide = () => {
     setCurrentImageIndex(
-      (prevIndex) => (prevIndex + 1) % backgroundImages.length
+      (prevIndex) => (prevIndex + 1) % slides.length
     );
     setProgress(0);
   };
 
   const prevSlide = () => {
     setCurrentImageIndex((prevIndex) =>
-      prevIndex === 0 ? backgroundImages.length - 1 : prevIndex - 1
+      prevIndex === 0 ? slides.length - 1 : prevIndex - 1
     );
     setProgress(0);
   };
@@ -63,14 +94,14 @@ const HeroSection = () => {
       <section className="banner-section relative text-white py-0 sm:py-6 lg:py-20 flex items-center overflow-hidden min-h-[200px] sm:min-h-[600px] lg:min-h-[420px]">
         {/* Background Images */}
         <div className="absolute inset-y-0 left-4 right-4 sm:left-16 sm:right-16 lg:left-8 lg:right-8">
-          {backgroundImages.map((image, index) => (
+          {slides.map((slide, index) => (
             <div
               key={index}
               className={`banner-img absolute inset-0 bg-center bg-no-repeat transition-opacity duration-1000 ${
                 index === currentImageIndex ? "opacity-100" : "opacity-0"
               }`}
               style={{
-                backgroundImage: `url(${image})`,
+                backgroundImage: `url(${slide.imageUrl})`,
                 backgroundSize:
                   typeof window !== "undefined" && window.innerWidth < 640
                     ? "120% 70%"
@@ -130,7 +161,7 @@ const HeroSection = () => {
       {/* Slider Progress / Dots BELOW hero */}
       <div className="relative z-10 mt-2 sm:mt-4 mb-4 flex justify-center">
         <div className="flex space-x-2 sm:space-x-3 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
-          {backgroundImages.map((_, index) => (
+          {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}

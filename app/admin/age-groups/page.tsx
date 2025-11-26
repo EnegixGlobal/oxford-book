@@ -181,7 +181,7 @@ export default function AgeGroupsPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={formSaving}>
+            <Button className='bg-purple-600 hover:bg-purple-700' type="submit" disabled={formSaving}>
               {formSaving ? 'Saving…' : editingId ? 'Update Age Group' : 'Add Age Group'}
             </Button>
             {editingId && (

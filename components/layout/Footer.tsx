@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Mail } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Mail, Globe } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -13,19 +13,43 @@ const Footer = () => {
               Your literary paradise for discovering amazing books across all genres.
             </p>
             <div className="flex justify-center sm:justify-start space-x-4">
-              <Link href="#" className="text-gray-400 hover:text-purple-300 transition-colors">
+              <Link
+                href="https://www.facebook.com/oxfordbookhouseofficial"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-purple-300 transition-colors"
+              >
                 <Facebook className="w-5 h-5" />
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-purple-300 transition-colors">
-                <Twitter className="w-5 h-5" />
+
+              <Link
+                href="https://share.google/5moYVIlHsl0DVknAK"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-purple-300 transition-colors"
+              >
+                <Globe className="w-5 h-5" />
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-purple-300 transition-colors">
+
+              <Link
+                href="https://www.instagram.com/oxfordbookhouse.in?igsh=eWdmdXJlNWtnbHp5"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-purple-300 transition-colors"
+              >
                 <Instagram className="w-5 h-5" />
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-purple-300 transition-colors">
+
+              <Link
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-purple-300 transition-colors"
+              >
                 <Mail className="w-5 h-5" />
               </Link>
             </div>
+
           </div>
 
           {/* Quick Links */}
@@ -36,7 +60,7 @@ const Footer = () => {
               <li><Link href="/category/non-fiction" className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base">Non-Fiction</Link></li>
               <li><Link href="/category/children" className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base">Children&apos;s Books</Link></li>
               <li><Link href="/bestsellers" className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base">Best Sellers</Link></li>
-              
+
               <li><Link href="/admin" className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base">Admin Login</Link></li>
             </ul>
           </div>

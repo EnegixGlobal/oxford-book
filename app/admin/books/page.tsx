@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +9,16 @@ import { BookFormDialog } from '@/components/ui/book-form-dialog';
 import { AdminPagination } from '@/components/ui/admin-pagination';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type MetaEntity = {
   _id?: string;
@@ -107,6 +114,14 @@ export default function BooksPage() {
   const [genreForm, setGenreForm] = useState(() => createEmptyGenreForm());
   const [editingAgeId, setEditingAgeId] = useState<string | null>(null);
   const [editingGenreId, setEditingGenreId] = useState<string | null>(null);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const bulkInputRef = useRef<HTMLInputElement>(null);
+  const [bulkResult, setBulkResult] = useState<{
+    createdCount: number;
+    failedCount: number;
+    failed: { row: number; reason: string }[];
+  } | null>(null);
+  const [bulkResultOpen, setBulkResultOpen] = useState(false);
 
   const getAuthHeaders = (): HeadersInit => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
@@ -319,21 +334,161 @@ export default function BooksPage() {
     return title.match(/.{1,13}/g)?.join('\u200b') || title; // zero-width space allows wrap
   };
 
+  const downloadCsvTemplate = () => {
+    const headers = [
+      'title',
+      'author',
+      'isbn',
+      'mrp',
+      'discountedPrice',
+      'stock',
+      'description',
+      'coverImage',
+      'category',
+      'subcategory',
+      'ageGroup',
+      'genre',
+      'discount',
+      'publisher',
+      'binding',
+      'language',
+      'featured',
+      'anticipated',
+      'newRelease',
+    ];
+
+    const example = [
+      'Closer To Love',
+      'Vex King',
+      '9781035015313',
+      '599.00',
+      '570',
+      '3',
+      'Are you ready to experience true unconditional love? Do you wish you could create stronger relationships, heal yourself and experience genuine affection?',
+      'https://example.com/path/to/cover.jpg',
+      'Fiction',
+      'Relationship',
+      'Young Adult',
+      'Mystery Thriller',
+      '20.00',
+      'Pan Macmillan',
+      'Paperback',
+      'English',
+      'yes',
+      'no',
+      'yes',
+    ];
+
+    const escapeCell = (value: string) => {
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    const csv =
+      headers.join(',') +
+      '\n' +
+      example.map((cell) => escapeCell(cell)).join(',');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'books-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulkFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith('.csv') && !lower.endsWith('.xlsx')) {
+      toast.error('Please upload a CSV or XLSX file exported from Excel (.csv or .xlsx)');
+      return;
+    }
+
+    try {
+      setBulkUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      const headers = getAuthHeaders();
+      const res = await fetch('/api/admin/books/bulk', {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      const json = await res.json();
+      if (!json?.success) {
+        toast.error(json?.message || 'Bulk upload failed');
+        return;
+      }
+      const created = json.createdCount || 0;
+      const failed = json.failedCount || 0;
+      setBulkResult({
+        createdCount: created,
+        failedCount: failed,
+        failed: Array.isArray(json.failed) ? json.failed : [],
+      });
+      setBulkResultOpen(true);
+      toast.success(
+        failed
+          ? `Bulk upload complete. Created ${created}, ${failed} rows failed.`
+          : `Bulk upload complete. Created ${created} books.`
+      );
+      await loadBooks();
+    } catch (error) {
+      console.error(error);
+      toast.error('Bulk upload failed');
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-4xl font-bold text-gray-900">Books Management</h1>
-        <Button 
-          className="bg-purple-600 hover:bg-purple-700"
-          onClick={() => {
-            setDialogMode('add');
-            setSelectedBook(null);
-            setIsDialogOpen(true);
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Book
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            ref={bulkInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            className="hidden"
+            onChange={handleBulkFileChange}
+          />
+          <Button
+            variant="outline"
+            type="button"
+            onClick={downloadCsvTemplate}
+          >
+            Download CSV template
+          </Button>
+          <Button
+            variant="outline"
+            disabled={bulkUploading}
+            onClick={() => bulkInputRef.current?.click()}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {bulkUploading ? 'Uploading…' : 'Upload CSV'}
+          </Button>
+          <Button 
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={() => {
+              setDialogMode('add');
+              setSelectedBook(null);
+              setIsDialogOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New Book
+          </Button>
+        </div>
       </div>
 
       <BookFormDialog
@@ -538,6 +693,31 @@ export default function BooksPage() {
           itemsPerPage={itemsPerPage}
         />
       </div>
+      <AlertDialog open={bulkResultOpen} onOpenChange={setBulkResultOpen}>
+        <AlertDialogContent className="max-w-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bulk upload summary</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkResult
+                ? `Created ${bulkResult.createdCount} books. ${bulkResult.failedCount} rows failed.`
+                : 'No bulk upload result to display.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {bulkResult && bulkResult.failedCount > 0 && (
+            <div className="mt-3 max-h-64 overflow-y-auto rounded border bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              {bulkResult.failed.map((f, idx) => (
+                <div key={`${f.row}-${idx}`} className="py-1 border-b last:border-b-0 border-gray-200">
+                  <span className="font-semibold">Row {f.row}:</span> {f.reason}
+                </div>
+              ))}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setBulkResultOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

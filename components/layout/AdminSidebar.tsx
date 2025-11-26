@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Book, Users, Grid, ShoppingCart, MessageSquare, Home, User, Star, Flame, Zap, Tags, Layers } from 'lucide-react';
+import { Book, Users, Grid, ShoppingCart, MessageSquare, Home, User, Star, Flame, Zap, Tags, Layers, Images } from 'lucide-react';
 
 const sidebarItems = [
   {
@@ -42,6 +42,11 @@ const sidebarItems = [
     icon: Star
   },
   {
+    title: 'Hero Slider',
+    href: '/admin/hero-slides',
+    icon: Images
+  },
+  {
     title: 'Bestseller',
     href: '/admin/bestseller',
     icon: Flame
@@ -72,12 +77,12 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="h-screen w-64 bg-white border-r fixed left-0 top-0 p-4">
-      <div className="flex items-center justify-center mb-8">
+    <div className="h-screen w-64 bg-white border-r fixed left-0 top-0 flex flex-col p-4">
+      <div className="flex items-center justify-center mb-8 flex-shrink-0">
         <h1 className="text-2xl font-bold text-purple-600">BookHaven</h1>
       </div>
       
-      <nav className="space-y-2">
+      <nav className="space-y-2 overflow-y-auto flex-1">
         {sidebarItems.map((item) => {
           const isActive = pathname === item.href;
           
