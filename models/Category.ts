@@ -37,7 +37,8 @@ const SubCategorySchema: Schema<ISubCategory> = new Schema({
   },
   description: {
     type: String,
-    required: [true, 'Subcategory description is required'],
+    required: false,
+    default: '',
     trim: true,
     maxlength: [200, 'Subcategory description cannot be more than 200 characters']
   },
@@ -69,7 +70,8 @@ const CategorySchema: Schema<ICategory> = new Schema({
   },
   description: {
     type: String,
-    required: [true, 'Category description is required'],
+    required: false,
+    default: '',
     trim: true,
     maxlength: [200, 'Category description cannot be more than 200 characters']
   },

@@ -51,11 +51,11 @@ const updateCategory = async (id: string, data: any) => {
   return response.json();
 };
 
-const deleteCategory = async (id: string, subcategoryId?: string) => {
+const deleteCategory = async (categoryId: string, subcategoryId?: string) => {
   const token = localStorage.getItem('bookhaven-token');
   const url = subcategoryId
-    ? `/api/admin/categories?id=${id}&subcategoryId=${subcategoryId}`
-    : `/api/admin/categories?id=${id}`;
+    ? `/api/admin/categories?id=${categoryId}&subcategoryId=${subcategoryId}`
+    : `/api/admin/categories?id=${categoryId}`;
   const response = await fetch(url, {
     method: 'DELETE',
     headers: {
@@ -204,7 +204,7 @@ export default function CategoriesPage() {
     const formData = new FormData(e.currentTarget);
     const categoryData = {
       name: formData.get('name') as string,
-      description: formData.get('description') as string,
+      description: (formData.get('description') as string) || '',
       image: uploadedImageUrl || (formData.get('image') as string) || selectedCategory?.image || '',
       featured: formData.get('featured') === 'true',
       parentCategoryId: formData.get('parentCategory') as string,
@@ -244,10 +244,10 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleDelete = async (categoryId: string, parentCategoryId?: string) => {
+  const handleDelete = async (categoryId: string, subcategoryId?: string) => {
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
       try {
-        const result = await deleteCategory(categoryId, parentCategoryId);
+        const result = await deleteCategory(categoryId, subcategoryId);
         if (result.success) {
           toast.success('Category deleted successfully!');
           loadCategories(); // Reload categories
@@ -441,7 +441,7 @@ export default function CategoriesPage() {
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDelete(sub._id || sub.id, category._id || category.id)}
+                          onClick={() => handleDelete(category._id || category.id, sub._id || sub.id)}
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -547,9 +547,9 @@ export default function CategoriesPage() {
                 name="description"
                 defaultValue={selectedCategory?.description}
                 placeholder={`Enter ${isSubcategory ? 'subcategory' : 'category'} description`}
-                required
               />
             </div>
+            {/*
             <div className="space-y-2">
               <Label htmlFor="image">{isSubcategory ? 'Subcategory Image' : 'Category Image'}</Label>
               <div className="space-y-2">
@@ -599,6 +599,7 @@ export default function CategoriesPage() {
                 )}
               </div>
             </div>
+            */}
             {!isSubcategory && (
               <div className="flex items-center justify-between">
                 <Label htmlFor="featured">Featured Category</Label>

@@ -503,6 +503,7 @@ export default function BooksPage() {
             const payload = {
               title: data.title,
               author: data.author,
+              authorId: data.authorId,
               description: data.description,
               stock: Number(data.stock) || 0,
               coverImage: data.coverImage,
@@ -645,6 +646,7 @@ export default function BooksPage() {
                           setSelectedBook({
                             ...book,
                             author: book.authorName || book.author,
+                            authorId: book.authorId || book.author?._id || book.author?._id,
                             originalPrice: book.mrp,
                             finalPrice: book.discountedPrice,
                             category: book.categorySlug,

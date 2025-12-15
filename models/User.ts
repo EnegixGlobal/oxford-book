@@ -1,6 +1,16 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+export interface ICartItem {
+  bookId: string;
+  title: string;
+  price: number;
+  quantity: number;
+  coverImage?: string;
+  authorName?: string;
+  isbn?: string;
+}
+
 export interface IUser extends Document {
   name: string;
   email: string;
@@ -11,6 +21,7 @@ export interface IUser extends Document {
   joinDate: Date;
   isActive: boolean;
   wishlist?: mongoose.Types.ObjectId[];
+  cart?: ICartItem[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -64,6 +75,30 @@ const UserSchema: Schema<IUser> = new Schema({
       type: Schema.Types.ObjectId,
       ref: 'Book'
     }
+  ],
+  cart: [
+    {
+      bookId: {
+        type: String,
+        required: true
+      },
+      title: {
+        type: String,
+        required: true
+      },
+      price: {
+        type: Number,
+        required: true
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1
+      },
+      coverImage: String,
+      authorName: String,
+      isbn: String
+    }
   ]
 }, {
   timestamps: true
@@ -101,11 +136,12 @@ UserSchema.methods.toJSON = function() {
 };
 
 // In dev with Next.js hot reloading, model definitions can be cached without new fields.
-// If the existing compiled model lacks the wishlist path, delete it and recompile.
+// If the existing compiled model lacks the wishlist or cart path, delete it and recompile.
 const existing = mongoose.models.User as mongoose.Model<IUser> | undefined;
 if (existing) {
   const hasWishlist = (existing.schema as any).paths['wishlist'] !== undefined;
-  if (!hasWishlist) {
+  const hasCart = (existing.schema as any).paths['cart'] !== undefined;
+  if (!hasWishlist || !hasCart) {
     delete mongoose.models.User;
   }
 }

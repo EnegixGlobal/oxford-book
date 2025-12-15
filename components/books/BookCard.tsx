@@ -83,10 +83,12 @@ const BookCard = ({ book, showBuyNow = true, showReviewSnippet = false }: BookCa
                 {book.title}
               </h3>
 
-              <p className="text-xs text-gray-600 mb-2 min-h-[16px]">by {book.author}</p>
+              <p className="text-xs text-gray-600 mb-2 min-h-[16px]">
+                by {book.author ?? (book as any).authorName ?? 'Unknown author'}
+              </p>
 
               {/* Rating */}
-              <div className="flex items-center mb-2">
+              {/* <div className="flex items-center mb-2">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star
@@ -101,7 +103,7 @@ const BookCard = ({ book, showBuyNow = true, showReviewSnippet = false }: BookCa
                 <span className="text-xs text-gray-600 ml-1">
                   {book.rating} ({book.reviewCount})
                 </span>
-              </div>
+              </div> */}
 
               {/* Customer Review Section */}
               {showReviewSnippet && latestReview && (

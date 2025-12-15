@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { customerSignupSchema } from '@/lib/validations';
@@ -54,11 +55,25 @@ export async function POST(request: NextRequest) {
     // Save user (password will be hashed by the pre-save middleware)
     await newUser.save();
 
-    // Return success response (without password)
+    // Generate JWT token for automatic login after signup
+    const token = jwt.sign(
+      {
+        userId: newUser._id,
+        email: newUser.email,
+        role: newUser.role
+      },
+      process.env.JWT_SECRET!,
+      {
+        expiresIn: '28d' // Token expires in 28 days
+      }
+    );
+
+    // Return success response with token (without password)
     return NextResponse.json(
       {
         success: true,
         message: 'Customer account created successfully',
+        token,
         user: {
           id: newUser._id,
           name: newUser.name,

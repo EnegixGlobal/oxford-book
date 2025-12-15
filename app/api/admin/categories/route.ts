@@ -89,13 +89,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { name, description, image, featured, isSubcategory, parentCategoryId } = body;
+    const safeDescription = typeof description === 'string' ? description : '';
 
     console.log('Received data:', { name, description, image, featured, isSubcategory, parentCategoryId });
 
     // Validate required fields
-    if (!name || !description) {
+    if (!name) {
       return NextResponse.json(
-        { success: false, message: 'Name and description are required' },
+        { success: false, message: 'Name is required' },
         { status: 400 }
       );
     }
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
       const subcategoryData: any = {
         name,
         slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-        description,
+        description: safeDescription,
         booksCount: 0
       };
 
@@ -198,7 +199,7 @@ export async function POST(request: NextRequest) {
       const newCategory = new Category({
         name,
         slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-        description,
+        description: safeDescription,
         image: imageUrl,
         featured: featured || false,
         booksCount: 0,
@@ -306,9 +307,12 @@ export async function PUT(request: NextRequest) {
       const updateData: any = {
         ...category.subcategories[subcategoryIndex],
         name,
-        slug: newSlug,
-        description
+        slug: newSlug
       };
+
+      if (description !== undefined) {
+        updateData.description = description;
+      }
 
       // Add image if provided
       const imageUrl = typeof image === 'string' && image !== '{}' ? image : '';
@@ -330,7 +334,7 @@ export async function PUT(request: NextRequest) {
       // Update main category
       const updateData: any = {};
       if (name) updateData.name = name;
-      if (description) updateData.description = description;
+      if (description !== undefined) updateData.description = description;
 
       // Ensure image is a valid string
       const imageUrl = typeof image === 'string' && image !== '{}' ? image : '';
