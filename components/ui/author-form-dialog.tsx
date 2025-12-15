@@ -119,8 +119,7 @@ export function AuthorFormDialog({
               id="nationality"
               name="nationality"
               defaultValue={initialData?.nationality}
-              placeholder="Enter nationality"
-              required
+              placeholder="Enter nationality (optional)"
             />
           </div>
 

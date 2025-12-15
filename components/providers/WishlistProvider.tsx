@@ -29,26 +29,48 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const getToken = () => (typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null);
 
   const refresh = useCallback(async () => {
-    if (!user) { setWishlist([]); return; }
+    if (!user) { 
+      setWishlist([]);
+      return;
+    }
     try {
       setLoading(true);
-  const token = getToken();
-  if (!token) { return; }
-  const res = await fetch('/api/profile/wishlist', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      const token = getToken();
+      if (!token) { 
+        setWishlist([]);
+        return; 
+      }
+      // Fetch fresh from backend DB
+      const res = await fetch('/api/profile/wishlist', { 
+        headers: { Authorization: `Bearer ${token}` }, 
+        cache: 'no-store' 
+      });
       const json = await res.json();
       if (json?.success && Array.isArray(json.data)) {
         // Data could be populated Book documents or just IDs if changed later
         const ids = json.data.map((b: any) => b._id || b.id || b);
         setWishlist(ids);
+      } else {
+        setWishlist([]);
       }
     } catch {
-      // ignore
+      setWishlist([]);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Listen for logout events to clear wishlist
+  useEffect(() => {
+    const handleLogout = () => {
+      setWishlist([]);
+    };
+
+    window.addEventListener('user-logged-out', handleLogout);
+    return () => window.removeEventListener('user-logged-out', handleLogout);
+  }, []);
 
   const add = async (bookId: string) => {
     if (!user) { toast.error('Please login to save wishlist'); return; }

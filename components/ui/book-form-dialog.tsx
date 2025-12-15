@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,6 +12,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "./textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./command"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { toast } from "sonner"
+import { AuthorFormDialog } from "@/components/ui/author-form-dialog"
 
 interface AuthorDto { _id: string; name: string; slug: string }
 interface CategoryDto { slug: string; name: string; subcategories?: { slug: string; name: string }[] }
@@ -44,6 +50,13 @@ export function BookFormDialog({
   const [availableSubcategories, setAvailableSubcategories] = useState<Array<{ slug: string; name: string }>>([]);
   const [imageOption, setImageOption] = useState<'url' | 'file'>(initialData?.imageFile ? 'file' : 'url');
   const [previewUrl, setPreviewUrl] = useState<string>(initialData?.coverImage || '');
+  const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
+  const [authorSearch, setAuthorSearch] = useState('');
+  const [creatingAuthor, setCreatingAuthor] = useState(false);
+  const [authorDialogOpen, setAuthorDialogOpen] = useState(false);
+  const [authorDialogMode, setAuthorDialogMode] = useState<'add' | 'edit'>('add');
+  const authorTriggerRef = useRef<HTMLButtonElement>(null);
+  const authorInputRef = useRef<HTMLInputElement>(null);
   const resolvedAgeOptions = useMemo(() => {
     const base = (customAgeOptions || []).map(o => ({
       value: o.value,
@@ -86,6 +99,13 @@ export function BookFormDialog({
     }
   }, [selectedCategory]);
 
+  // Focus the search input when the author popover opens
+  useEffect(() => {
+    if (authorDropdownOpen) {
+      setTimeout(() => authorInputRef.current?.focus(), 0);
+    }
+  }, [authorDropdownOpen]);
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -95,10 +115,6 @@ export function BookFormDialog({
         const aj = await ares.json();
         if (mounted && aj?.success && Array.isArray(aj.data)) {
           setAuthors(aj.data.map((a: any) => ({ _id: a._id, name: a.name, slug: a.slug })));
-          if (!initialData?.authorId && initialData?.author) {
-            const found = aj.data.find((a: any) => a.name === initialData.author);
-            if (found) setSelectedAuthorId(found._id);
-          }
         }
         // categories
         const cres = await fetch('/api/categories', { cache: 'no-store' });
@@ -111,6 +127,70 @@ export function BookFormDialog({
     load();
     return () => { mounted = false; };
   }, []);
+
+  // Re-resolve selected author when initialData or authors change (for edit prefill)
+  useEffect(() => {
+    if (!initialData) return;
+    if (initialData.authorId) {
+      setSelectedAuthorId(String(initialData.authorId));
+      return;
+    }
+    if (initialData.author && authors.length) {
+      const target = String(initialData.author).trim().toLowerCase();
+      const found = authors.find((a) => a.name.trim().toLowerCase() === target);
+      if (found) {
+        setSelectedAuthorId(found._id);
+      }
+    }
+  }, [initialData, authors]);
+
+  const selectedAuthor = useMemo(() => {
+    const byId = selectedAuthorId ? authors.find((a) => a._id === selectedAuthorId) : undefined;
+    if (byId) return byId;
+    if (initialData?.author) return { _id: '', name: initialData.author, slug: '' };
+    return undefined;
+  }, [authors, initialData?.author, selectedAuthorId]);
+
+  const handleQuickAddAuthor = () => {
+    setAuthorDialogMode('add');
+    setAuthorDialogOpen(true);
+  };
+
+  const handleAuthorDialogSubmit = async (data: any) => {
+    setCreatingAuthor(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+      const res = await fetch('/api/admin/authors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          name: data.name,
+          nationality: data.nationality || '',
+          biography: data.biography || '',
+          profileImage: data.profileImage || '',
+          featured: !!data.featured,
+        }),
+      });
+      const json = await res.json();
+      if (!json?.success || !json?.data) {
+        throw new Error(json?.message || 'Failed to create author');
+      }
+      const newAuthor = { _id: json.data._id, name: json.data.name, slug: json.data.slug };
+      setAuthors((prev) => [newAuthor, ...prev]);
+      setSelectedAuthorId(newAuthor._id);
+      setAuthorDropdownOpen(false);
+      setAuthorSearch('');
+      toast.success('Author added');
+      setAuthorDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to add author');
+    } finally {
+      setCreatingAuthor(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,89 +271,234 @@ export function BookFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1000px] md:max-w-[1200px] lg:max-w-[1400px] h-[90vh] max-h-[800px] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{mode === 'add' ? 'Add New Book' : 'Edit Book'}</DialogTitle>
-          <DialogDescription>
-            {mode === 'add' ? 'Add a new book to your inventory.' : 'Make changes to the book details.'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-4 pl-2 pb-20">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              name="title"
-              defaultValue={initialData?.title}
-              placeholder="Enter book title"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-              <Label htmlFor="genre">Genre (optional)</Label>
-              <Select name="genre" defaultValue={initialData?.genre ?? undefined}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select genre" />
-                </SelectTrigger>
-                <SelectContent>
-                  {resolvedGenreOptions.length
-                    ? resolvedGenreOptions.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))
-                    : (
-                      <SelectItem disabled value="__no_genre__">No genres available</SelectItem>
-                    )}
-                </SelectContent>
-              </Select>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[1000px] md:max-w-[1200px] lg:max-w-[1400px] h-[90vh] max-h-[800px] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{mode === 'add' ? 'Add New Book' : 'Edit Book'}</DialogTitle>
+            <DialogDescription>
+              {mode === 'add' ? 'Add a new book to your inventory.' : 'Make changes to the book details.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-4 pl-2 pb-20">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  defaultValue={initialData?.title}
+                  placeholder="Enter book title"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="genre">Genre (optional)</Label>
+                <Select name="genre" defaultValue={initialData?.genre ?? undefined}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select genre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {resolvedGenreOptions.length
+                      ? resolvedGenreOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))
+                      : (
+                        <SelectItem disabled value="__no_genre__">No genres available</SelectItem>
+                      )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-         
-            <div className="space-y-2">
-              <Label htmlFor="author">Author</Label>
-              <Select
-                name="authorId"
-                value={selectedAuthorId}
-                onValueChange={(v) => setSelectedAuthorId(v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an author" />
-                </SelectTrigger>
-                <SelectContent>
-                  {authors.map((a) => (
-                    <SelectItem key={a._id} value={a._id}>{a.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!selectedAuthorId && (
-                <Input id="author" name="author" defaultValue={initialData?.author} placeholder="Or type author name" className="mt-2" />
-              )}
-            </div>
-            <div className="space-y-2">
-            <Label htmlFor="isbn">ISBN</Label>
-            <Input
-              id="isbn"
-              name="isbn"
-              defaultValue={initialData?.isbn}
-              placeholder="Enter ISBN (e.g., 9780123456472)"
-              required
-              maxLength={13}
-              pattern="^([0-9]{10}|[0-9]{13})$"
-              title="ISBN must be exactly 10 digits or 13 digits"
-              onChange={(e) => {
-                // Allow only digits
-                e.target.value = e.target.value.replace(/\D/g, "");
-              }}
-            />
+            <div className="grid grid-cols-2 gap-4">
 
-            <p className="text-sm text-gray-500 mt-1">
-              Enter a valid 10-digit or 13-digit ISBN (no hyphens).
-            </p>
-          </div>
-          </div>
-          {/* <div className="space-y-2">
+              {/* <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="author">Author</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleQuickAddAuthor}
+                  disabled={creatingAuthor}
+                >
+                  <span className="mr-1">+</span>
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <div className="relative">
+                  <Button
+                    type="button"
+                    ref={authorTriggerRef}
+                    variant="outline"
+                    role="combobox"
+                    className={cn(
+                      "w-full justify-between",
+                      !selectedAuthor && "text-muted-foreground"
+                    )}
+                    onClick={() => setAuthorDropdownOpen((prev) => !prev)}
+                  >
+                    {selectedAuthor ? selectedAuthor.name : "Select an author"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                  {authorDropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+                      <Command>
+                        <CommandInput
+                          ref={authorInputRef}
+                          placeholder="Search author..."
+                          autoFocus
+                          value={authorSearch}
+                          onValueChange={setAuthorSearch}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                        <CommandList className="max-h-64 overflow-auto">
+                          <CommandEmpty>No author found.</CommandEmpty>
+                          <CommandGroup>
+                            {authors.map((author) => (
+                              <CommandItem
+                                key={author._id}
+                                value={author.name}
+                                keywords={[author.name, author.slug]}
+                                onSelect={(value) => {
+                                  const found = authors.find((a) => a.name === value);
+                                  setSelectedAuthorId(found?._id);
+                                  setAuthorDropdownOpen(false);
+                                  setAuthorSearch('');
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedAuthorId === author._id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {author.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </div>
+                  )}
+                </div>
+                
+              </div>
+              <input
+                type="hidden"
+                name="authorId"
+                value={selectedAuthorId || ""}
+              /> */}
+              {/* {!selectedAuthorId && (
+                <Input id="author" name="author" defaultValue={initialData?.author} placeholder="Or type author name" className="mt-2" />
+              )} */}
+              {/* </div> */}
+              <div className="space-y-2">
+                <Label htmlFor="author">Author</Label>
+
+                <div className="flex items-center gap-2">
+                  {/* Searchable dropdown */}
+                  <div className="relative flex-1">
+                    <Button
+                      type="button"
+                      ref={authorTriggerRef}
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-full h-9 justify-between text-sm",
+                        !selectedAuthor && "text-muted-foreground"
+                      )}
+                      onClick={() => setAuthorDropdownOpen((prev) => !prev)}
+                    >
+                      {selectedAuthor ? selectedAuthor.name : "Select author"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+
+                    {authorDropdownOpen && (
+                      <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+                        <Command>
+                          <CommandInput
+                            ref={authorInputRef}
+                            placeholder="Search author..."
+                            value={authorSearch}
+                            onValueChange={setAuthorSearch}
+                            className="h-9 text-sm"
+                            autoFocus
+                            onKeyDown={(e) => e.stopPropagation()}
+                          />
+                          <CommandList className="max-h-56 overflow-auto">
+                            <CommandEmpty>No author found.</CommandEmpty>
+                            <CommandGroup>
+                              {authors.map((author) => (
+                                <CommandItem
+                                  key={author._id}
+                                  value={author.name}
+                                  keywords={[author.name, author.slug]}
+                                  onSelect={(value) => {
+                                    const found = authors.find((a) => a.name === value);
+                                    setSelectedAuthorId(found?._id);
+                                    setAuthorDropdownOpen(false);
+                                    setAuthorSearch("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedAuthorId === author._id
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {author.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Plus button */}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={handleQuickAddAuthor}
+                    disabled={creatingAuthor}
+                    className="h-9 w-9"
+                    title="Add new author"
+                  >
+                    +
+                  </Button>
+                </div>
+
+                <input type="hidden" name="authorId" value={selectedAuthorId || ""} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="isbn">ISBN</Label>
+                <Input
+                  id="isbn"
+                  name="isbn"
+                  defaultValue={initialData?.isbn}
+                  placeholder="Enter ISBN (e.g., 9780123456472)"
+                  required
+                  maxLength={13}
+                  pattern="^([0-9]{10}|[0-9]{13})$"
+                  title="ISBN must be exactly 10 digits or 13 digits"
+                  onChange={(e) => {
+                    // Allow only digits
+                    e.target.value = e.target.value.replace(/\D/g, "");
+                  }}
+                />
+
+                <p className="text-sm text-gray-500 mt-1">
+                  Enter a valid 10-digit or 13-digit ISBN (no hyphens).
+                </p>
+              </div>
+            </div>
+            {/* <div className="space-y-2">
             <Label htmlFor="isbn">ISBN</Label>
             <Input
               id="isbn"
@@ -300,308 +525,315 @@ export function BookFormDialog({
               Enter ISBN-10 or ISBN-13 without hyphens. Hyphens will be added automatically.
             </p>
           </div> */}
-          
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="originalPrice">Original Price (MRP)</Label>
-              <Input
-                id="originalPrice"
-                name="originalPrice"
-                type="number"
-                step="0.01"
-                defaultValue={initialData?.mrp || initialData?.price}
-                placeholder="Enter original price"
-                required
-                onChange={(e) => {
-                  const originalPrice = parseFloat(e.target.value);
-                  const discountInput = document.getElementById('discount') as HTMLInputElement;
-                  const finalPriceInput = document.getElementById('finalPrice') as HTMLInputElement;
-                  if (discountInput && finalPriceInput && originalPrice) {
-                    const discount = parseFloat(discountInput.value) || 0;
-                    const finalPrice = originalPrice - (originalPrice * discount / 100);
-                    finalPriceInput.value = String(Math.round(finalPrice));
-                  }
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="discount">Discount (%)</Label>
-              <Input
-                id="discount"
-                name="discount"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                defaultValue={initialData?.discount || ((initialData?.mrp && initialData?.discountedPrice)
-                  ? ((initialData.mrp - initialData.discountedPrice) / initialData.mrp * 100).toFixed(1)
-                  : "0")}
-                placeholder="Enter discount percentage"
-                onChange={(e) => {
-                  const discount = parseFloat(e.target.value);
-                  const originalPriceInput = document.getElementById('originalPrice') as HTMLInputElement;
-                  const finalPriceInput = document.getElementById('finalPrice') as HTMLInputElement;
-                  if (originalPriceInput && finalPriceInput) {
-                    const originalPrice = parseFloat(originalPriceInput.value);
-                    if (originalPrice) {
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="originalPrice">Original Price (MRP)</Label>
+                <Input
+                  id="originalPrice"
+                  name="originalPrice"
+                  type="number"
+                  step="0.01"
+                  defaultValue={initialData?.mrp || initialData?.price}
+                  placeholder="Enter original price"
+                  required
+                  onChange={(e) => {
+                    const originalPrice = parseFloat(e.target.value);
+                    const discountInput = document.getElementById('discount') as HTMLInputElement;
+                    const finalPriceInput = document.getElementById('finalPrice') as HTMLInputElement;
+                    if (discountInput && finalPriceInput && originalPrice) {
+                      const discount = parseFloat(discountInput.value) || 0;
                       const finalPrice = originalPrice - (originalPrice * discount / 100);
                       finalPriceInput.value = String(Math.round(finalPrice));
                     }
-                  }
-                }}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="finalPrice">Final Price</Label>
-              <Input
-                id="finalPrice"
-                name="finalPrice"
-                type="number"
-                step="0.01"
-                defaultValue={initialData?.discountedPrice ? Math.round(initialData.discountedPrice) : (initialData?.price ? Math.round(initialData.price) : undefined)}
-                placeholder="Final price after discount"
-                required
-                readOnly
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="stock">Stock</Label>
-              <Input
-                id="stock"
-                name="stock"
-                type="number"
-                defaultValue={initialData?.stock}
-                placeholder="Enter stock"
-                required
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              defaultValue={initialData?.description}
-              placeholder="Enter book description"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                name="category"
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.slug} value={category.slug}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="subcategory">Subcategory</Label>
-              <Select
-                name="subcategory"
-                disabled={!selectedCategory}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a subcategory" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSubcategories.map((subcategory) => (
-                    <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                      {subcategory.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="publisher">Publisher</Label>
-              <Input
-                id="publisher"
-                name="publisher"
-                defaultValue={initialData?.publisher}
-                placeholder="Enter publisher name"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="binding">Binding</Label>
-              <Select name="binding" defaultValue={initialData?.binding}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select binding type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hardcover">Hardcover</SelectItem>
-                  <SelectItem value="paperback">Paperback</SelectItem>
-                  <SelectItem value="digital">Digital</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Select name="language" defaultValue={initialData?.language}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="english">English</SelectItem>
-                  <SelectItem value="hindi">Hindi</SelectItem>
-                  <SelectItem value="marathi">Marathi</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ageGroup">Age Group (optional)</Label>
-              <Select name="ageGroup" defaultValue={initialData?.ageGroup ?? undefined}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select age group (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {resolvedAgeOptions.length
-                    ? resolvedAgeOptions.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))
-                    : (
-                      <SelectItem disabled value="__no_age__">No age groups available</SelectItem>
-                    )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="anticipated">Most Anticipated (optional)</Label>
-              <div className="flex items-center gap-2">
-                <input id="anticipated" name="anticipated" type="checkbox" aria-label="Most Anticipated" defaultChecked={!!initialData?.anticipated} />
-                <span className="text-sm text-gray-600">Mark as most anticipated</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newRelease">New Release (optional)</Label>
-              <div className="flex items-center gap-2">
-                <input id="newRelease" name="newRelease" type="checkbox" aria-label="New Release" defaultChecked={!!initialData?.newRelease} />
-                <span className="text-sm text-gray-600">Mark as newly released</span>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <Label>Cover Image</Label>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <Input
-                  type="radio"
-                  id="imageUrlOption"
-                  name="imageOption"
-                  value="url"
-                  className="h-4 w-4"
-                  checked={imageOption === 'url'}
-                  onChange={() => {
-                    setImageOption('url');
-                    const fileInput = document.getElementById('imageFile') as HTMLInputElement;
-                    if (fileInput) fileInput.value = '';
-                    const preview = document.getElementById('imagePreview') as HTMLImageElement;
-                    if (preview) preview.style.display = 'none';
                   }}
                 />
-                <Label htmlFor="imageUrlOption" className="ml-2">URL</Label>
               </div>
-              <div className="flex items-center">
-                <Input
-                  type="radio"
-                  id="imageFileOption"
-                  name="imageOption"
-                  value="file"
-                  className="h-4 w-4"
-                  checked={imageOption === 'file'}
-                  onChange={() => {
-                    setImageOption('file');
-                    const urlInput = document.getElementById('coverImage') as HTMLInputElement;
-                    if (urlInput) urlInput.value = '';
-                  }}
-                />
-                <Label htmlFor="imageFileOption" className="ml-2">Upload File</Label>
-              </div>
-            </div>
-            {imageOption === 'url' ? (
               <div className="space-y-2">
+                <Label htmlFor="discount">Discount (%)</Label>
                 <Input
-                  id="coverImage"
-                  name="coverImage"
-                  defaultValue={initialData?.coverImage}
-                  placeholder="Enter cover image URL"
-                  className="mt-2"
-                  onChange={(e) => setPreviewUrl(e.target.value)}
-                />
-                {previewUrl && (
-                  <div className="mt-4">
-                    <img
-                      alt="Cover preview"
-                      src={previewUrl}
-                      className="max-w-[200px] max-h-[200px] object-contain rounded"
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Input
-                  id="imageFile"
-                  name="imageFile"
-                  type="file"
-                  accept="image/*"
-                  className="mt-2"
+                  id="discount"
+                  name="discount"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  defaultValue={initialData?.discount || ((initialData?.mrp && initialData?.discountedPrice)
+                    ? ((initialData.mrp - initialData.discountedPrice) / initialData.mrp * 100).toFixed(1)
+                    : "0")}
+                  placeholder="Enter discount percentage"
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (e) => {
-                        const preview = document.getElementById('imagePreview') as HTMLImageElement;
-                        if (preview && e.target?.result) {
-                          preview.src = e.target.result as string;
-                          preview.style.display = 'block';
-                          setPreviewUrl(e.target.result as string);
-                        }
-                      };
-                      reader.readAsDataURL(file);
+                    const discount = parseFloat(e.target.value);
+                    const originalPriceInput = document.getElementById('originalPrice') as HTMLInputElement;
+                    const finalPriceInput = document.getElementById('finalPrice') as HTMLInputElement;
+                    if (originalPriceInput && finalPriceInput) {
+                      const originalPrice = parseFloat(originalPriceInput.value);
+                      if (originalPrice) {
+                        const finalPrice = originalPrice - (originalPrice * discount / 100);
+                        finalPriceInput.value = String(Math.round(finalPrice));
+                      }
                     }
                   }}
                 />
-                <div id="imagePreviewContainer" className="mt-4">
-                  {(previewUrl || initialData?.coverImage) && (
-                    <img
-                      id="imagePreview"
-                      alt="Cover preview"
-                      src={(previewUrl || initialData?.coverImage) as string}
-                      className="max-w-[200px] max-h-[200px] object-contain"
-                    />
-                  )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="finalPrice">Final Price</Label>
+                <Input
+                  id="finalPrice"
+                  name="finalPrice"
+                  type="number"
+                  step="0.01"
+                  defaultValue={initialData?.discountedPrice ? Math.round(initialData.discountedPrice) : (initialData?.price ? Math.round(initialData.price) : undefined)}
+                  placeholder="Final price after discount"
+                  required
+                  readOnly
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stock</Label>
+                <Input
+                  id="stock"
+                  name="stock"
+                  type="number"
+                  defaultValue={initialData?.stock}
+                  placeholder="Enter stock"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                defaultValue={initialData?.description}
+                placeholder="Enter book description"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  name="category"
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.slug} value={category.slug}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subcategory">Subcategory</Label>
+                <Select
+                  name="subcategory"
+                  disabled={!selectedCategory}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a subcategory" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubcategories.map((subcategory) => (
+                      <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                        {subcategory.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="publisher">Publisher</Label>
+                <Input
+                  id="publisher"
+                  name="publisher"
+                  defaultValue={initialData?.publisher}
+                  placeholder="Enter publisher name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="binding">Binding</Label>
+                <Select name="binding" defaultValue={initialData?.binding}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select binding type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hardcover">Hardcover</SelectItem>
+                    <SelectItem value="paperback">Paperback</SelectItem>
+                    <SelectItem value="digital">Digital</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="language">Language</Label>
+                <Select name="language" defaultValue={initialData?.language}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="english">English</SelectItem>
+                    <SelectItem value="hindi">Hindi</SelectItem>
+                    <SelectItem value="marathi">Marathi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ageGroup">Age Group (optional)</Label>
+                <Select name="ageGroup" defaultValue={initialData?.ageGroup ?? undefined}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select age group (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {resolvedAgeOptions.length
+                      ? resolvedAgeOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))
+                      : (
+                        <SelectItem disabled value="__no_age__">No age groups available</SelectItem>
+                      )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="anticipated">Most Anticipated (optional)</Label>
+                <div className="flex items-center gap-2">
+                  <input id="anticipated" name="anticipated" type="checkbox" aria-label="Most Anticipated" defaultChecked={!!initialData?.anticipated} />
+                  <span className="text-sm text-gray-600">Mark as most anticipated</span>
                 </div>
               </div>
-            )}
-          </div>
-          <div className=" bottom-0 bg-white pt-4 pr-12 dark:bg-gray-950">
-            <DialogFooter>
-              <Button type="submit">{mode === 'add' ? 'Add Book' : 'Save Changes'}</Button>
-            </DialogFooter>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <div className="space-y-2">
+                <Label htmlFor="newRelease">New Release (optional)</Label>
+                <div className="flex items-center gap-2">
+                  <input id="newRelease" name="newRelease" type="checkbox" aria-label="New Release" defaultChecked={!!initialData?.newRelease} />
+                  <span className="text-sm text-gray-600">Mark as newly released</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Label>Cover Image</Label>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <Input
+                    type="radio"
+                    id="imageUrlOption"
+                    name="imageOption"
+                    value="url"
+                    className="h-4 w-4"
+                    checked={imageOption === 'url'}
+                    onChange={() => {
+                      setImageOption('url');
+                      const fileInput = document.getElementById('imageFile') as HTMLInputElement;
+                      if (fileInput) fileInput.value = '';
+                      const preview = document.getElementById('imagePreview') as HTMLImageElement;
+                      if (preview) preview.style.display = 'none';
+                    }}
+                  />
+                  <Label htmlFor="imageUrlOption" className="ml-2">URL</Label>
+                </div>
+                <div className="flex items-center">
+                  <Input
+                    type="radio"
+                    id="imageFileOption"
+                    name="imageOption"
+                    value="file"
+                    className="h-4 w-4"
+                    checked={imageOption === 'file'}
+                    onChange={() => {
+                      setImageOption('file');
+                      const urlInput = document.getElementById('coverImage') as HTMLInputElement;
+                      if (urlInput) urlInput.value = '';
+                    }}
+                  />
+                  <Label htmlFor="imageFileOption" className="ml-2">Upload File</Label>
+                </div>
+              </div>
+              {imageOption === 'url' ? (
+                <div className="space-y-2">
+                  <Input
+                    id="coverImage"
+                    name="coverImage"
+                    defaultValue={initialData?.coverImage}
+                    placeholder="Enter cover image URL"
+                    className="mt-2"
+                    onChange={(e) => setPreviewUrl(e.target.value)}
+                  />
+                  {previewUrl && (
+                    <div className="mt-4">
+                      <img
+                        alt="Cover preview"
+                        src={previewUrl}
+                        className="max-w-[200px] max-h-[200px] object-contain rounded"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    id="imageFile"
+                    name="imageFile"
+                    type="file"
+                    accept="image/*"
+                    className="mt-2"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                          const preview = document.getElementById('imagePreview') as HTMLImageElement;
+                          if (preview && e.target?.result) {
+                            preview.src = e.target.result as string;
+                            preview.style.display = 'block';
+                            setPreviewUrl(e.target.result as string);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <div id="imagePreviewContainer" className="mt-4">
+                    {(previewUrl || initialData?.coverImage) && (
+                      <img
+                        id="imagePreview"
+                        alt="Cover preview"
+                        src={(previewUrl || initialData?.coverImage) as string}
+                        className="max-w-[200px] max-h-[200px] object-contain"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className=" bottom-0 bg-white pt-4 pr-12 dark:bg-gray-950">
+              <DialogFooter>
+                <Button type="submit">{mode === 'add' ? 'Add Book' : 'Save Changes'}</Button>
+              </DialogFooter>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <AuthorFormDialog
+        open={authorDialogOpen}
+        onOpenChange={setAuthorDialogOpen}
+        mode={authorDialogMode}
+        onSubmit={handleAuthorDialogSubmit}
+      />
+    </>
   )
 }

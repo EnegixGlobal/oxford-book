@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer';
 import CartProvider from '@/components/providers/CartProvider';
 import AuthProvider from '@/components/providers/AuthProvider';
 import { WishlistProvider } from '@/components/providers/WishlistProvider';
+import FetchInterceptor from '@/components/providers/FetchInterceptor';
 import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
+          <FetchInterceptor />
           <WishlistProvider>
             <CartProvider>
             <div className="min-h-screen flex flex-col">
