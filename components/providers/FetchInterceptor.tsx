@@ -26,9 +26,18 @@ export default function FetchInterceptor() {
 
       // Check for 401 status after response
       if (response.status === 401) {
-        const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
-        const options = args[1] || {};
+        const input = args[0];
+        const options = (args[1] || {}) as RequestInit;
         const headers = options.headers || {};
+
+        let url = '';
+        if (typeof input === 'string') {
+          url = input;
+        } else if (input instanceof Request) {
+          url = input.url;
+        } else if (input instanceof URL) {
+          url = input.toString();
+        }
         
         // Skip login/signup endpoints
         if (url.includes('/api/auth/login') || url.includes('/api/auth/signup')) {
