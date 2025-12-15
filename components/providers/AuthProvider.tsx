@@ -134,9 +134,9 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     // Listen for session expired events (from fetch interceptor)
     const handleSessionExpiredEvent = () => {
       const currentUser = JSON.parse(localStorage.getItem('bookhaven-user') || 'null');
-      if (currentUser) {
-        handleSessionExpired(currentUser.role === 'admin');
-      }
+      // If we know the user, use their role; otherwise fall back to pathname to decide admin vs user
+      const isAdmin = currentUser?.role === 'admin' || pathname?.startsWith('/admin') || false;
+      handleSessionExpired(isAdmin);
     };
 
     window.addEventListener('session-expired', handleSessionExpiredEvent);
@@ -144,7 +144,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => {
       window.removeEventListener('session-expired', handleSessionExpiredEvent);
     };
-  }, [handleSessionExpired]);
+  }, [handleSessionExpired, pathname]);
 
   // Set up periodic token validation (check every 5 minutes)
   useEffect(() => {
