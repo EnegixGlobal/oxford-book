@@ -15,6 +15,7 @@ type Book = {
   mrp: number;
   discountedPrice: number;
   bestseller?: boolean;
+  bestsellerOrder?: number;
 };
 
 const fetchBooks = async (page = 1, limit = 12, search = '') => {
@@ -34,6 +35,17 @@ const updateBestseller = async (id: string, bestseller: boolean) => {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify({ bestseller }),
+  });
+  return res.json();
+};
+
+const updateBestsellerOrder = async (id: string, bestsellerOrder: number) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+  const url = `/api/admin/books?id=${id}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ bestsellerOrder }),
   });
   return res.json();
 };
@@ -71,6 +83,28 @@ export default function BestsellerAdminPage() {
   }, [page, search]);
 
   const selectedCount = useMemo(() => books.filter(b => b.bestseller).length, [books]);
+  
+  // Sort books: bestsellers first (by order), then non-bestsellers (by title)
+  const sortedBooks = useMemo(() => {
+    return [...books].sort((a, b) => {
+      const aIsBestseller = !!a.bestseller;
+      const bIsBestseller = !!b.bestseller;
+      
+      // Bestsellers come first
+      if (aIsBestseller && !bIsBestseller) return -1;
+      if (!aIsBestseller && bIsBestseller) return 1;
+      
+      // If both are bestsellers, sort by order
+      if (aIsBestseller && bIsBestseller) {
+        const orderA = a.bestsellerOrder ?? 9999;
+        const orderB = b.bestsellerOrder ?? 9999;
+        if (orderA !== orderB) return orderA - orderB;
+      }
+      
+      // Then by title
+      return (a.title || '').localeCompare(b.title || '');
+    });
+  }, [books]);
 
   return (
     <div className="space-y-6">
@@ -100,6 +134,7 @@ export default function BestsellerAdminPage() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
@@ -107,8 +142,32 @@ export default function BestsellerAdminPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {books.map((b) => (
+            {sortedBooks.map((b) => (
               <tr key={b._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {b.bestseller ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={b.bestsellerOrder ?? 0}
+                      onChange={async (e) => {
+                        const newOrder = parseInt(e.target.value) || 0;
+                        const prev = b.bestsellerOrder;
+                        setBooks((arr) => arr.map(x => x._id === b._id ? { ...x, bestsellerOrder: newOrder } : x));
+                        const res = await updateBestsellerOrder(b._id, newOrder);
+                        if (!res?.success) {
+                          setBooks((arr) => arr.map(x => x._id === b._id ? { ...x, bestsellerOrder: prev } : x));
+                          toast.error(res?.message || 'Failed to update order');
+                        } else {
+                          toast.success('Order updated');
+                        }
+                      }}
+                      className="w-20"
+                    />
+                  ) : (
+                    <span className="text-gray-400 text-sm">—</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

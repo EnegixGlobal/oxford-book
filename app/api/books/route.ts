@@ -76,8 +76,19 @@ export async function GET(request: NextRequest) {
     if (andClauses.length) Object.assign(query, { $and: andClauses });
 
     const skip = (page - 1) * limit;
+    
+    // Sort featured by featuredOrder, bestsellers by bestsellerOrder, new releases by newReleaseOrder, then by createdAt
+    let sortCriteria: any = { createdAt: -1 };
+    if (featured === 'true') {
+      sortCriteria = { featuredOrder: 1, createdAt: -1 };
+    } else if (bestseller === 'true') {
+      sortCriteria = { bestsellerOrder: 1, createdAt: -1 };
+    } else if (newRelease === 'true') {
+      sortCriteria = { newReleaseOrder: 1, createdAt: -1 };
+    }
+    
     const [items, total] = await Promise.all([
-      Book.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Book.find(query).sort(sortCriteria).skip(skip).limit(limit).lean(),
       Book.countDocuments(query)
     ]);
 
