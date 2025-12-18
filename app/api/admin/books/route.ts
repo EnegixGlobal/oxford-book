@@ -98,9 +98,23 @@ export async function GET(request: NextRequest) {
   if (bestseller === 'false') query.bestseller = false;
 
     const skip = (page - 1) * limit;
+    
+    // Sort featured by featuredOrder, bestsellers by bestsellerOrder, new releases by newReleaseOrder, then by createdAt
+    let sortCriteria: any = { createdAt: -1 };
+    if (featured === 'true') {
+      sortCriteria = { featuredOrder: 1, createdAt: -1 };
+    } else if (bestseller === 'true') {
+      sortCriteria = { bestsellerOrder: 1, createdAt: -1 };
+    } else {
+      const newRelease = searchParams.get('newRelease');
+      if (newRelease === 'true') {
+        sortCriteria = { newReleaseOrder: 1, createdAt: -1 };
+      }
+    }
+    
     const [items, total] = await Promise.all([
       Book.find(query)
-        .sort({ createdAt: -1 })
+        .sort(sortCriteria)
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -152,9 +166,12 @@ export async function POST(request: NextRequest) {
       binding,
       language,
       featured,
+      featuredOrder,
       anticipated,
       bestseller,
+      bestsellerOrder,
       newRelease,
+      newReleaseOrder,
       ageGroup,
       genre,
     } = body;
@@ -192,9 +209,12 @@ export async function POST(request: NextRequest) {
       binding,
       language,
       featured: !!featured,
+      featuredOrder: featuredOrder !== undefined ? Number(featuredOrder) || 0 : undefined,
       anticipated: !!anticipated,
       bestseller: !!bestseller,
+      bestsellerOrder: bestsellerOrder !== undefined ? Number(bestsellerOrder) || 0 : undefined,
       newRelease: !!newRelease,
+      newReleaseOrder: newReleaseOrder !== undefined ? Number(newReleaseOrder) || 0 : undefined,
     });
 
     await newBook.save();
@@ -255,11 +275,14 @@ export async function PUT(request: NextRequest) {
     map('binding', 'binding');
   map('language', 'language');
   map('featured', 'featured', (v) => !!v);
+  map('featuredOrder', 'featuredOrder', (v) => Number(v) || 0);
   map('ageGroup', 'ageGroup');
   map('genre', 'genre');
   map('anticipated', 'anticipated', (v) => !!v);
   map('bestseller', 'bestseller', (v) => !!v);
+  map('bestsellerOrder', 'bestsellerOrder', (v) => Number(v) || 0);
   map('newRelease', 'newRelease', (v) => !!v);
+  map('newReleaseOrder', 'newReleaseOrder', (v) => Number(v) || 0);
 
     // if title is being updated, recompute a unique slug
     if (typeof body.title === 'string' && body.title.trim().length > 0) {

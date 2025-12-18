@@ -17,6 +17,9 @@ import WhatsAppButton from '@/components/common/WhatsAppButton';
 import NavigationMenu from '@/components/layout/NavigationMenu';
 import WhyShopWithUs from '@/components/home/WhyShopWithUs';
 import NewReleases from '@/components/home/NewReleases';
+import DynamicBookList from '@/components/home/DynamicBookList';
+import PromoBanner from '@/components/home/PromoBanner';
+import SmallBanners from '@/components/home/SmallBanners';
 
 export default function Home() {
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -54,7 +57,10 @@ export default function Home() {
       {/* <BookCarousel /> */}
       {/* <ShopGenre /> */}
       <NewReleases />
+      <DynamicBookList />
+      <PromoBanner />
       <BestSellers />
+      <SmallBanners />
       <FouthComing />
       {/* <MostAnticipatedBooks /> */}
 

@@ -23,13 +23,15 @@ type HeroSlide = {
   imagePublicId?: string;
   sortOrder: number;
   isActive: boolean;
+  ctaHref?: string;
 };
 
 const emptyForm: HeroSlide = {
   imageUrl: '',
   imagePublicId: '',
   sortOrder: 0,
-  isActive: true
+  isActive: true,
+  ctaHref: ''
 };
 
 const getAuthHeaders = (): HeadersInit => {
@@ -84,7 +86,8 @@ export default function HeroSlidesAdminPage() {
       imageUrl: slide.imageUrl || '',
       imagePublicId: slide.imagePublicId || '',
       sortOrder: slide.sortOrder ?? 0,
-      isActive: slide.isActive
+      isActive: slide.isActive,
+      ctaHref: slide.ctaHref || ''
     });
     setDialogOpen(true);
   };
@@ -366,6 +369,22 @@ export default function HeroSlidesAdminPage() {
                 ) : null}
               </div>
             </div>
+
+             {/* ✅ CTA LINK SECTION (ADD HERE) */}
+  <div className="space-y-2 rounded-xl border bg-white p-4">
+    <Label htmlFor="ctaHref">Banner Click Link (CTA)</Label>
+    <Input
+      id="ctaHref"
+      placeholder="/book/harry-potter"
+      value={form.ctaHref || ''}
+      onChange={(e) =>
+        setForm((prev) => ({ ...prev, ctaHref: e.target.value }))
+      }
+    />
+    <p className="text-xs text-gray-500">
+      Example: <code>/book/harry-potter</code> or <code>/products</code>
+    </p>
+  </div>
 
 
             <div className="grid gap-4 rounded-xl border bg-white p-4 md:grid-cols-2">

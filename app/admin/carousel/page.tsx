@@ -16,6 +16,7 @@ type Book = {
   mrp: number;
   discountedPrice: number;
   featured?: boolean;
+  featuredOrder?: number;
 };
 
 const fetchBooks = async (page = 1, limit = 12, search = '') => {
@@ -35,6 +36,17 @@ const updateFeatured = async (id: string, featured: boolean) => {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify({ featured }),
+  });
+  return res.json();
+};
+
+const updateFeaturedOrder = async (id: string, featuredOrder: number) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+  const url = `/api/admin/books?id=${id}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ featuredOrder }),
   });
   return res.json();
 };
@@ -72,6 +84,28 @@ export default function CarouselAdminPage() {
   }, [page, search]);
 
   const featuredCount = useMemo(() => books.filter(b => b.featured).length, [books]);
+  
+  // Sort books: featured first (by order), then non-featured (by title)
+  const sortedBooks = useMemo(() => {
+    return [...books].sort((a, b) => {
+      const aIsFeatured = !!a.featured;
+      const bIsFeatured = !!b.featured;
+      
+      // Featured books come first
+      if (aIsFeatured && !bIsFeatured) return -1;
+      if (!aIsFeatured && bIsFeatured) return 1;
+      
+      // If both are featured, sort by order
+      if (aIsFeatured && bIsFeatured) {
+        const orderA = a.featuredOrder ?? 9999;
+        const orderB = b.featuredOrder ?? 9999;
+        if (orderA !== orderB) return orderA - orderB;
+      }
+      
+      // Then by title
+      return (a.title || '').localeCompare(b.title || '');
+    });
+  }, [books]);
 
   return (
     <div className="space-y-6">
@@ -101,6 +135,7 @@ export default function CarouselAdminPage() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
@@ -108,8 +143,32 @@ export default function CarouselAdminPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {books.map((b) => (
+            {sortedBooks.map((b) => (
               <tr key={b._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {b.featured ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={b.featuredOrder ?? 0}
+                      onChange={async (e) => {
+                        const newOrder = parseInt(e.target.value) || 0;
+                        const prev = b.featuredOrder;
+                        setBooks((arr) => arr.map(x => x._id === b._id ? { ...x, featuredOrder: newOrder } : x));
+                        const res = await updateFeaturedOrder(b._id, newOrder);
+                        if (!res?.success) {
+                          setBooks((arr) => arr.map(x => x._id === b._id ? { ...x, featuredOrder: prev } : x));
+                          toast.error(res?.message || 'Failed to update order');
+                        } else {
+                          toast.success('Order updated');
+                        }
+                      }}
+                      className="w-20"
+                    />
+                  ) : (
+                    <span className="text-gray-400 text-sm">—</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

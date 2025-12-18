@@ -23,9 +23,12 @@ export interface IBook extends Document {
 	rating: number; // average rating
 	reviewCount: number;
 	featured: boolean;
+	featuredOrder?: number;
 			anticipated?: boolean;
 		bestseller?: boolean;
+	bestsellerOrder?: number;
 	newRelease?: boolean;
+	newReleaseOrder?: number;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -54,9 +57,12 @@ const BookSchema: Schema<IBook> = new Schema(
 		rating: { type: Number, default: 0, min: 0, max: 5 },
 		reviewCount: { type: Number, default: 0, min: 0 },
 		featured: { type: Boolean, default: false },
+		featuredOrder: { type: Number, default: 0, min: 0 },
 		anticipated: { type: Boolean, default: false },
 		bestseller: { type: Boolean, default: false },
+		bestsellerOrder: { type: Number, default: 0, min: 0 },
 		newRelease: { type: Boolean, default: false },
+		newReleaseOrder: { type: Number, default: 0, min: 0 },
 	},
 	{ timestamps: true }
 );
@@ -74,11 +80,14 @@ BookSchema.index(
 BookSchema.index({ categorySlug: 1 });
 BookSchema.index({ subcategorySlug: 1 });
 BookSchema.index({ featured: 1 });
+BookSchema.index({ featured: 1, featuredOrder: 1 });
 BookSchema.index({ ageGroup: 1 });
 BookSchema.index({ genre: 1 });
 BookSchema.index({ anticipated: 1 });
 BookSchema.index({ bestseller: 1 });
+BookSchema.index({ bestseller: 1, bestsellerOrder: 1 });
 BookSchema.index({ newRelease: 1 });
+BookSchema.index({ newRelease: 1, newReleaseOrder: 1 });
 
 // Ensure slug exists prior to validation
 BookSchema.pre('validate', function (next) {
@@ -148,9 +157,21 @@ if (mongoose.models.Book) {
 			BookModel.schema.add({ bestseller: { type: Boolean, default: false } });
 			try { BookModel.schema.index({ bestseller: 1 }); } catch {}
 		}
+		if (!BookModel.schema.path('bestsellerOrder')) {
+			BookModel.schema.add({ bestsellerOrder: { type: Number, default: 0, min: 0 } });
+			try { BookModel.schema.index({ bestseller: 1, bestsellerOrder: 1 }); } catch {}
+		}
 	if (!BookModel.schema.path('newRelease')) {
 		BookModel.schema.add({ newRelease: { type: Boolean, default: false } });
 		try { BookModel.schema.index({ newRelease: 1 }); } catch {}
+	}
+	if (!BookModel.schema.path('newReleaseOrder')) {
+		BookModel.schema.add({ newReleaseOrder: { type: Number, default: 0, min: 0 } });
+		try { BookModel.schema.index({ newRelease: 1, newReleaseOrder: 1 }); } catch {}
+	}
+	if (!BookModel.schema.path('featuredOrder')) {
+		BookModel.schema.add({ featuredOrder: { type: Number, default: 0, min: 0 } });
+		try { BookModel.schema.index({ featured: 1, featuredOrder: 1 }); } catch {}
 	}
 } else {
 	BookModel = mongoose.model<IBook>('Book', BookSchema);

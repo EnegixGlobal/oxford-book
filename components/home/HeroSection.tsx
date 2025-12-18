@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type HeroSlide = {
   _id?: string;
   imageUrl: string;
+  ctaHref?: string;
 };
 
 const HeroSection = () => {
+  const router = useRouter();
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -70,6 +73,8 @@ const HeroSection = () => {
     return null;
   }
 
+  const currentSlide = slides[currentImageIndex];
+
   const goToSlide = (index: number) => {
     setCurrentImageIndex(index);
     setProgress(0); // Reset progress when manually changing slide
@@ -89,9 +94,20 @@ const HeroSection = () => {
     setProgress(0);
   };
 
+  const handleBannerClick = () => {
+    if (currentSlide?.ctaHref) {
+      router.push(currentSlide.ctaHref);
+    }
+  };
+
   return (
     <>
-      <section className="banner-section relative text-white py-0 sm:py-6 lg:py-20 flex items-center overflow-hidden min-h-[200px] sm:min-h-[600px] lg:min-h-[420px]">
+      <section
+        className={`banner-section relative text-white py-0 sm:py-6 lg:py-20 flex items-center overflow-hidden min-h-[200px] sm:min-h-[600px] lg:min-h-[420px] ${
+          currentSlide?.ctaHref ? "cursor-pointer" : ""
+        }`}
+        onClick={handleBannerClick}
+      >
         {/* Background Images */}
         <div className="absolute inset-y-0 left-4 right-4 sm:left-16 sm:right-16 lg:left-8 lg:right-8">
           {slides.map((slide, index) => (
@@ -117,7 +133,10 @@ const HeroSection = () => {
         {/* Navigation Arrows */}
         <div className="hidden sm:block">
           <button
-            onClick={prevSlide}
+            onClick={(e) => {
+              e.stopPropagation();
+              prevSlide();
+            }}
             className="absolute left-12 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-all duration-300 group"
             aria-label="Previous slide"
           >
@@ -137,7 +156,10 @@ const HeroSection = () => {
           </button>
 
           <button
-            onClick={nextSlide}
+            onClick={(e) => {
+              e.stopPropagation();
+              nextSlide();
+            }}
             className="absolute right-12 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-all duration-300 group"
             aria-label="Next slide"
           >
@@ -164,7 +186,10 @@ const HeroSection = () => {
           {slides.map((_, index) => (
             <button
               key={index}
-              onClick={() => goToSlide(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                goToSlide(index);
+              }}
               className={`relative w-6 sm:w-8 h-2.5 sm:h-3 rounded-full transition-all duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
                 index === currentImageIndex
                   ? "scale-110"
