@@ -28,6 +28,7 @@ interface DashboardData {
     featuredBooks: number;
     anticipatedBooks: number;
     bestsellerBooks: number;
+    newReleaseLists: number;
     totalCategories: number;
     totalAuthors: number;
     inventoryValue: number;
@@ -141,6 +142,7 @@ export default function AdminDashboard() {
     return [
       { title: 'Total Books', value: dashboard?.metrics.totalBooks ?? '—', icon: Book, color: 'purple' },
       { title: 'Total Users', value: dashboard?.userStats.totalUsers ?? '—', icon: Users, color: 'blue' },
+      { title: 'New Release Lists', value: dashboard?.metrics.newReleaseLists ?? '—', icon: Book, color: 'pink' },
       { title: 'Low Stock (<5)', value: dashboard?.metrics.lowStockCount ?? '—', icon: ShoppingCart, color: 'green' },
       { title: 'Inventory Value', value: dashboard ? `₹${dashboard.metrics.inventoryValue.toLocaleString()}` : '—', icon: TrendingUp, color: 'orange' }
     ];
@@ -229,7 +231,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}

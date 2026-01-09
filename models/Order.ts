@@ -23,6 +23,7 @@ export interface IOrder extends Document {
   items: IOrderItem[];
   totalAmount: number;
   paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentMethod?: 'online' | 'cod';
   status: 'created' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   paymentCompletedAt?: Date;
   shippingAddress: {
@@ -63,6 +64,7 @@ const OrderSchema = new Schema<IOrder>({
   items: { type: [OrderItemSchema], required: true },
   totalAmount: { type: Number, required: true, min: 0 },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending', index: true },
+  paymentMethod: { type: String, enum: ['online', 'cod'], default: 'online' },
   status: { type: String, enum: ['created', 'confirmed', 'shipped', 'delivered', 'cancelled'], default: 'created', index: true },
   paymentCompletedAt: { type: Date },
   shippingAddress: {

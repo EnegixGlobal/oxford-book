@@ -34,6 +34,23 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  // Check localStorage for cart items on mount (fallback for Buy Now race condition)
+  // This ensures cart is available even if state hasn't updated yet
+  const [localCartChecked, setLocalCartChecked] = useState(false);
+  
+  useEffect(() => {
+    if (!localCartChecked && cartItems.length === 0 && typeof window !== 'undefined') {
+      // Give CartProvider time to load and merge carts
+      const timeoutId = setTimeout(() => {
+        setLocalCartChecked(true);
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    } else if (cartItems.length > 0) {
+      // Cart has items, no need to wait
+      setLocalCartChecked(true);
+    }
+  }, [cartItems.length, localCartChecked]);
 
   // If user not logged in, show login modal automatically
   useEffect(() => {
@@ -105,6 +122,7 @@ export default function CheckoutPage() {
   }, [address, user]);
 
   const [paying, setPaying] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const canPay = useMemo(() => !!user && addressSaved && getTotalItems() > 0 && !paying, [user, addressSaved, getTotalItems, paying]);
   const subtotal = getTotalPrice();
   const shippingCost = 0; // Free shipping policy for now
@@ -132,7 +150,8 @@ export default function CheckoutPage() {
             quantity: ci.quantity,
             coverImage: ci.coverImage
           })),
-            shippingAddress: address
+          shippingAddress: address,
+          paymentMethod: paymentMethod
         })
       });
       const createJson = await createRes.json();
@@ -141,6 +160,16 @@ export default function CheckoutPage() {
         setPaying(false);
         return;
       }
+      
+      // For Cash on Delivery, skip payment gateway and redirect to success
+      if (paymentMethod === 'cod') {
+        clearCart();
+        const orderId = createJson.data.id;
+        window.location.href = `/checkout/success?orderId=${orderId}`;
+        return;
+      }
+      
+      // For online payment, proceed with payment gateway
       const merchantOrderId = createJson.data.orderId;
       // 2. Initiate payment
       const payRes = await fetch('/api/payments/phonepe/create', {
@@ -151,16 +180,52 @@ export default function CheckoutPage() {
       const payJson = await payRes.json();
       if (!payRes.ok || !payJson.success) {
         toast.error(payJson.message || 'Failed to initiate payment');
+        // Don't clear cart if payment initiation fails
+        // Delete the order immediately since payment couldn't be initiated
+        try {
+          const deleteRes = await fetch(`/api/orders/${createJson.data.id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const deleteJson = await deleteRes.json();
+          if (!deleteRes.ok || !deleteJson.success) {
+            console.error('Failed to delete order:', deleteJson.message);
+            // Fallback: try to cancel if deletion fails
+            try {
+              await fetch(`/api/orders/${createJson.data.id}`, {
+                method: 'PATCH',
+                headers
+              });
+            } catch (cancelErr) {
+              console.error('Failed to cancel order after payment initiation failure:', cancelErr);
+            }
+          } else {
+            console.log('Order deleted successfully after payment initiation failure');
+          }
+        } catch (deleteErr) {
+          console.error('Failed to delete order after payment initiation failure:', deleteErr);
+          // Fallback: try to cancel if deletion fails
+          try {
+            await fetch(`/api/orders/${createJson.data.id}`, {
+              method: 'PATCH',
+              headers
+            });
+          } catch (cancelErr) {
+            console.error('Failed to cancel order after payment initiation failure:', cancelErr);
+          }
+        }
         setPaying(false);
         return;
       }
-      // Clear cart pending redirect
-      clearCart();
+      // Don't clear cart yet - wait for payment confirmation
+      // Cart will be cleared on success page after payment verification
       const redirectUrl = payJson.data.redirectUrl;
       if (redirectUrl) {
         window.location.href = redirectUrl;
       } else {
         toast.success('Payment already completed');
+        // Only clear cart if payment is already completed
+        clearCart();
       }
     } catch (e) {
       console.error('Payment error', e);
@@ -225,11 +290,21 @@ export default function CheckoutPage() {
     }
   };
 
-  if (cartItems.length === 0) {
+  // Show empty cart message only after checking localStorage
+  if (cartItems.length === 0 && localCartChecked) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <p className="text-gray-600 mb-6">Your cart is empty.</p>
         <Link href="/"><Button>Continue Shopping</Button></Link>
+      </div>
+    );
+  }
+  
+  // Show loading state briefly while checking localStorage
+  if (cartItems.length === 0 && !localCartChecked) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <p className="text-gray-600 mb-6">Loading cart...</p>
       </div>
     );
   }
@@ -414,13 +489,67 @@ export default function CheckoutPage() {
             <div className="mt-7 space-y-3">
               {!user && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">Please login to continue.</p>}
               {!addressSaved && <p className="text-sm text-orange-600 bg-orange-50 border border-orange-100 rounded-md px-3 py-2">Save your shipping address to enable payment.</p>}
+              
+              {/* Payment Method Selection */}
+              {user && addressSaved && (
+                <div className="space-y-2 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Method</h3>
+                  <div className="space-y-2">
+                    <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                      paymentMethod === 'online' 
+                        ? 'border-purple-500 bg-purple-50 shadow-sm' 
+                        : 'border-gray-200 bg-white hover:border-purple-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="online"
+                        checked={paymentMethod === 'online'}
+                        onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'cod')}
+                        className="text-purple-600 focus:ring-purple-500"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-purple-600" />
+                          <span className="font-medium text-sm">Online Payment</span>
+                        </div>
+                        <span className="text-xs text-gray-500">Pay securely with PhonePe</span>
+                      </div>
+                    </label>
+                    <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                      paymentMethod === 'cod' 
+                        ? 'border-purple-500 bg-purple-50 shadow-sm' 
+                        : 'border-gray-200 bg-white hover:border-purple-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'cod')}
+                        className="text-purple-600 focus:ring-purple-500"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-purple-600" />
+                          <span className="font-medium text-sm">Cash on Delivery</span>
+                        </div>
+                        <span className="text-xs text-gray-500">Pay when you receive your order</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+              
               <div className="group relative">
                 <Button disabled={!canPay} onClick={startPayment} className="w-full bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-green-300/30 transition-all">
-                  {paying ? 'Processing...' : 'Pay Now'}
+                  {paying ? 'Processing...' : paymentMethod === 'cod' ? 'Place Order' : 'Pay Now'}
                 </Button>
-                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Lock className="h-3 w-3" /> Secure Payment
-                </div>
+                {paymentMethod === 'online' && (
+                  <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Lock className="h-3 w-3" /> Secure Payment
+                  </div>
+                )}
               </div>
               <Link href="/cart" className="block"><Button variant="outline" className="w-full border-dashed hover:border-purple-400 hover:bg-purple-50 transition-colors">Back to Cart</Button></Link>
             </div>

@@ -80,7 +80,7 @@ const Footer = () => {
           <div className="text-center sm:text-left sm:col-span-2 lg:col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-purple-300">Stay Updated</h3>
             <p className="text-gray-400 mb-4 text-sm sm:text-base">Subscribe to our newsletter for the latest book recommendations.</p>
-            <div className="flex flex-col sm:flex-row max-w-sm mx-auto sm:mx-0">
+            {/* <div className="flex flex-col sm:flex-row max-w-sm mx-auto sm:mx-0">
               <input
                 type="email"
                 placeholder="Your email"
@@ -89,7 +89,7 @@ const Footer = () => {
               <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md sm:rounded-l-none sm:rounded-r-md transition-colors text-sm font-medium">
                 Subscribe
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
 

@@ -500,6 +500,19 @@ export default function BooksPage() {
         genreOptions={formGenreOptions}
         onSubmit={async (data) => {
           try {
+            let mrp = Number(data.mrp ?? data.originalPrice ?? 0);
+            let discountedPrice = Number(data.discountedPrice ?? data.finalPrice ?? 0);
+            const discount = Number(data.discount ?? 0);
+
+            // Calculate discountedPrice from mrp and discount if discount is provided
+            if (discount > 0 && mrp > 0) {
+              discountedPrice = Math.round(mrp * (1 - discount / 100));
+            }
+            // If discount is provided but we have discountedPrice, calculate mrp
+            else if (discount > 0 && discountedPrice > 0 && mrp === 0) {
+              mrp = Math.round(discountedPrice / (1 - discount / 100));
+            }
+
             const payload = {
               title: data.title,
               author: data.author,
@@ -509,9 +522,9 @@ export default function BooksPage() {
               coverImage: data.coverImage,
               category: data.category,
               subcategory: data.subcategory,
-              mrp: Number(data.mrp ?? data.originalPrice ?? 0),
-              discountedPrice: Number(data.discountedPrice ?? data.finalPrice ?? 0),
-              discount: Number(data.discount ?? 0),
+              mrp: mrp,
+              discountedPrice: discountedPrice,
+              discount: discount,
               isbn: data.isbn,
               publisher: data.publisher,
               binding: data.binding,

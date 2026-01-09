@@ -73,31 +73,34 @@ export async function POST(req: NextRequest) {
         confirmed: { status: 'Payment confirmed', timestamp: now }
       } as any;
       await order.save();
-    } else if (resp && resp.state === 'FAILED') {
-      const now = new Date();
-      if (!order.trackingInfo) (order as any).trackingInfo = {};
-      order.paymentStatus = 'failed';
-      order.status = 'cancelled';
-      order.trackingInfo = {
-        ...order.trackingInfo,
-        orderPlaced: order.trackingInfo?.orderPlaced || { status: 'Order placed successfully', timestamp: now },
-        cancelled: { status: 'Payment failed', timestamp: now }
-      } as any;
-      await order.save();
-    } else if (!resp && phonepeEnv !== 'PRODUCTION' && order.paymentStatus === 'pending') {
-      // Sandbox fallback: if SDK status not available, auto-complete as paid (simulator shows success)
-      const now = new Date();
-      if (!order.trackingInfo) (order as any).trackingInfo = {};
-      order.paymentStatus = 'paid';
-      order.status = 'confirmed';
-      order.paymentCompletedAt = now;
-      order.trackingInfo = {
-        ...order.trackingInfo,
-        orderPlaced: order.trackingInfo?.orderPlaced || { status: 'Order placed successfully', timestamp: now },
-        confirmed: { status: 'Payment confirmed (sandbox auto)' , timestamp: now }
-      } as any;
-      await order.save();
+    } else if (resp && (resp.state === 'FAILED' || resp.state === 'CANCELLED' || resp.state === 'CANCELED')) {
+      // Payment failed or cancelled - delete the order immediately
+      // Save order data before deletion
+      const gatewayState = resp.state;
+      const orderIdToDelete = (order as any)._id || orderMongoId;
+      const orderData = {
+        _id: String(orderIdToDelete),
+        orderId: order.orderId,
+        paymentStatus: 'failed' as const,
+        status: 'deleted' as const
+      };
+      await Order.findByIdAndDelete(orderIdToDelete);
+      // Return success with deleted order info
+      return NextResponse.json({ 
+        success: true, 
+        data: { 
+          order: orderData, 
+          env: phonepeEnv, 
+          gatewayState,
+          deleted: true
+        } 
+      });
     }
+    // Removed dangerous auto-completion logic that was confirming orders without payment verification
+    // Orders should only be confirmed when:
+    // 1. Payment gateway explicitly returns SUCCESS state
+    // 2. Payment webhook/callback confirms payment
+    // 3. Manual admin intervention via force-complete endpoint (dev only)
 
   return NextResponse.json({ success: true, data: { order, env: phonepeEnv, gatewayState: resp?.state || null } });
   } catch (e) {

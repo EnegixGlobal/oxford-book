@@ -35,7 +35,10 @@ const BookCard = ({ book, showBuyNow = true, showReviewSnippet = false }: BookCa
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     addToCart(book);
-    router?.push('/checkout');
+    // Wait for state update and localStorage sync to complete before navigating
+    setTimeout(() => {
+      router?.push('/checkout');
+    }, 200);
   };
 
   const discountPercentage = Math.round(((book.mrp - book.discountedPrice) / book.mrp) * 100);

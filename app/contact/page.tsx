@@ -119,7 +119,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
-                    <p className="text-gray-600">support@bookhaven.com</p>
+                    <p className="text-gray-600">oxfordbookhouse@outlook.com</p>
                   </div>
                 </div>
                 
@@ -128,8 +128,8 @@ export default function ContactPage() {
                     <Phone className="w-6 h-6 text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Phone</h3>
-                    <p className="text-gray-600">+1 (555) 123-4567</p>
+                    <h3 className="font-semibold text-gray-900">Phone/WhatsApp</h3>
+                    <p className="text-gray-600">98357 70807</p>
                   </div>
                 </div>
                 
@@ -139,7 +139,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Address</h3>
-                    <p className="text-gray-600">123 Book Street<br />Literary District, NY 10001</p>
+                    <p className="text-gray-600">Oxford Book House<br />H Square, Lalpur, Ranchi</p>
                   </div>
                 </div>
                 
@@ -149,7 +149,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Business Hours</h3>
-                    <p className="text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM<br />Saturday: 10:00 AM - 4:00 PM</p>
+                    <p className="text-gray-600">10:30 am - 7 pm</p>
                   </div>
                 </div>
               </div>
@@ -160,8 +160,8 @@ export default function ContactPage() {
               <p className="mb-4">Chat with us on WhatsApp for instant support!</p>
               <Button 
                 onClick={() => {
-                  const phoneNumber = '+1234567890';
-                  const message = 'Hi! I need help with BookHaven.';
+                  const phoneNumber = '9835770807';
+                  const message = 'Hi! I need help with Oxford Book House.';
                   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
                   window.open(whatsappUrl, '_blank');
                 }}
