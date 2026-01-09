@@ -12,12 +12,15 @@ export async function POST(req: NextRequest) {
     const userId = authReq.user!.id;
 
     const body = await req.json();
-    const { items, shippingAddress } = body || {};
+    const { items, shippingAddress, paymentMethod = 'online' } = body || {};
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, message: 'Items are required' }, { status: 400 });
     }
     if (!shippingAddress || !shippingAddress.fullName) {
       return NextResponse.json({ success: false, message: 'Shipping address required' }, { status: 400 });
+    }
+    if (paymentMethod && !['online', 'cod'].includes(paymentMethod)) {
+      return NextResponse.json({ success: false, message: 'Invalid payment method' }, { status: 400 });
     }
 
     await connectDB();
@@ -44,10 +47,11 @@ export async function POST(req: NextRequest) {
       items: orderItems,
       totalAmount,
       paymentStatus: 'pending',
+      paymentMethod: paymentMethod === 'cod' ? 'cod' : 'online',
       status: 'created',
       shippingAddress,
       trackingInfo: {
-        orderPlaced: { status: 'Order placed (pending payment)', timestamp: new Date() }
+        orderPlaced: { status: paymentMethod === 'cod' ? 'Order placed (Cash on Delivery)' : 'Order placed (pending payment)', timestamp: new Date() }
       }
     });
 

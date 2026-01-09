@@ -227,19 +227,17 @@ const Header = () => {
                 </Button>
               )}
 
-              {(!user || user.role !== 'admin') && (
-                <Link href="/cart">
-                  <Button variant="ghost" size="sm" className="relative">
-                    <ShoppingCart className="w-5 h-5" />
-                    {getTotalItems() > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {getTotalItems()}
-                      </span>
-                    )}
-                    <span className="ml-2 hidden sm:inline">Cart</span>
-                  </Button>
-                </Link>
-              )}
+              <Link href="/cart">
+                <Button variant="ghost" size="sm" className="relative">
+                  <ShoppingCart className="w-5 h-5" />
+                  {getTotalItems() > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {getTotalItems()}
+                    </span>
+                  )}
+                  <span className="ml-2 hidden sm:inline">Cart</span>
+                </Button>
+              </Link>
 
               {/* Mobile Menu Button */}
               <Button

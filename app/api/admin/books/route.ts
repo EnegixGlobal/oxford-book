@@ -229,6 +229,20 @@ export async function POST(request: NextRequest) {
     if (error.code === 11000) {
       return NextResponse.json({ success: false, message: 'Duplicate key error' }, { status: 409 });
     }
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError' && error.errors) {
+      const validationErrors = Object.values(error.errors).map((err: any) => {
+        // Use the error message if available, otherwise format the path
+        if (err.message) return err.message;
+        // Convert path like "authorName" to "Author name is required"
+        const fieldName = err.path?.charAt(0).toUpperCase() + err.path?.slice(1).replace(/([A-Z])/g, ' $1');
+        return `${fieldName} is required`;
+      });
+      const errorMessage = validationErrors.length > 0 
+        ? validationErrors.join(', ') 
+        : 'Validation failed';
+      return NextResponse.json({ success: false, message: errorMessage }, { status: 400 });
+    }
     return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }
@@ -310,6 +324,20 @@ export async function PUT(request: NextRequest) {
     console.error('Admin books PUT error:', error);
     if (error.code === 11000) {
       return NextResponse.json({ success: false, message: 'Duplicate key error' }, { status: 409 });
+    }
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError' && error.errors) {
+      const validationErrors = Object.values(error.errors).map((err: any) => {
+        // Use the error message if available, otherwise format the path
+        if (err.message) return err.message;
+        // Convert path like "authorName" to "Author name is required"
+        const fieldName = err.path?.charAt(0).toUpperCase() + err.path?.slice(1).replace(/([A-Z])/g, ' $1');
+        return `${fieldName} is required`;
+      });
+      const errorMessage = validationErrors.length > 0 
+        ? validationErrors.join(', ') 
+        : 'Validation failed';
+      return NextResponse.json({ success: false, message: errorMessage }, { status: 400 });
     }
     return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }

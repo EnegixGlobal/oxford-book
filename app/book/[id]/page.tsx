@@ -288,7 +288,10 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     onClick={() => {
                       if (!book.inStock) return;
                       addToCart(book);
-                      router.push("/checkout");
+                      // Wait for state update and localStorage sync to complete before navigating
+                      setTimeout(() => {
+                        router.push("/checkout");
+                      }, 200);
                     }}
                     className="w-full bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:opacity-90 text-white text-lg py-5 shadow-lg shadow-rose-300/40 disabled:opacity-60"
                     disabled={!book.inStock}

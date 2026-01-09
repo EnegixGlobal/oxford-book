@@ -53,27 +53,27 @@ const CartProvider = ({ children }: CartProviderProps) => {
     } as CartItem;
   };
 
-  // Merge two carts intelligently (prefer server data, but merge quantities)
+  // Merge two carts intelligently (prefer local data for recently added items, merge quantities)
   const mergeCarts = (serverCart: any[], localCart: CartItem[]): CartItem[] => {
     const mergedMap = new Map<string, CartItem>();
 
-    // First, add all server cart items
-    serverCart.forEach(item => {
-      const normalized = normalizeCartItem(item);
-      mergedMap.set(normalized.id, normalized);
+    // First, add all local cart items (prioritize local for Buy Now scenario)
+    localCart.forEach(localItem => {
+      mergedMap.set(localItem.id, { ...localItem });
     });
 
-    // Then, merge with local cart (add items not in server, or update quantities if different)
-    localCart.forEach(localItem => {
-      const existing = mergedMap.get(localItem.id);
+    // Then, merge with server cart (add items not in local, or use server data if more recent)
+    serverCart.forEach(item => {
+      const normalized = normalizeCartItem(item);
+      const existing = mergedMap.get(normalized.id);
       if (existing) {
-        // Item exists in both - use server data but merge quantity if local is higher
-        if (localItem.quantity > existing.quantity) {
-          existing.quantity = localItem.quantity;
+        // Item exists in both - prefer the higher quantity
+        if (normalized.quantity > existing.quantity) {
+          mergedMap.set(normalized.id, normalized);
         }
       } else {
-        // Item only in local cart - add it
-        mergedMap.set(localItem.id, localItem);
+        // Item only in server cart - add it
+        mergedMap.set(normalized.id, normalized);
       }
     });
 
@@ -146,13 +146,44 @@ const CartProvider = ({ children }: CartProviderProps) => {
         // User is logged in - fetch fresh from backend DB
         const serverCart = await loadCartFromServer();
         
-        setCartItems(serverCart);
+        // Merge with local cart to avoid losing items added just before navigation (Buy Now scenario)
+        const localCartStr = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-cart') : null;
+        let localCart: CartItem[] = [];
+        if (localCartStr) {
+          try {
+            const parsed = JSON.parse(localCartStr);
+            if (Array.isArray(parsed)) {
+              localCart = parsed.map(normalizeCartItem);
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
         
-        // Store in localStorage for fast access
-        localStorage.setItem('bookhaven-cart', JSON.stringify(serverCart));
-        lastSyncedCartRef.current = JSON.stringify(serverCart.map(i => ({ id: i.id, qty: i.quantity })).sort((a, b) => a.id.localeCompare(b.id)));
+        // Merge server and local carts (local takes precedence for recently added items)
+        const mergedCart = mergeCarts(serverCart, localCart);
+        
+        setCartItems(mergedCart);
+        
+        // Store merged cart in localStorage
+        localStorage.setItem('bookhaven-cart', JSON.stringify(mergedCart));
+        lastSyncedCartRef.current = JSON.stringify(mergedCart.map(i => ({ id: i.id, qty: i.quantity })).sort((a, b) => a.id.localeCompare(b.id)));
       } else {
-        // User not logged in - clear cart
+        // User not logged in - load from localStorage or clear
+        const localCartStr = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-cart') : null;
+        if (localCartStr) {
+          try {
+            const parsed = JSON.parse(localCartStr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const localCart = parsed.map(normalizeCartItem);
+              setCartItems(localCart);
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
         setCartItems([]);
         localStorage.removeItem('bookhaven-cart');
         lastSyncedCartRef.current = '';
@@ -204,17 +235,27 @@ const CartProvider = ({ children }: CartProviderProps) => {
       const normalizedId = typeof rawId === 'string' ? rawId : rawId?.toString?.() || `tmp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
 
       const existingItem = prevItems.find(item => item.id === normalizedId);
+      let newItems: CartItem[];
+      
       if (existingItem) {
         toast.success(`Updated quantity for "${book.title}"`);
-        return prevItems.map(item =>
+        newItems = prevItems.map(item =>
           item.id === normalizedId
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
+      } else {
+        toast.success(`"${book.title}" added to cart`);
+        // ensure we store the normalized id even if original lacked id
+        newItems = [...prevItems, { ...book, id: normalizedId, quantity: 1 } as CartItem];
       }
-      toast.success(`"${book.title}" added to cart`);
-      // ensure we store the normalized id even if original lacked id
-      return [...prevItems, { ...book, id: normalizedId, quantity: 1 } as CartItem];
+      
+      // Update localStorage immediately to ensure it's available for navigation
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bookhaven-cart', JSON.stringify(newItems));
+      }
+      
+      return newItems;
     });
   };
 

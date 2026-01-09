@@ -4,6 +4,7 @@ import User from '@/models/User';
 import Book from '@/models/Book';
 import Category from '@/models/Category';
 import Author from '@/models/Author';
+import NewReleaseList from '@/models/NewReleaseList';
 import { requireAdmin, AuthenticatedRequest } from '@/middleware/auth';
 
 // Helper: build an array of the last N months (oldest -> newest)
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
       bestsellerBooks,
       totalCategories,
       totalAuthors,
+      newReleaseLists,
       inventoryAgg,
       lowStockCount,
       recentBooks,
@@ -61,6 +63,7 @@ export async function GET(request: NextRequest) {
       Book.countDocuments({ bestseller: true }),
       Category.countDocuments({}),
       Author.countDocuments({}),
+      NewReleaseList.countDocuments({}),
       Book.aggregate([
         { $group: { _id: null, value: { $sum: { $multiply: ['$discountedPrice', '$stock'] } }, totalStock: { $sum: '$stock' } } }
       ]),
@@ -128,6 +131,7 @@ export async function GET(request: NextRequest) {
           featuredBooks,
           anticipatedBooks,
           bestsellerBooks,
+          newReleaseLists,
           totalCategories,
           totalAuthors,
           inventoryValue,

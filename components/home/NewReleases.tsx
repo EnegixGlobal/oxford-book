@@ -14,26 +14,64 @@ interface BookDto {
   discountedPrice: number;
   mrp: number;
   discount: number;
+  inStock: boolean;
+  stock?: number;
+}
+
+interface NewReleaseListData {
+  title: string;
+  description?: string;
+  books: BookDto[];
 }
 
 const NewReleases = () => {
-  const [books, setBooks] = useState<BookDto[]>([]);
+  const [listData, setListData] = useState<NewReleaseListData | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const isPaused = useRef(false);
   const direction = useRef<"right" | "left">("right");
   const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 📘 Fetch new releases
+  // 📘 Fetch new releases from dynamic lists
   useEffect(() => {
     const loadBooks = async () => {
       try {
-        const url = new URL("/api/books", window.location.origin);
-        url.searchParams.set("newRelease", "true");
-        url.searchParams.set("limit", "12");
-        const res = await fetch(url.toString(), { cache: "no-store" });
+        const res = await fetch("/api/new-releases", { cache: "no-store" });
         const data = await res.json();
         if (data?.success && Array.isArray(data.data)) {
-          setBooks(data.data);
+          // Get the first active list, or combine all active lists
+          const activeLists = data.data.filter((list: any) => list.isActive && list.books?.length > 0);
+          
+          if (activeLists.length > 0) {
+            // Use the first active list for title/description, combine all books
+            const firstList = activeLists[0];
+            const allBooks: BookDto[] = [];
+            
+            activeLists.forEach((list: any) => {
+              list.books.forEach((book: any) => {
+                // Avoid duplicates
+                if (!allBooks.find(b => b._id === book._id)) {
+                  allBooks.push({
+                    _id: book._id,
+                    title: book.title,
+                    slug: book.slug,
+                    coverImage: book.coverImage,
+                    discountedPrice: book.discountedPrice,
+                    mrp: book.mrp,
+                    discount: book.discount || 0,
+                    inStock: book.inStock ?? true,
+                    stock: book.stock,
+                  });
+                }
+              });
+            });
+            
+            // Limit to 12 books
+            setListData({
+              title: firstList.title,
+              description: firstList.description,
+              books: allBooks.slice(0, 12),
+            });
+          }
         }
       } catch (error) {
         console.error("Failed to load new releases:", error);
@@ -79,7 +117,7 @@ const NewReleases = () => {
       container.removeEventListener("mouseenter", handleMouseEnter);
       container.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [books]);
+  }, [listData?.books]);
 
   // ⏩ Manual scroll buttons
   const scroll = (dir: "left" | "right") => {
@@ -94,7 +132,7 @@ const NewReleases = () => {
     setTimeout(() => (isPaused.current = false), 2000);
   };
 
-  if (!books.length) return null;
+  if (!listData || !listData.books.length) return null;
 
   return (
     <section className="py-16 bg-white relative overflow-hidden">
@@ -107,15 +145,15 @@ const NewReleases = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Latest{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600">
-              New
-            </span>{" "}
-            Releases
+              {listData.title}
+            </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Fresh arrivals just added to the catalog
-          </p>
+          {listData.description && (
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              {listData.description}
+            </p>
+          )}
         </motion.div>
 
         {/* Left/Right Buttons */}
@@ -144,7 +182,7 @@ const NewReleases = () => {
             }
           `}</style>
 
-          {books.map((book, index) => (
+          {listData.books.map((book, index) => (
             <motion.div
               key={book._id || index}
               initial={{ opacity: 0, y: 20 }}
