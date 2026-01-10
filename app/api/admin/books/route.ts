@@ -174,6 +174,8 @@ export async function POST(request: NextRequest) {
       newReleaseOrder,
       ageGroup,
       genre,
+      awardWinner,
+      schoolLibrary,
     } = body;
 
     if (!title || !author || !category || mrp == null || discountedPrice == null || !isbn) {
@@ -215,6 +217,8 @@ export async function POST(request: NextRequest) {
       bestsellerOrder: bestsellerOrder !== undefined ? Number(bestsellerOrder) || 0 : undefined,
       newRelease: !!newRelease,
       newReleaseOrder: newReleaseOrder !== undefined ? Number(newReleaseOrder) || 0 : undefined,
+      awardWinner: !!awardWinner,
+      schoolLibrary: !!schoolLibrary,
     });
 
     await newBook.save();
@@ -297,6 +301,8 @@ export async function PUT(request: NextRequest) {
   map('bestsellerOrder', 'bestsellerOrder', (v) => Number(v) || 0);
   map('newRelease', 'newRelease', (v) => !!v);
   map('newReleaseOrder', 'newReleaseOrder', (v) => Number(v) || 0);
+  map('awardWinner', 'awardWinner', (v) => !!v);
+  map('schoolLibrary', 'schoolLibrary', (v) => !!v);
 
     // if title is being updated, recompute a unique slug
     if (typeof body.title === 'string' && body.title.trim().length > 0) {

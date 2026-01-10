@@ -38,7 +38,15 @@ export async function GET(request: NextRequest) {
         ]
       });
     }
-    if (category) andClauses.push({ categorySlug: category });
+    // Special handling for award-winners and school-library-books categories
+    // These categories show books based on awardWinner/schoolLibrary flags, not categorySlug
+    if (category === 'award-winners') {
+      andClauses.push({ awardWinner: true });
+    } else if (category === 'school-library-books') {
+      andClauses.push({ schoolLibrary: true });
+    } else if (category) {
+      andClauses.push({ categorySlug: category });
+    }
     if (subcategory) andClauses.push({ subcategorySlug: subcategory });
     if (featured === 'true') andClauses.push({ featured: true });
     if (featured === 'false') andClauses.push({ featured: false });

@@ -355,6 +355,8 @@ export default function BooksPage() {
       'featured',
       'anticipated',
       'newRelease',
+      'awardWinner',
+      'schoolLibrary',
     ];
 
     const example = [
@@ -377,6 +379,8 @@ export default function BooksPage() {
       'yes',
       'no',
       'yes',
+      'no',
+      'no',
     ];
 
     const escapeCell = (value: string) => {
@@ -534,6 +538,8 @@ export default function BooksPage() {
               featured: !!data.featured,
               anticipated: !!data.anticipated,
               newRelease: !!data.newRelease,
+              awardWinner: !!data.awardWinner,
+              schoolLibrary: !!data.schoolLibrary,
             };
             const res = dialogMode === 'add'
               ? await createBook(payload)
@@ -647,6 +653,8 @@ export default function BooksPage() {
                       </Badge>
                       {book.anticipated && <Badge variant="secondary">Anticipated</Badge>}
                       {book.newRelease && <Badge className="bg-blue-600 text-white">New Release</Badge>}
+                      {book.awardWinner && <Badge className="bg-yellow-600 text-white">Award Winner</Badge>}
+                      {book.schoolLibrary && <Badge className="bg-indigo-600 text-white">School Library</Badge>}
                     </div>
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -668,6 +676,8 @@ export default function BooksPage() {
                             genre: book.genre,
                             anticipated: !!book.anticipated,
                             newRelease: !!book.newRelease,
+                            awardWinner: !!book.awardWinner,
+                            schoolLibrary: !!book.schoolLibrary,
                           });
                           setIsDialogOpen(true);
                         }}

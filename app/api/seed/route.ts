@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       email: 'admin@bookhaven.com',
       password: 'Admin123!',
       role: 'admin',
-      phone: '+91 9876543214',
-      address: 'Admin Office, Mumbai, Maharashtra'
+      phone: '+91 9835770807',
+      address: 'Oxford Book House , H Square, Lalpur, Ranchi'
     });
 
     await adminUser.save();

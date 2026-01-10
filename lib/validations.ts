@@ -40,7 +40,9 @@ export const loginSchema = z.object({
 
   password: z.string()
     .min(1, 'Password is required')
-    .max(100, 'Password cannot exceed 100 characters')
+    .max(100, 'Password cannot exceed 100 characters'),
+
+  rememberMe: z.boolean().optional().default(false)
 });
 
 // Admin Creation Schema (for internal use only)
