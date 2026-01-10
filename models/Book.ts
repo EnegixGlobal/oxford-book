@@ -29,6 +29,8 @@ export interface IBook extends Document {
 	bestsellerOrder?: number;
 	newRelease?: boolean;
 	newReleaseOrder?: number;
+	awardWinner?: boolean;
+	schoolLibrary?: boolean;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -60,9 +62,11 @@ const BookSchema: Schema<IBook> = new Schema(
 		featuredOrder: { type: Number, default: 0, min: 0 },
 		anticipated: { type: Boolean, default: false },
 		bestseller: { type: Boolean, default: false },
-		bestsellerOrder: { type: Number, default: 0, min: 0 },
-		newRelease: { type: Boolean, default: false },
-		newReleaseOrder: { type: Number, default: 0, min: 0 },
+	bestsellerOrder: { type: Number, default: 0, min: 0 },
+	newRelease: { type: Boolean, default: false },
+	newReleaseOrder: { type: Number, default: 0, min: 0 },
+	awardWinner: { type: Boolean, default: false },
+	schoolLibrary: { type: Boolean, default: false },
 	},
 	{ timestamps: true }
 );
@@ -168,6 +172,14 @@ if (mongoose.models.Book) {
 	if (!BookModel.schema.path('newReleaseOrder')) {
 		BookModel.schema.add({ newReleaseOrder: { type: Number, default: 0, min: 0 } });
 		try { BookModel.schema.index({ newRelease: 1, newReleaseOrder: 1 }); } catch {}
+	}
+	if (!BookModel.schema.path('awardWinner')) {
+		BookModel.schema.add({ awardWinner: { type: Boolean, default: false } });
+		try { BookModel.schema.index({ awardWinner: 1 }); } catch {}
+	}
+	if (!BookModel.schema.path('schoolLibrary')) {
+		BookModel.schema.add({ schoolLibrary: { type: Boolean, default: false } });
+		try { BookModel.schema.index({ schoolLibrary: 1 }); } catch {}
 	}
 	if (!BookModel.schema.path('featuredOrder')) {
 		BookModel.schema.add({ featuredOrder: { type: Number, default: 0, min: 0 } });

@@ -5,10 +5,11 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Book, Users, ShoppingCart, TrendingUp, Plus, Edit, Trash2 } from 'lucide-react';
+import { Book, Users, ShoppingCart, TrendingUp, Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { sampleBooks } from '@/lib/sampleData';
 import { Badge } from '@/components/ui/badge';
@@ -158,10 +159,12 @@ export default function AdminDashboard() {
     return dashboard.top.ratedBooks.map(b => ({ name: b.title, rating: b.rating }));
   }, [dashboard]);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(loginData.email, loginData.password);
+    const success = await login(loginData.email, loginData.password, rememberMe);
     if (!success) {
       toast.error('Invalid admin credentials');
     }
@@ -195,13 +198,42 @@ export default function AdminDashboard() {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-              <Input
-                type="password"
-                value={loginData.password}
-                onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="admin123"
-                required
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={loginData.password}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="admin123"
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
               />
+              <label
+                htmlFor="rememberMe"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Remember me
+              </label>
             </div>
             
             <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">

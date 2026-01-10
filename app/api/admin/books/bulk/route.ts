@@ -194,6 +194,8 @@ export async function POST(request: NextRequest) {
       const featured = toBool(row.featured || row['featured'] || row['Featured']);
       const anticipated = toBool(row.anticipated || row['anticipated'] || row['Anticipated']);
       const newRelease = toBool(row.newRelease || row['newRelease'] || row['NewRelease']);
+      const awardWinner = toBool(row.awardWinner || row['awardWinner'] || row['AwardWinner']);
+      const schoolLibrary = toBool(row.schoolLibrary || row['schoolLibrary'] || row['SchoolLibrary']);
 
       const baseSlug = makeSlug(title);
       const uniqueSlug = await generateUniqueSlug(baseSlug);
@@ -221,6 +223,8 @@ export async function POST(request: NextRequest) {
           featured,
           anticipated,
           newRelease,
+          awardWinner,
+          schoolLibrary,
         });
         createdCount += 1;
       } catch (err: any) {

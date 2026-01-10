@@ -264,7 +264,9 @@ export function BookFormDialog({
       reviewCount: 0,
       featured: false,
       anticipated: formData.get('anticipated') === 'on',
-      newRelease: formData.get('newRelease') === 'on'
+      newRelease: formData.get('newRelease') === 'on',
+      awardWinner: formData.get('awardWinner') === 'on',
+      schoolLibrary: formData.get('schoolLibrary') === 'on'
     };
     onSubmit(data);
     onOpenChange(false);
@@ -722,6 +724,22 @@ export function BookFormDialog({
                 <div className="flex items-center gap-2">
                   <input id="newRelease" name="newRelease" type="checkbox" aria-label="New Release" defaultChecked={!!initialData?.newRelease} />
                   <span className="text-sm text-gray-600">Mark as newly released</span>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="awardWinner">Award Winner (optional)</Label>
+                <div className="flex items-center gap-2">
+                  <input id="awardWinner" name="awardWinner" type="checkbox" aria-label="Award Winner" defaultChecked={!!initialData?.awardWinner} />
+                  <span className="text-sm text-gray-600">Mark as award winner</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="schoolLibrary">School Library Book (optional)</Label>
+                <div className="flex items-center gap-2">
+                  <input id="schoolLibrary" name="schoolLibrary" type="checkbox" aria-label="School Library Book" defaultChecked={!!initialData?.schoolLibrary} />
+                  <span className="text-sm text-gray-600">Mark as school library book</span>
                 </div>
               </div>
             </div>

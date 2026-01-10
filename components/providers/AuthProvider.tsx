@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { isTokenExpired, getToken } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface User {
@@ -18,9 +17,9 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   register: (name: string, email: string, password: string, phone?: string, address?: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -48,11 +47,12 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   // Handle session expiration - clear session and redirect to login
   const handleSessionExpired = useCallback((isAdmin: boolean = false) => {
     setUser(null);
-    // Clear all user-related data from localStorage
-    localStorage.removeItem('bookhaven-user');
-    localStorage.removeItem('bookhaven-token');
-    localStorage.removeItem('bookhaven-shipping');
-    localStorage.removeItem('bookhaven-cart');
+    // Clear user data from localStorage (keep cart/shipping for guest checkout)
+    const savedCart = localStorage.getItem('bookhaven-cart');
+    const savedShipping = localStorage.getItem('bookhaven-shipping');
+    localStorage.clear();
+    if (savedCart) localStorage.setItem('bookhaven-cart', savedCart);
+    if (savedShipping) localStorage.setItem('bookhaven-shipping', savedShipping);
     
     // Dispatch event to clear wishlist (WishlistProvider will listen)
     window.dispatchEvent(new CustomEvent('user-logged-out'));
@@ -68,62 +68,49 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [pathname, router]);
 
-  // Validate token by checking with the server
-  const validateToken = async (): Promise<boolean> => {
-    const token = getToken();
-    
-    // Check if token exists and is not expired
-    if (!token || isTokenExpired(token)) {
-      return false;
-    }
-
+  // Validate session by checking with the server (cookies are sent automatically)
+  const validateSession = async (): Promise<User | null> => {
     try {
       const response = await fetch('/api/auth/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include', // Important: Send cookies
         cache: 'no-store'
       });
 
       if (response.status === 401) {
-        return false;
+        return null;
       }
 
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.user) {
-          return true;
+          return {
+            id: data.user.id,
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            phone: data.user.phone,
+            address: data.user.address,
+            joinDate: data.user.joinDate,
+            isActive: data.user.isActive,
+          };
         }
       }
       
-      return false;
+      return null;
     } catch (error) {
-      console.error('Token validation error:', error);
-      return false;
+      console.error('Session validation error:', error);
+      return null;
     }
   };
 
   useEffect(() => {
-    // Check if user is logged in on mount and validate token
+    // Check if user is logged in on mount by validating session
     const initAuth = async () => {
-      const savedUser = localStorage.getItem('bookhaven-user');
-      const token = getToken();
-      
-      if (savedUser && token) {
-        // Check if token is expired client-side first
-        if (isTokenExpired(token)) {
-          handleSessionExpired(JSON.parse(savedUser).role === 'admin');
-          setLoading(false);
-          return;
-        }
-
-        // Validate token with server
-        const isValid = await validateToken();
-        if (isValid) {
-          setUser(JSON.parse(savedUser));
-        } else {
-          handleSessionExpired(JSON.parse(savedUser).role === 'admin');
-        }
+      const userData = await validateSession();
+      if (userData) {
+        setUser(userData);
+        // Store user data in localStorage for quick access (not sensitive)
+        localStorage.setItem('bookhaven-user', JSON.stringify(userData));
       }
       
       setLoading(false);
@@ -133,8 +120,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Listen for session expired events (from fetch interceptor)
     const handleSessionExpiredEvent = () => {
-      const currentUser = JSON.parse(localStorage.getItem('bookhaven-user') || 'null');
-      // If we know the user, use their role; otherwise fall back to pathname to decide admin vs user
+      const currentUser = user || JSON.parse(localStorage.getItem('bookhaven-user') || 'null');
       const isAdmin = currentUser?.role === 'admin' || pathname?.startsWith('/admin') || false;
       handleSessionExpired(isAdmin);
     };
@@ -146,21 +132,19 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, [handleSessionExpired, pathname]);
 
-  // Set up periodic token validation (check every 5 minutes)
+  // Set up periodic session validation (check every 5 minutes)
   useEffect(() => {
     if (!user) return;
 
     intervalRef.current = setInterval(async () => {
       const currentUser = user; // Capture current user value
-      const token = getToken();
-      if (!token || isTokenExpired(token)) {
+      const userData = await validateSession();
+      if (!userData) {
         handleSessionExpired(currentUser.role === 'admin');
-        return;
-      }
-
-      const isValid = await validateToken();
-      if (!isValid) {
-        handleSessionExpired(currentUser.role === 'admin');
+      } else {
+        // Update user data if changed
+        setUser(userData);
+        localStorage.setItem('bookhaven-user', JSON.stringify(userData));
       }
     }, 5 * 60 * 1000); // 5 minutes
 
@@ -172,7 +156,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, [user, handleSessionExpired]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
     try {
       setLoading(true);
       
@@ -181,7 +165,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        credentials: 'include', // Important: Receive cookies
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       const data = await response.json();
@@ -199,14 +184,19 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         };
         
         setUser(userData);
+        // Store user data in localStorage for quick access (cookie is HTTP-only)
         localStorage.setItem('bookhaven-user', JSON.stringify(userData));
-        localStorage.setItem('bookhaven-token', data.token);
         return true;
       }
       
+      // Show error message
+      if (data.message) {
+        toast.error(data.message);
+      }
       return false;
     } catch (error) {
       console.error('Login error:', error);
+      toast.error('Login failed. Please try again.');
       return false;
     } finally {
       setLoading(false);
@@ -222,19 +212,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important: Receive cookies
         body: JSON.stringify({ name, email, password, phone, address }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Check if token exists (it should for successful registration)
-        if (!data.token) {
-          console.error('Registration successful but no token received');
-          toast.error('Registration successful, but failed to log in. Please try logging in manually.');
-          return false;
-        }
-
         const userData = {
           id: data.user.id,
           name: data.user.name,
@@ -247,8 +231,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         };
         
         setUser(userData);
+        // Store user data in localStorage for quick access (cookie is HTTP-only)
         localStorage.setItem('bookhaven-user', JSON.stringify(userData));
-        localStorage.setItem('bookhaven-token', data.token);
         return true;
       }
       
@@ -274,23 +258,35 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     const wasAdmin = user?.role === 'admin';
-    setUser(null);
-    // Clear all user-related data from localStorage
-    localStorage.removeItem('bookhaven-user');
-    localStorage.removeItem('bookhaven-token');
-    localStorage.removeItem('bookhaven-shipping');
-    localStorage.removeItem('bookhaven-cart');
-    
-    // Dispatch event to clear wishlist (WishlistProvider will listen)
-    window.dispatchEvent(new CustomEvent('user-logged-out'));
     
     // Clear validation interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    
+    try {
+      // Call logout endpoint to clear session in MongoDB and cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include', // Send cookies
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    setUser(null);
+    // Clear user data from localStorage (keep cart/shipping for guest checkout)
+    const savedCart = localStorage.getItem('bookhaven-cart');
+    const savedShipping = localStorage.getItem('bookhaven-shipping');
+    localStorage.clear();
+    if (savedCart) localStorage.setItem('bookhaven-cart', savedCart);
+    if (savedShipping) localStorage.setItem('bookhaven-shipping', savedShipping);
+    
+    // Dispatch event to clear wishlist (WishlistProvider will listen)
+    window.dispatchEvent(new CustomEvent('user-logged-out'));
     
     // If on admin pages or admin just logged out, redirect home
     try {

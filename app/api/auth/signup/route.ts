@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import Session from '@/models/Session';
 import { customerSignupSchema } from '@/lib/validations';
+import { signupRateLimit } from '@/middleware/rateLimit';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const rateLimitResult = await signupRateLimit(request);
+    if (rateLimitResult) {
+      return rateLimitResult; // Rate limit exceeded
+    }
+
     // Parse request body
     const body = await request.json();
 
@@ -55,27 +63,38 @@ export async function POST(request: NextRequest) {
     // Save user (password will be hashed by the pre-save middleware)
     await newUser.save();
 
-    // Generate JWT token for automatic login after signup
-    const token = jwt.sign(
-      {
-        userId: newUser._id,
-        email: newUser.email,
-        role: newUser.role
-      },
-      process.env.JWT_SECRET!,
-      {
-        expiresIn: '28d' // Token expires in 28 days
-      }
-    );
+    // Generate secure session ID for automatic login after signup
+    const sessionId = crypto.randomBytes(32).toString('hex');
 
-    // Return success response with token (without password)
-    return NextResponse.json(
+    // Get client information
+    const userAgent = request.headers.get('user-agent') || undefined;
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+               request.headers.get('x-real-ip') ||
+               request.ip ||
+               undefined;
+
+    // Session expires in 7 days
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Create session in MongoDB
+    const session = new Session({
+      sessionId,
+      userId: newUser._id,
+      role: newUser.role,
+      userAgent,
+      ipAddress: ip,
+      expiresAt,
+      lastActivity: new Date(),
+    });
+    await session.save();
+
+    // Create response
+    const response = NextResponse.json(
       {
         success: true,
         message: 'Customer account created successfully',
-        token,
         user: {
-          id: newUser._id,
+          id: newUser._id.toString(),
           name: newUser.name,
           email: newUser.email,
           role: newUser.role,
@@ -87,6 +106,18 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
+
+    // Set HTTP-only cookie with session ID for automatic login
+    const isProduction = process.env.NODE_ENV === 'production';
+    response.cookies.set('sessionId', sessionId, {
+      httpOnly: true,
+      secure: isProduction, // HTTPS only in production
+      sameSite: 'lax', // CSRF protection
+      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      path: '/',
+    });
+
+    return response;
 
   } catch (error: any) {
     console.error('Signup error:', error);
