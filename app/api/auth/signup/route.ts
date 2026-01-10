@@ -70,7 +70,6 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || undefined;
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                request.headers.get('x-real-ip') ||
-               request.ip ||
                undefined;
 
     // Session expires in 7 days
