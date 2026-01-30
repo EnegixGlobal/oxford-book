@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
             units: item.quantity,
             selling_price: item.price,
           })),
-          payment_method: 'Prepaid',
+          payment_method: 'Prepaid' as const,
           sub_total: order.totalAmount,
           weight: 0.5, // Default weight per item
         };
