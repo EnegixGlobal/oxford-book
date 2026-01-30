@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Loader2, ArrowLeft, FileDown } from 'lucide-react';
+import { Loader2, ArrowLeft, FileDown, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface OrderItem { title:string; price:number; quantity:number; subtotal:number; coverImage?:string }
 interface OrderData {
@@ -50,6 +51,54 @@ export default function UserOrderDetailPage() {
       .catch(() => setError('Failed to load order'))
       .finally(() => setLoading(false));
   }, [id, user]);
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    
+    if (order.status === 'cancelled' || order.status === 'shipped' || order.status === 'delivered') {
+      toast.error('Cannot cancel order that has been shipped or delivered');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to cancel this order?')) {
+      return;
+    }
+
+    const token = localStorage.getItem('bookhaven-token');
+    try {
+      const response = await fetch(`/api/orders/${order._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Order cancelled successfully');
+        // Refresh order data
+        const orderResponse = await fetch(`/api/orders/${order._id}`, { 
+          headers: token ? { Authorization: `Bearer ${token}` } : {} 
+        });
+        const orderData = await orderResponse.json();
+        if (orderData.success) {
+          setOrder(orderData.data);
+        }
+      } else {
+        toast.error(data.message || 'Failed to cancel order');
+      }
+    } catch (error) {
+      toast.error('Failed to cancel order');
+    }
+  };
+
+  const canCancelOrder = () => {
+    if (!order) return false;
+    // Can cancel if order is in 'created' or 'confirmed' status (not shipped/delivered/cancelled)
+    return order.status !== 'cancelled' && 
+           order.status !== 'shipped' && 
+           order.status !== 'delivered';
+  };
 
   const handleDownloadInvoice = () => {
     if (!order) return;
@@ -165,9 +214,21 @@ export default function UserOrderDetailPage() {
         <h1 className="text-xl sm:text-2xl font-bold break-words">Order {order.orderId}</h1>
         <Badge>{order.status}</Badge>
         <Badge variant={order.paymentStatus === 'paid' ? 'default' : order.paymentStatus === 'failed' ? 'destructive' : 'secondary'}>{order.paymentStatus}</Badge>
-        <Button onClick={handleDownloadInvoice} size="sm" variant="outline" className="ml-auto sm:ml-0 flex items-center gap-1">
-          <FileDown className="w-4 h-4" /> Invoice
-        </Button>
+        <div className="ml-auto sm:ml-0 flex items-center gap-2">
+          {canCancelOrder() && (
+            <Button 
+              onClick={handleCancelOrder} 
+              size="sm" 
+              variant="outline"
+              className="flex items-center gap-1.5 h-8 px-3 text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
+            >
+              <X className="w-3.5 h-3.5" /> Cancel Order
+            </Button>
+          )}
+          <Button onClick={handleDownloadInvoice} size="sm" variant="outline" className="flex items-center gap-1">
+            <FileDown className="w-4 h-4" /> Invoice
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

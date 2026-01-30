@@ -65,3 +65,33 @@ export async function PATCH(req: NextRequest, context: AsyncRouteContext) {
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
+
+// DELETE - Delete an order (admin only, can delete any order)
+export async function DELETE(req: NextRequest, context: AsyncRouteContext) {
+  try {
+    const authResult = await requireAuth(req);
+    if (authResult) return authResult;
+    const authReq = req as AuthenticatedRequest;
+    if (authReq.user?.role !== 'admin') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+    const { id } = await context.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 });
+    }
+    await connectDB();
+    const order = await Order.findById(id);
+    if (!order) {
+      return NextResponse.json({ success: false, message: 'Order not found' }, { status: 404 });
+    }
+    const deletedOrder = await Order.findByIdAndDelete(id);
+    if (!deletedOrder) {
+      return NextResponse.json({ success: true, message: 'Order already deleted or not found' });
+    }
+    console.log(`Admin deleted order ${id} successfully`);
+    return NextResponse.json({ success: true, message: 'Order deleted successfully' });
+  } catch (e) {
+    console.error('Admin order delete error', e);
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
+  }
+}

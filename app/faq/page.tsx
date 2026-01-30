@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     question: "Can I return a book?",
-    answer: "Yes! We offer a 30-day return policy. Books must be in original condition with no markings or damage. Visit our Returns page for detailed instructions."
+    answer: "Yes! We offer a 7-day return policy. Books must be in original condition with no markings or damage. Visit our Returns page for detailed instructions."
   },
   {
     question: "Do you offer international shipping?",
@@ -31,7 +31,7 @@ const faqs = [
   },
   {
     question: "What payment methods do you accept?",
-    answer: "We accept all major credit/debit cards, UPI payments, net banking, and digital wallets like Paytm and PhonePe."
+    answer: "We accept all major credit/debit cards, UPI payments, net banking, and digital wallets via Razorpay."
   },
   {
     question: "Can I cancel my order?",
@@ -43,7 +43,7 @@ const faqs = [
   },
   {
     question: "How do I contact customer support?",
-    answer: "You can reach us via email at support@bookhaven.com, call us at +1 (555) 123-4567, or use our WhatsApp chat button for instant support."
+    answer: "You can reach us via email at oxfordbookhouse@outlook.com, call us at +91 9835770807, or use our WhatsApp chat button for instant support."
   }
 ];
 
@@ -131,7 +131,7 @@ export default function FAQPage() {
             </a>
             <button 
               onClick={() => {
-                const phoneNumber = '+1234567890';
+                const phoneNumber = '+919835770807';
                 const message = 'Hi! I have a question about BookHaven.';
                 const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Eye, Loader2 } from 'lucide-react';
+import { Search, Eye, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +57,37 @@ export default function OrdersPage() {
     setOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, ...fields } : o)));
     setSelectedOrder((prev: any) => (prev && prev.orderId === orderId ? { ...prev, ...fields } : prev));
     toast.success('Order updated');
+  };
+
+  const handleDeleteOrder = async (orderId: string, orderOrderId: string) => {
+    if (!confirm(`Are you sure you want to delete order ${orderOrderId}? This action cannot be undone.`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('bookhaven-token');
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Order deleted successfully');
+        // Remove from local state
+        setOrders((prev) => prev.filter((o) => o._id !== orderId));
+        // Close dialog if the deleted order was selected
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setDetailsOpen(false);
+          setSelectedOrder(null);
+        }
+      } else {
+        toast.error(data.message || 'Failed to delete order');
+      }
+    } catch (error) {
+      toast.error('Failed to delete order');
+    }
   };
 
   const filteredOrders = orders.filter(order => {
@@ -151,9 +182,18 @@ export default function OrdersPage() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
-                    <Eye className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => handleDeleteOrder(order._id, order.orderId)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

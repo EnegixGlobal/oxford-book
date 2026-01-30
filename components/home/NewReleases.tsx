@@ -10,6 +10,7 @@ interface BookDto {
   _id: string;
   title: string;
   slug: string;
+  authorName?: string;
   coverImage?: string;
   discountedPrice: number;
   mrp: number;
@@ -54,6 +55,7 @@ const NewReleases = () => {
                     _id: book._id,
                     title: book.title,
                     slug: book.slug,
+                    authorName: book.authorName,
                     coverImage: book.coverImage,
                     discountedPrice: book.discountedPrice,
                     mrp: book.mrp,

@@ -4,11 +4,12 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Loader2, Eye } from 'lucide-react';
+import { Package, Loader2, Eye, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { AdminPagination } from '@/components/ui/admin-pagination';
+import { toast } from 'sonner';
 
 const OrdersPage = () => {
   const { user } = useAuth();
@@ -35,6 +36,51 @@ const OrdersPage = () => {
   }, [user]);
 
   useEffect(() => { setCurrentPage(1); }, [orders.length]);
+
+  const handleCancelOrder = async (orderId: string, orderStatus: string, paymentStatus: string) => {
+    if (orderStatus === 'cancelled' || orderStatus === 'shipped' || orderStatus === 'delivered') {
+      toast.error('Cannot cancel order that has been shipped or delivered');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to cancel this order?')) {
+      return;
+    }
+
+    const token = localStorage.getItem('bookhaven-token');
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Order cancelled successfully');
+        // Refresh orders
+        const ordersResponse = await fetch('/api/orders', { 
+          headers: token ? { Authorization: `Bearer ${token}` } : {} 
+        });
+        const ordersData = await ordersResponse.json();
+        if (ordersData.success) {
+          setOrders(ordersData.orders || []);
+        }
+      } else {
+        toast.error(data.message || 'Failed to cancel order');
+      }
+    } catch (error) {
+      toast.error('Failed to cancel order');
+    }
+  };
+
+  const canCancelOrder = (orderStatus: string, paymentStatus: string) => {
+    // Can cancel if order is in 'created' or 'confirmed' status (not shipped/delivered/cancelled)
+    return orderStatus !== 'cancelled' && 
+           orderStatus !== 'shipped' && 
+           orderStatus !== 'delivered';
+  };
 
   if (!user) return null;
 
@@ -107,9 +153,21 @@ const OrdersPage = () => {
                 <div className="flex items-center gap-2 pt-1">
                   <Badge variant="outline" className="text-[10px] h-5 px-2">{o.status}</Badge>
                   <span className="text-[10px] text-emerald-600">Delivery 6–7 days</span>
-                  <Link href={`/profile/orders/${o._id}`} className="ml-auto text-[11px] text-purple-600 hover:underline inline-flex items-center gap-1">
-                    <Eye className="w-3 h-3" /> View
-                  </Link>
+                  <div className="ml-auto flex items-center gap-2">
+                    {canCancelOrder(o.status, o.paymentStatus) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCancelOrder(o._id, o.status, o.paymentStatus)}
+                        className="h-6 px-2 text-[10px] font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
+                      >
+                        <X className="w-3 h-3 mr-1" /> Cancel
+                      </Button>
+                    )}
+                    <Link href={`/profile/orders/${o._id}`} className="text-[11px] text-purple-600 hover:underline inline-flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> View
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -164,9 +222,21 @@ const OrdersPage = () => {
                     <Badge>{o.status}</Badge>
                   </td>
                   <td className="py-2">
-                    <Link href={`/profile/orders/${o._id}`} className="inline-flex items-center gap-1 text-purple-600 hover:underline text-xs sm:text-sm">
-                      <Eye className="w-4 h-4" /> View
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      {canCancelOrder(o.status, o.paymentStatus) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCancelOrder(o._id, o.status, o.paymentStatus)}
+                          className="h-7 px-2.5 text-xs font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
+                        >
+                          <X className="w-3.5 h-3.5 mr-1" /> Cancel
+                        </Button>
+                      )}
+                      <Link href={`/profile/orders/${o._id}`} className="inline-flex items-center gap-1 text-purple-600 hover:underline text-xs sm:text-sm">
+                        <Eye className="w-4 h-4" /> View
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

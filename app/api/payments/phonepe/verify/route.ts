@@ -4,20 +4,28 @@ import { requireAuth, AuthenticatedRequest } from '@/middleware/auth';
 import Order from '@/models/Order';
 import { StandardCheckoutClient, Env } from 'pg-sdk-node';
 
-const clientId = String(process.env.PHONEPAY_PG_CLIENT_ID || '');
-const clientSecret = String(process.env.PHONEPAY_PG_CLIENT_SECRET || '');
-const clientVersion = Number(process.env.PHONEPAY_PG_CLIENT_VERSION || 2);
-const phonepeEnv = (process.env.PHONEPE_ENV || 'SANDBOX').toUpperCase();
-const env = phonepeEnv === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
-let phonepeClient: StandardCheckoutClient | null = null;
-function getClient() {
-  if (!phonepeClient) {
-    phonepeClient = StandardCheckoutClient.getInstance(clientId, clientSecret, clientVersion, env);
-  }
-  return phonepeClient;
-}
+// PHONEPE CONFIGURATION COMMENTED OUT - Using Razorpay instead
+// const clientId = String(process.env.PHONEPAY_PG_CLIENT_ID || '');
+// const clientSecret = String(process.env.PHONEPAY_PG_CLIENT_SECRET || '');
+// const clientVersion = Number(process.env.PHONEPAY_PG_CLIENT_VERSION || 2);
+// const phonepeEnv = (process.env.PHONEPE_ENV || 'SANDBOX').toUpperCase();
+// const env = phonepeEnv === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
+// let phonepeClient: StandardCheckoutClient | null = null;
+// function getClient() {
+//   if (!phonepeClient) {
+//     phonepeClient = StandardCheckoutClient.getInstance(clientId, clientSecret, clientVersion, env);
+//   }
+//   return phonepeClient;
+// }
 
+// PHONEPE ENDPOINT DISABLED - Using Razorpay instead
 export async function POST(req: NextRequest) {
+  return NextResponse.json(
+    { success: false, message: 'PhonePe integration is disabled. Please use Razorpay.' },
+    { status: 410 } // 410 Gone - indicates the resource is no longer available
+  );
+  
+  /* COMMENTED OUT - PhonePe implementation
   try {
     const authResult = await requireAuth(req);
     if (authResult) return authResult;
@@ -107,4 +115,5 @@ export async function POST(req: NextRequest) {
     console.error('PhonePe verify err', e);
     return NextResponse.json({ success: false, message: 'Verification failed' }, { status: 500 });
   }
+  */
 }

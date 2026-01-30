@@ -42,6 +42,10 @@ export interface IOrder extends Document {
     delivered?: ITrackingCheckpoint;
     cancelled?: ITrackingCheckpoint;
   };
+  shiprocketShipmentId?: number;
+  shiprocketAWB?: string;
+  shiprocketTrackingUrl?: string;
+  shiprocketCourierName?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,7 +86,11 @@ const OrderSchema = new Schema<IOrder>({
     shipped: { type: Schema.Types.Mixed, default: undefined },
     delivered: { type: Schema.Types.Mixed, default: undefined },
     cancelled: { type: Schema.Types.Mixed, default: undefined },
-  }
+  },
+  shiprocketShipmentId: { type: Number },
+  shiprocketAWB: { type: String },
+  shiprocketTrackingUrl: { type: String },
+  shiprocketCourierName: { type: String }
 }, { timestamps: true });
 
 // Simple orderId generator if not provided

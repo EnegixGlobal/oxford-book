@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       lists.map(async (list: any) => {
         const bookIds = list.books?.map((b: any) => b.bookId) || [];
         const books = await Book.find({ _id: { $in: bookIds } })
-          .select('_id title slug coverImage mrp discountedPrice discount inStock stock')
+          .select('_id title slug authorName coverImage mrp discountedPrice discount inStock stock')
           .lean();
         
         // Sort books by order
