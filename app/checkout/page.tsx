@@ -132,6 +132,19 @@ export default function CheckoutPage() {
   const steps = ['Cart', 'Checkout'];
   const currentStep = 1; // zero-based index, we are on Checkout page
 
+  const loadRazorpayScript = () => {
+    return new Promise<boolean>((resolve) => {
+      if (typeof window === 'undefined') return resolve(false);
+      if ((window as any).Razorpay) return resolve(true);
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const startPayment = async () => {
     if (!canPay) return;
     setPaying(true);
@@ -169,10 +182,17 @@ export default function CheckoutPage() {
         return;
       }
       
-      // For online payment, proceed with payment gateway
+      // For online payment, proceed with Razorpay
       const merchantOrderId = createJson.data.orderId;
-      // 2. Initiate payment
-      const payRes = await fetch('/api/payments/phonepe/create', {
+
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast.error('Unable to load Razorpay. Please try again.');
+        setPaying(false);
+        return;
+      }
+
+      const payRes = await fetch('/api/payments/razorpay/create', {
         method: 'POST',
         headers,
         body: JSON.stringify({ orderId: merchantOrderId })
@@ -217,16 +237,69 @@ export default function CheckoutPage() {
         setPaying(false);
         return;
       }
-      // Don't clear cart yet - wait for payment confirmation
-      // Cart will be cleared on success page after payment verification
-      const redirectUrl = payJson.data.redirectUrl;
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
-      } else {
-        toast.success('Payment already completed');
-        // Only clear cart if payment is already completed
-        clearCart();
-      }
+
+      const { razorpayOrderId, amount, currency, keyId, orderMongoId } = payJson.data;
+
+      const options: any = {
+        key: keyId,
+        amount,
+        currency,
+        name: 'Oxford Bookstore',
+        description: `Order ${merchantOrderId}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: address.fullName,
+          contact: address.phone,
+        },
+        theme: {
+          color: '#7c3aed',
+        },
+        handler: async function (response: any) {
+          try {
+            const verifyRes = await fetch('/api/payments/razorpay/verify', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                orderMongoId,
+                razorpayOrderId,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            });
+            const verifyJson = await verifyRes.json();
+            if (!verifyRes.ok || !verifyJson.success) {
+              toast.error(verifyJson.message || 'Payment verification failed');
+              return;
+            }
+            // Payment successful and verified
+            clearCart();
+            window.location.href = `/checkout/success?orderId=${orderMongoId}`;
+          } catch (err) {
+            console.error('Razorpay verify error', err);
+            toast.error('Payment verification failed');
+          }
+        },
+        modal: {
+          ondismiss: async () => {
+            // User closed Razorpay without paying - delete/cancel order but keep cart
+            try {
+              const deleteRes = await fetch(`/api/orders/${createJson.data.id}`, {
+                method: 'DELETE',
+                headers,
+              });
+              const deleteJson = await deleteRes.json();
+              if (!deleteRes.ok || !deleteJson.success) {
+                console.error('Failed to delete cancelled order:', deleteJson.message);
+              }
+            } catch (err) {
+              console.error('Failed to delete cancelled order:', err);
+            }
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } catch (e) {
       console.error('Payment error', e);
       toast.error('Payment failed to start');
@@ -513,7 +586,7 @@ export default function CheckoutPage() {
                           <CreditCard className="h-4 w-4 text-purple-600" />
                           <span className="font-medium text-sm">Online Payment</span>
                         </div>
-                        <span className="text-xs text-gray-500">Pay securely with PhonePe</span>
+                        <span className="text-xs text-gray-500">Pay securely with Razorpay</span>
                       </div>
                     </label>
                     <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${

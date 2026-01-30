@@ -115,72 +115,8 @@ export default function PaymentSuccessClient({ orderId }: { orderId?: string }) 
           clearCart(); // Clear cart only after successful payment
         }
         
-        // Check if payment was never initiated (no paymentOrderId and still pending)
-        // If it's COD, treat it as successful order placement
-        // If payment was cancelled/not initiated for online payment, show the page and redirect after 3 seconds with countdown
-        if (json.data.paymentStatus === 'pending' && !(json.data as any).paymentOrderId) {
-          // Check if it's a COD order
-          if (json.data.paymentMethod === 'cod') {
-            // COD order - treat as successful order placement (cart already cleared in checkout)
-            setVerifying(false);
-            setVerificationComplete(true);
-            shouldContinueVerification = false;
-            if (interval) {
-              clearInterval(interval);
-              interval = null;
-            }
-            return false; // Stop verification
-          } else {
-            // Payment was cancelled or never completed for online payment
-            // Delete the order immediately since payment was cancelled - don't keep cancelled orders
-            const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
-            const deleteHeaders: Record<string,string> = token ? { Authorization: `Bearer ${token}` } : {};
-            try {
-              const deleteRes = await fetch(`/api/orders/${orderId}`, {
-                method: 'DELETE',
-                headers: deleteHeaders
-              });
-              const deleteJson = await deleteRes.json();
-              if (!deleteRes.ok || !deleteJson.success) {
-                console.error('Failed to delete cancelled order:', deleteJson.message);
-                // If deletion fails, at least cancel it
-                try {
-                  await fetch(`/api/orders/${orderId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...deleteHeaders }
-                  });
-                } catch (cancelErr) {
-                  console.error('Failed to cancel order:', cancelErr);
-                }
-              } else {
-                console.log('Cancelled order deleted successfully');
-              }
-            } catch (deleteErr) {
-              console.error('Failed to delete cancelled order:', deleteErr);
-              // If deletion fails, at least cancel it
-              try {
-                await fetch(`/api/orders/${orderId}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json', ...deleteHeaders }
-                });
-              } catch (cancelErr) {
-                console.error('Failed to cancel order:', cancelErr);
-              }
-            }
-            // Don't clear cart - user cancelled, they should keep their items
-            setVerifying(false);
-            setVerificationComplete(true);
-            shouldContinueVerification = false;
-            // Start countdown immediately when cancellation detected
-            startCountdown();
-            if (interval) {
-              clearInterval(interval);
-              interval = null;
-            }
-            return false; // Stop verification immediately
-          }
-        }
-        
+        // For Razorpay we verify before redirecting here.
+        // If status is already final, stop further verification.
         if (json.data.paymentStatus === 'paid' || json.data.paymentStatus === 'failed') {
           // If payment failed, delete the order immediately (user cancelled or payment failed)
           if (json.data.paymentStatus === 'failed') {
@@ -210,90 +146,10 @@ export default function PaymentSuccessClient({ orderId }: { orderId?: string }) 
           }
           return false;
         }
-        
-        // Only verify if paymentOrderId exists (payment was initiated)
-        if ((json.data as any).paymentOrderId) {
-          setVerifying(true);
-          const vRes = await fetch('/api/payments/phonepe/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...headers },
-            body: JSON.stringify({ orderMongoId: orderId })
-          });
-          const vJson = await vRes.json();
-          if (vRes.ok && vJson.success) {
-            // If order was deleted during verification (payment failed/cancelled)
-            if (vJson.data.deleted) {
-              setVerificationComplete(true);
-              setVerifying(false);
-              shouldContinueVerification = false;
-              if (interval) {
-                clearInterval(interval);
-                interval = null;
-              }
-              // Don't clear cart - payment failed/cancelled, user should keep items
-              return false;
-            }
-            setOrder(vJson.data.order);
-            
-            // Check if gateway state indicates cancellation even if order still exists
-            const gatewayState = vJson.data.gatewayState;
-            if (gatewayState === 'CANCELLED' || gatewayState === 'CANCELED' || gatewayState === 'FAILED') {
-              // Payment was cancelled - delete the order
-              const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
-              const deleteHeaders: Record<string,string> = token ? { Authorization: `Bearer ${token}` } : {};
-              try {
-                const deleteRes = await fetch(`/api/orders/${orderId}`, {
-                  method: 'DELETE',
-                  headers: deleteHeaders
-                });
-                const deleteJson = await deleteRes.json();
-                if (!deleteRes.ok || !deleteJson.success) {
-                  console.error('Failed to delete cancelled order:', deleteJson.message);
-                  // If deletion fails, at least cancel it
-                  try {
-                    await fetch(`/api/orders/${orderId}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json', ...deleteHeaders }
-                    });
-                  } catch (cancelErr) {
-                    console.error('Failed to cancel order:', cancelErr);
-                  }
-                } else {
-                  console.log('Cancelled order deleted successfully');
-                }
-              } catch (deleteErr) {
-                console.error('Failed to delete cancelled order:', deleteErr);
-              }
-              setVerificationComplete(true);
-              setVerifying(false);
-              shouldContinueVerification = false;
-              if (interval) {
-                clearInterval(interval);
-                interval = null;
-              }
-              // Don't clear cart - payment cancelled, user should keep items
-              return false;
-            }
-            
-            // Clear cart when payment is confirmed as 'paid'
-            if (vJson.data.order.paymentStatus === 'paid') {
-              clearCart();
-            }
-            if (vJson.data.order.paymentStatus === 'paid' || vJson.data.order.paymentStatus === 'failed') {
-              setVerificationComplete(true);
-              setVerifying(false);
-              shouldContinueVerification = false;
-              if (interval) {
-                clearInterval(interval);
-                interval = null;
-              }
-              return false;
-            }
-          }
-          return true; // Continue verification
-        }
-        
-        return true; // Continue if still pending with paymentOrderId
+
+        // For online Razorpay payments, payment should already be confirmed when we land here.
+        // If it's still pending, just keep polling the order status a few times.
+        return true;
       } catch {
         return false;
       }

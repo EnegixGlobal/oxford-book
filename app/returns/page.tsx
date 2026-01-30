@@ -41,8 +41,8 @@ export default function ReturnsPage() {
                 <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">30-Day Returns</h3>
-                <p className="text-gray-600 text-sm">Return any book within 30 days of purchase</p>
+                <h3 className="font-semibold text-gray-900 mb-2">7-Day Returns</h3>
+                <p className="text-gray-600 text-sm">Return any book within 7 days of purchase</p>
               </div>
               
               <div className="text-center">
@@ -75,7 +75,7 @@ export default function ReturnsPage() {
                 </li>
                 <li className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-                  Return initiated within 30 days of delivery
+                  Return initiated within 7 days of delivery
                 </li>
                 <li className="flex items-start">
                   <XCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5" />
@@ -139,11 +139,11 @@ export default function ReturnsPage() {
             <h2 className="text-2xl font-bold mb-4">Need Help with Returns?</h2>
             <p className="mb-6">Our customer service team is here to help you with any return questions.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:returns@bookhaven.com" className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Email: returns@bookhaven.com
+              <a href="mailto:oxfordbookhouse@outlook.com" className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Email: oxfordbookhouse@outlook.com
               </a>
-              <a href="tel:+15551234567" className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Call: +1 (555) 123-4567
+              <a href="tel: +919835770807" className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Call: +91 9835770807
               </a>
             </div>
           </motion.div>

@@ -53,16 +53,23 @@ export async function PATCH(request: NextRequest, context: AsyncRouteContext) {
     if (String(order.userId) !== user.id && user.role !== 'admin') {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
-    // Only allow cancelling pending orders that haven't been paid
-    if (order.paymentStatus !== 'pending' || order.status === 'cancelled') {
+    // Only allow cancelling orders that haven't been shipped or delivered
+    // Customers can cancel orders in 'created' or 'confirmed' status (even if paid)
+    if (order.status === 'cancelled' || order.status === 'shipped' || order.status === 'delivered') {
       return NextResponse.json({ 
         success: false, 
-        message: 'Only pending orders can be cancelled' 
+        message: 'Cannot cancel order that has been shipped or delivered' 
       }, { status: 400 });
     }
     const now = new Date();
     order.status = 'cancelled';
-    order.paymentStatus = 'failed';
+    // Only update payment status if it was pending (payment never completed)
+    // If payment was already paid, keep it as paid (refunds handled separately)
+    if (order.paymentStatus === 'pending') {
+      order.paymentStatus = 'failed';
+    }
+    // If payment was 'paid', keep it as 'paid' since the payment was successful
+    // The order cancellation is separate from payment status
     order.trackingInfo = {
       ...order.trackingInfo,
       cancelled: { status: 'Order cancelled by user', timestamp: now }

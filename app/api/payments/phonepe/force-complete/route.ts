@@ -3,8 +3,15 @@ import connectDB from '@/lib/mongodb';
 import { requireAuth, AuthenticatedRequest } from '@/middleware/auth';
 import Order from '@/models/Order';
 
+// PHONEPE ENDPOINT DISABLED - Using Razorpay instead
 // DEV ONLY: force mark order paid if stuck in pending during sandbox testing
 export async function PATCH(req: NextRequest) {
+  return NextResponse.json(
+    { success: false, message: 'PhonePe integration is disabled. Please use Razorpay.' },
+    { status: 410 } // 410 Gone - indicates the resource is no longer available
+  );
+  
+  /* COMMENTED OUT - PhonePe implementation
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ success: false, message: 'Not allowed in production' }, { status: 403 });
   }
@@ -34,4 +41,5 @@ export async function PATCH(req: NextRequest) {
   } as any;
   await order.save();
   return NextResponse.json({ success: true, data: order });
+  */
 }

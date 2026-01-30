@@ -9,28 +9,36 @@ import {
   StandardCheckoutPayRequest,
 } from 'pg-sdk-node';
 
+// PHONEPE CONFIGURATION COMMENTED OUT - Using Razorpay instead
 // Initialize PhonePe client (singleton)
-const clientId = String(process.env.PHONEPAY_PG_CLIENT_ID || '');
-const clientSecret = String(process.env.PHONEPAY_PG_CLIENT_SECRET || '');
-const clientVersion = Number(process.env.PHONEPAY_PG_CLIENT_VERSION || 2);
-// Allow overriding environment explicitly (PHONEPE_ENV=PRODUCTION) otherwise default SANDBOX
-const phonepeEnv = (process.env.PHONEPE_ENV || 'SANDBOX').toUpperCase();
-const env = phonepeEnv === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
+// const clientId = String(process.env.PHONEPAY_PG_CLIENT_ID || '');
+// const clientSecret = String(process.env.PHONEPAY_PG_CLIENT_SECRET || '');
+// const clientVersion = Number(process.env.PHONEPAY_PG_CLIENT_VERSION || 2);
+// // Allow overriding environment explicitly (PHONEPE_ENV=PRODUCTION) otherwise default SANDBOX
+// const phonepeEnv = (process.env.PHONEPE_ENV || 'SANDBOX').toUpperCase();
+// const env = phonepeEnv === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
 
-let phonepeClient: StandardCheckoutClient | null = null;
-function getClient() {
-  if (!phonepeClient) {
-    phonepeClient = StandardCheckoutClient.getInstance(
-      clientId,
-      clientSecret,
-      clientVersion,
-      env
-    );
-  }
-  return phonepeClient;
-}
+// let phonepeClient: StandardCheckoutClient | null = null;
+// function getClient() {
+//   if (!phonepeClient) {
+//     phonepeClient = StandardCheckoutClient.getInstance(
+//       clientId,
+//       clientSecret,
+//       clientVersion,
+//       env
+//     );
+//   }
+//   return phonepeClient;
+// }
 
+// PHONEPE ENDPOINT DISABLED - Using Razorpay instead
 export async function POST(req: NextRequest) {
+  return NextResponse.json(
+    { success: false, message: 'PhonePe integration is disabled. Please use Razorpay.' },
+    { status: 410 } // 410 Gone - indicates the resource is no longer available
+  );
+  
+  /* COMMENTED OUT - PhonePe implementation
   try {
     // Auth (customer or admin allowed, but typically customer)
     const authResult = await requireAuth(req);
@@ -142,4 +150,5 @@ export async function POST(req: NextRequest) {
     console.error('PhonePe payment create error:', error?.response || error);
     return NextResponse.json({ success: false, message: 'Payment initiation failed' }, { status: 500 });
   }
+  */
 }

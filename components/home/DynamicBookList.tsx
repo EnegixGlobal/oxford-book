@@ -9,6 +9,7 @@ interface BookDto {
   _id: string;
   title: string;
   slug: string;
+  authorName?: string;
   coverImage?: string;
   discountedPrice: number;
   mrp: number;
