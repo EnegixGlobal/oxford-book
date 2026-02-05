@@ -244,7 +244,7 @@ export default function CheckoutPage() {
         key: keyId,
         amount,
         currency,
-        name: 'Oxford Bookstore',
+        name: 'Oxford Book House',
         description: `Order ${merchantOrderId}`,
         order_id: razorpayOrderId,
         prefill: {

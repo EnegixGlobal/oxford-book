@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Company Info */}
           <div className="text-center sm:text-left">
-            <h3 className="text-lg font-semibold mb-4 text-purple-300">Oxford Book</h3>
+            <h3 className="text-lg font-semibold mb-4 text-purple-300">Oxford Book House</h3>
             <p className="text-gray-400 mb-4 text-sm sm:text-base">
               Your literary paradise for discovering amazing books across all genres.
             </p>
@@ -95,7 +95,7 @@ const Footer = () => {
 
         <div className="mt-8 pt-6 sm:pt-8 border-t border-gray-800 text-center">
           <p className="text-gray-400 text-sm">
-            © 2025 Oxford Book. All rights reserved.
+            © 2025 Oxford Book House. All rights reserved.
           </p>
         </div>
       </div>

@@ -270,7 +270,7 @@ const reviews: Review[] = [
     name: "Ajay K Singh",
     rating: 5,
     comment:
-      "Excellent collection of books. The best brick and mortar bookstore in Ranchi",
+      "Excellent collection of books. The best brick and mortar Book House in Ranchi",
     date: formatDate("2 months ago"),
   },
   {
@@ -286,7 +286,7 @@ const reviews: Review[] = [
     name: "Rishabh Amaz",
     rating: 5,
     comment:
-      "Absolutely love this bookstore! It has a cozy atmosphere, a great selection of titles, and the staff are always friendly and helpful. A perfect spot for any book lover!",
+      "Absolutely love this Book House! It has a cozy atmosphere, a great selection of titles, and the staff are always friendly and helpful. A perfect spot for any book lover!",
     date: formatDate("2 months ago"),
   },
   {
@@ -310,7 +310,7 @@ const reviews: Review[] = [
     name: "Nikhil Chaturvedi",
     rating: 5,
     comment:
-      "It's a privilege to have such a cozy bookstore in town, where the smart collection could keep you glued for hours. I absolutely loved the collection and personal recommendations from shop owner.",
+      "It's a privilege to have such a cozy Book House in town, where the smart collection could keep you glued for hours. I absolutely loved the collection and personal recommendations from shop owner.",
     date: formatDate("6 years ago"),
   },
   {
@@ -334,7 +334,7 @@ const reviews: Review[] = [
     name: "Kriti Agarwal",
     rating: 5,
     comment:
-      "I've been there more than 10 times and it's my fav bookstore! They have amazing, fresh and wide range of collections. Good service and the owner gives great suggestions",
+      "I've been there more than 10 times and it's my fav Book House! They have amazing, fresh and wide range of collections. Good service and the owner gives great suggestions",
     date: formatDate("5 months ago"),
   },
   {
@@ -342,7 +342,7 @@ const reviews: Review[] = [
     name: "Aditi Sidhant",
     rating: 5,
     comment:
-      "The bookstore is a quaint exception in the midst of the chaos of the city. It is a haven for avid book readers as Mr. Manish has excellent recommendations.",
+      "The Book House is a quaint exception in the midst of the chaos of the city. It is a haven for avid book readers as Mr. Manish has excellent recommendations.",
     date: formatDate("a month ago"),
   },
   {
@@ -350,7 +350,7 @@ const reviews: Review[] = [
     name: "Bhargav Raj",
     rating: 5,
     comment:
-      "One of the best bookstores in the city, a well curated and excellent collection, the owner at the shop is really well informed and humble, overall a great experience",
+      "One of the best Book Houses in the city, a well curated and excellent collection, the owner at the shop is really well informed and humble, overall a great experience",
     date: formatDate("2 months ago"),
   },
   {
@@ -358,7 +358,7 @@ const reviews: Review[] = [
     name: "Premsagar devi",
     rating: 5,
     comment:
-      "Best bookstore in ranchi. I will personally recommend this book store for book lovers in ranchi. You can't find another book store that provides the most trendy yet classic books in ranchi.",
+      "Best Book House in ranchi. I will personally recommend this book store for book lovers in ranchi. You can't find another book store that provides the most trendy yet classic books in ranchi.",
     date: formatDate("4 months ago"),
   },
 ];

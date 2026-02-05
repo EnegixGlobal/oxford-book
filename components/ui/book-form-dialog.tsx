@@ -86,6 +86,22 @@ export function BookFormDialog({
       setSelectedCategory(initialData?.category || '');
       setImageOption(initialData?.imageFile ? 'file' : 'url');
       setPreviewUrl(initialData?.coverImage || '');
+
+      // Set initial discount type display
+      setTimeout(() => {
+        const discountType = initialData?.discountType || 'percentage';
+        const discountTypeDiv = document.getElementById('discountTypeDiv');
+        const discountAmountDiv = document.getElementById('discountAmountDiv');
+        if (discountTypeDiv && discountAmountDiv) {
+          if (discountType === 'percentage') {
+            discountTypeDiv.style.display = 'block';
+            discountAmountDiv.style.display = 'none';
+          } else {
+            discountTypeDiv.style.display = 'none';
+            discountAmountDiv.style.display = 'block';
+          }
+        }
+      }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialData]);
@@ -235,15 +251,17 @@ export function BookFormDialog({
     }
 
     const originalPrice = Math.round(Number(formData.get('originalPrice')) || 0);
-    const discount = Number(formData.get('discount'));
+    const discountType = (formData.get('discountType') as string) || 'percentage';
+    const discount = Number(formData.get('discount')) || 0;
+    const discountAmount = Number(formData.get('discountAmount')) || 0;
     const finalPrice = Math.round(Number(formData.get('finalPrice')) || 0);
 
     const authorId = selectedAuthorId || (formData.get('authorId') as string | null) || undefined;
-    const authorName = authorId ? (authors.find(a => a._id === authorId)?.name || '') : (formData.get('author') as string);
+    const authorName = authorId ? (authors.find(a => a._id === authorId)?.name || '') : (formData.get('author') as string || undefined);
 
     const data = {
       title: formData.get('title'),
-      author: authorName,
+      author: authorName || undefined,
       authorId: authorId,
       description: formData.get('description'),
       stock: formData.get('stock'),
@@ -254,6 +272,10 @@ export function BookFormDialog({
       mrp: originalPrice,
       discountedPrice: finalPrice,
       discount: discount,
+      discountType: discountType,
+      discountAmount: discountAmount,
+      hsnCode: formData.get('hsnCode') || undefined,
+      totalPages: formData.get('totalPages') ? Number(formData.get('totalPages')) : undefined,
       isbn: formData.get('isbn'),
       publisher: formData.get('publisher'),
       binding: formData.get('binding'),
@@ -396,7 +418,7 @@ export function BookFormDialog({
               )} */}
               {/* </div> */}
               <div className="space-y-2">
-                <Label htmlFor="author">Author</Label>
+                <Label htmlFor="author">Author (optional)</Label>
 
                 <div className="flex items-center gap-2">
                   {/* Searchable dropdown */}
@@ -542,17 +564,77 @@ export function BookFormDialog({
                   required
                   onChange={(e) => {
                     const originalPrice = parseFloat(e.target.value);
+                    const discountTypeSelect = document.querySelector('[name="discountType"]') as HTMLSelectElement;
                     const discountInput = document.getElementById('discount') as HTMLInputElement;
+                    const discountAmountInput = document.getElementById('discountAmount') as HTMLInputElement;
                     const finalPriceInput = document.getElementById('finalPrice') as HTMLInputElement;
-                    if (discountInput && finalPriceInput && originalPrice) {
-                      const discount = parseFloat(discountInput.value) || 0;
-                      const finalPrice = originalPrice - (originalPrice * discount / 100);
-                      finalPriceInput.value = String(Math.round(finalPrice));
+                    if (finalPriceInput && originalPrice) {
+                      const discountType = discountTypeSelect?.value || 'percentage';
+                      let finalPrice = originalPrice;
+                      if (discountType === 'percentage') {
+                        const discount = parseFloat(discountInput?.value || '0') || 0;
+                        finalPrice = originalPrice - (originalPrice * discount / 100);
+                      } else {
+                        const discountAmount = parseFloat(discountAmountInput?.value || '0') || 0;
+                        finalPrice = originalPrice - discountAmount;
+                      }
+                      finalPriceInput.value = String(Math.round(Math.max(0, finalPrice)));
                     }
                   }}
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="discountType">Discount Type</Label>
+                <Select
+                  name="discountType"
+                  defaultValue={initialData?.discountType || 'percentage'}
+                  onValueChange={(value) => {
+                    const discountTypeSelect = document.querySelector('[name="discountType"]') as HTMLSelectElement;
+                    const originalPriceInput = document.getElementById('originalPrice') as HTMLInputElement;
+                    const discountInput = document.getElementById('discount') as HTMLInputElement;
+                    const discountAmountInput = document.getElementById('discountAmount') as HTMLInputElement;
+                    const finalPriceInput = document.getElementById('finalPrice') as HTMLInputElement;
+                    const discountTypeDiv = document.getElementById('discountTypeDiv');
+                    const discountAmountDiv = document.getElementById('discountAmountDiv');
+
+                    if (discountTypeDiv && discountAmountDiv) {
+                      if (value === 'percentage') {
+                        discountTypeDiv.style.display = 'block';
+                        discountAmountDiv.style.display = 'none';
+                      } else {
+                        discountTypeDiv.style.display = 'none';
+                        discountAmountDiv.style.display = 'block';
+                      }
+                    }
+
+                    if (originalPriceInput && finalPriceInput) {
+                      const originalPrice = parseFloat(originalPriceInput.value);
+                      if (originalPrice) {
+                        let finalPrice = originalPrice;
+                        if (value === 'percentage') {
+                          const discount = parseFloat(discountInput?.value || '0') || 0;
+                          finalPrice = originalPrice - (originalPrice * discount / 100);
+                        } else {
+                          const discountAmount = parseFloat(discountAmountInput?.value || '0') || 0;
+                          finalPrice = originalPrice - discountAmount;
+                        }
+                        finalPriceInput.value = String(Math.round(Math.max(0, finalPrice)));
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select discount type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                    <SelectItem value="amount">Amount (₹)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2" id="discountTypeDiv">
                 <Label htmlFor="discount">Discount (%)</Label>
                 <Input
                   id="discount"
@@ -573,14 +655,38 @@ export function BookFormDialog({
                       const originalPrice = parseFloat(originalPriceInput.value);
                       if (originalPrice) {
                         const finalPrice = originalPrice - (originalPrice * discount / 100);
-                        finalPriceInput.value = String(Math.round(finalPrice));
+                        finalPriceInput.value = String(Math.round(Math.max(0, finalPrice)));
                       }
                     }
                   }}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2" id="discountAmountDiv" style={{ display: initialData?.discountType === 'amount' ? 'block' : 'none' }}>
+                <Label htmlFor="discountAmount">Discount Amount (₹)</Label>
+                <Input
+                  id="discountAmount"
+                  name="discountAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue={initialData?.discountAmount || ((initialData?.mrp && initialData?.discountedPrice)
+                    ? (initialData.mrp - initialData.discountedPrice).toFixed(2)
+                    : "0")}
+                  placeholder="Enter discount amount"
+                  onChange={(e) => {
+                    const discountAmount = parseFloat(e.target.value);
+                    const originalPriceInput = document.getElementById('originalPrice') as HTMLInputElement;
+                    const finalPriceInput = document.getElementById('finalPrice') as HTMLInputElement;
+                    if (originalPriceInput && finalPriceInput) {
+                      const originalPrice = parseFloat(originalPriceInput.value);
+                      if (originalPrice) {
+                        const finalPrice = originalPrice - discountAmount;
+                        finalPriceInput.value = String(Math.round(Math.max(0, finalPrice)));
+                      }
+                    }
+                  }}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="finalPrice">Final Price</Label>
                 <Input
@@ -594,6 +700,8 @@ export function BookFormDialog({
                   readOnly
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="stock">Stock</Label>
                 <Input
@@ -677,6 +785,29 @@ export function BookFormDialog({
                     <SelectItem value="digital">Digital</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hsnCode">HSN Code (optional)</Label>
+                <Input
+                  id="hsnCode"
+                  name="hsnCode"
+                  defaultValue={initialData?.hsnCode}
+                  placeholder="Enter HSN code"
+                  maxLength={50}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalPages">Total Pages (optional)</Label>
+                <Input
+                  id="totalPages"
+                  name="totalPages"
+                  type="number"
+                  min="0"
+                  defaultValue={initialData?.totalPages}
+                  placeholder="Enter total page count"
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

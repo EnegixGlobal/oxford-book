@@ -161,6 +161,10 @@ export async function POST(request: NextRequest) {
       mrp,
       discountedPrice,
       discount,
+      discountType,
+      discountAmount,
+      hsnCode,
+      totalPages,
       isbn,
       publisher,
       binding,
@@ -178,7 +182,7 @@ export async function POST(request: NextRequest) {
       schoolLibrary,
     } = body;
 
-    if (!title || !author || !category || mrp == null || discountedPrice == null || !isbn) {
+    if (!title || !category || mrp == null || discountedPrice == null || !isbn) {
       return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
     }
 
@@ -190,10 +194,23 @@ export async function POST(request: NextRequest) {
     const baseSlug = makeSlug(title);
     const uniqueSlug = await generateUniqueSlug(baseSlug);
 
+    // Calculate discount values based on discountType
+    let finalDiscount = Number(discount) || 0;
+    let finalDiscountAmount = Number(discountAmount) || 0;
+    const finalDiscountType = discountType || 'percentage';
+    
+    if (finalDiscountType === 'amount' && finalDiscountAmount > 0 && mrp > 0) {
+      // Calculate percentage from amount for backward compatibility
+      finalDiscount = (finalDiscountAmount / Number(mrp)) * 100;
+    } else if (finalDiscountType === 'percentage' && finalDiscount > 0 && mrp > 0) {
+      // Calculate amount from percentage
+      finalDiscountAmount = (Number(mrp) * finalDiscount) / 100;
+    }
+
     const newBook = new Book({
       title,
       slug: uniqueSlug,
-      authorName: author,
+      authorName: author || undefined,
       authorId: authorId || undefined,
       description: typeof description === 'string' && description.trim() ? description.trim() : undefined,
       coverImage: typeof coverImage === 'string' && coverImage !== '{}' ? coverImage : undefined,
@@ -205,7 +222,11 @@ export async function POST(request: NextRequest) {
       inStock: (Number(stock) || 0) > 0,
       mrp: Number(mrp),
       discountedPrice: Number(discountedPrice),
-      discount: Number(discount) || 0,
+      discount: finalDiscount,
+      discountType: finalDiscountType,
+      discountAmount: finalDiscountAmount,
+      hsnCode: hsnCode || undefined,
+      totalPages: totalPages ? Number(totalPages) : undefined,
       isbn,
       publisher,
       binding,
@@ -287,7 +308,33 @@ export async function PUT(request: NextRequest) {
   map('stock', 'stock', (v) => Number(v));
     map('mrp', 'mrp', (v) => Number(v));
     map('discountedPrice', 'discountedPrice', (v) => Number(v));
-    map('discount', 'discount', (v) => Number(v));
+    
+    // Handle discount fields
+    if (body.discountType !== undefined) {
+      update.discountType = body.discountType;
+    }
+    if (body.discountAmount !== undefined) {
+      update.discountAmount = Number(body.discountAmount) || 0;
+    }
+    if (body.discount !== undefined) {
+      update.discount = Number(body.discount) || 0;
+    }
+    
+    // Calculate discount values if needed
+    if (body.discountType === 'amount' && body.discountAmount !== undefined && body.mrp !== undefined) {
+      const discountAmount = Number(body.discountAmount) || 0;
+      const mrp = Number(body.mrp) || 0;
+      if (mrp > 0) {
+        update.discount = (discountAmount / mrp) * 100;
+      }
+    } else if (body.discountType === 'percentage' && body.discount !== undefined && body.mrp !== undefined) {
+      const discount = Number(body.discount) || 0;
+      const mrp = Number(body.mrp) || 0;
+      update.discountAmount = (mrp * discount) / 100;
+    }
+    
+    map('hsnCode', 'hsnCode');
+    map('totalPages', 'totalPages', (v) => v !== undefined && v !== null ? Number(v) : undefined);
     map('isbn', 'isbn');
     map('publisher', 'publisher');
     map('binding', 'binding');

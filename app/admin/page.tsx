@@ -181,7 +181,7 @@ export default function AdminDashboard() {
         >
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h1>
-            <p className="text-gray-600">Access the BookHaven dashboard</p>
+            <p className="text-gray-600">Access the Oxford Book House dashboard</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -482,7 +482,7 @@ export default function AdminDashboard() {
                     try {
                       const payload = {
                         title: data.title,
-                        author: data.author,
+                        author: data.author || undefined,
                         authorId: data.authorId,
                         description: data.description,
                         stock: Number(data.stock) || 0,
@@ -492,6 +492,10 @@ export default function AdminDashboard() {
                         mrp: Number(data.mrp ?? data.originalPrice ?? 0),
                         discountedPrice: Number(data.discountedPrice ?? data.finalPrice ?? 0),
                         discount: Number(data.discount ?? 0),
+                        discountType: data.discountType || 'percentage',
+                        discountAmount: data.discountAmount || 0,
+                        hsnCode: data.hsnCode || undefined,
+                        totalPages: data.totalPages || undefined,
                         isbn: data.isbn,
                         publisher: data.publisher,
                         binding: data.binding,

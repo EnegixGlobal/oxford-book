@@ -481,7 +481,7 @@ export default function BooksPage() {
             <Plus className="w-4 h-4 mr-2" />
             {bulkUploading ? 'Uploading…' : 'Upload CSV'}
           </Button>
-          <Button 
+          <Button
             className="bg-purple-600 hover:bg-purple-700"
             onClick={() => {
               setDialogMode('add');
@@ -519,7 +519,7 @@ export default function BooksPage() {
 
             const payload = {
               title: data.title,
-              author: data.author,
+              author: data.author || undefined,
               authorId: data.authorId,
               description: data.description,
               stock: Number(data.stock) || 0,
@@ -529,6 +529,10 @@ export default function BooksPage() {
               mrp: mrp,
               discountedPrice: discountedPrice,
               discount: discount,
+              discountType: data.discountType || 'percentage',
+              discountAmount: data.discountAmount || 0,
+              hsnCode: data.hsnCode || undefined,
+              totalPages: data.totalPages || undefined,
               isbn: data.isbn,
               publisher: data.publisher,
               binding: data.binding,
