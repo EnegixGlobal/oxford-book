@@ -39,11 +39,11 @@ const faqs = [
   },
   {
     question: "Do you have a physical store?",
-    answer: "We're primarily an online bookstore, but we're planning to open physical locations in major cities. Stay tuned for updates!"
+    answer: "Yes, we have a physical store. You can visit us at Oxford Book House, H Square, Lalpur, Ranchi. Phone/WhatsApp: +91-9835770807."
   },
   {
     question: "How do I contact customer support?",
-    answer: "You can reach us via email at oxfordbookhouse@outlook.com, call us at +91 9835770807, or use our WhatsApp chat button for instant support."
+    answer: "You can reach us via email at Info@oxfordbookhouse.in, call us at +91 9835770807, or use our WhatsApp chat button for instant support."
   }
 ];
 
@@ -72,7 +72,7 @@ export default function FAQPage() {
             Frequently Asked Questions
           </h1>
           <p className="text-xl text-gray-600">
-            Find answers to common questions about BookHaven
+            Find answers to common questions about Oxford Book House
           </p>
         </motion.div>
 
@@ -132,7 +132,7 @@ export default function FAQPage() {
             <button 
               onClick={() => {
                 const phoneNumber = '+919835770807';
-                const message = 'Hi! I have a question about BookHaven.';
+                const message = 'Hi! I have a question about Oxford Book House.';
                 const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');
               }}

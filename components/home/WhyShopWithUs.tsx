@@ -64,7 +64,7 @@ export default function WhyShopWithUs() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-4 max-w-2xl mx-auto text-base md:text-lg text-gray-600"
           >
-            We’re more than an online bookstore – we’re your reading companion. Enjoy trusted service, fast fulfillment and thoughtful curation.
+            We’re more than an online bookstore - we're your reading companion. Enjoy trusted service, fast fulfillment and thoughtful curation.
           </motion.p>
         </div>
 

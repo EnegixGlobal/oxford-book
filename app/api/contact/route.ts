@@ -27,11 +27,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get SMTP configuration from environment variables
-    const smtpHost = process.env.SMTP_HOST || 'smtp-mail.outlook.com';
+    // Gmail SMTP settings: smtp.gmail.com, port 587 (TLS) or 465 (SSL)
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
     const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'info@oxfordbookhouse.in';
     const smtpPassword = process.env.SMTP_PASSWORD || process.env.EMAIL_PASSWORD;
-    const recipientEmail = process.env.RECIPIENT_EMAIL || 'oxfordbookhouse@outlook.com';
+    const recipientEmail = process.env.RECIPIENT_EMAIL || 'info@oxfordbookhouse.in';
 
     if (!smtpUser || !smtpPassword) {
       console.error('SMTP credentials not configured');

@@ -3,7 +3,7 @@ import mongoose, { Document, Schema, Model } from 'mongoose';
 export interface IBook extends Document {
 	title: string;
 	slug: string;
-	authorName: string;
+	authorName?: string; // Made optional
 	authorId?: mongoose.Types.ObjectId;
 	description?: string;
 	coverImage?: string;
@@ -15,7 +15,11 @@ export interface IBook extends Document {
 	stock: number;
 	mrp: number;
 	discountedPrice: number;
-	discount: number; // percentage 0-100
+	discount: number; // percentage 0-100 (for backward compatibility)
+	discountType?: 'percentage' | 'amount'; // New field: type of discount
+	discountAmount?: number; // New field: discount amount in currency
+	hsnCode?: string; // New field: HSN code (optional)
+	totalPages?: number; // New field: total page count (optional)
 	isbn: string;
 	publisher?: string;
 	binding?: 'hardcover' | 'paperback' | 'digital';
@@ -39,7 +43,7 @@ const BookSchema: Schema<IBook> = new Schema(
 	{
 		title: { type: String, required: true, trim: true, maxlength: 200 },
 		slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
-		authorName: { type: String, required: true, trim: true, maxlength: 120 },
+		authorName: { type: String, required: false, trim: true, maxlength: 120 }, // Made optional
 		authorId: { type: Schema.Types.ObjectId, ref: 'Author' },
 		description: { type: String, trim: true, maxlength: 5000 },
 		coverImage: { type: String, trim: true },
@@ -51,7 +55,11 @@ const BookSchema: Schema<IBook> = new Schema(
 		stock: { type: Number, required: true, min: 0, default: 0 },
 		mrp: { type: Number, required: true, min: 0 },
 		discountedPrice: { type: Number, required: true, min: 0 },
-		discount: { type: Number, required: true, min: 0, max: 100, default: 0 },
+		discount: { type: Number, required: false, min: 0, max: 100, default: 0 }, // Made optional for backward compatibility
+		discountType: { type: String, enum: ['percentage', 'amount'], default: 'percentage' }, // New field
+		discountAmount: { type: Number, min: 0, default: 0 }, // New field
+		hsnCode: { type: String, trim: true, maxlength: 50 }, // New field (optional)
+		totalPages: { type: Number, min: 0 }, // New field (optional)
 		isbn: { type: String, required: true, unique: true, trim: true },
 		publisher: { type: String, trim: true },
 		binding: { type: String, enum: ['hardcover', 'paperback', 'digital'], default: 'paperback' },
@@ -117,10 +125,25 @@ BookSchema.pre('save', function (next) {
 		this.inStock = (this.stock || 0) > 0;
 	}
 	// ensure discountedPrice consistent if mrp/discount changed (best-effort)
-	if (this.isModified('mrp') || this.isModified('discount')) {
+	if (this.isModified('mrp') || this.isModified('discount') || this.isModified('discountType') || this.isModified('discountAmount')) {
 		const mrp = Number(this.mrp) || 0;
-		const discount = Number(this.discount) || 0;
-		const final = Math.max(0, mrp - (mrp * discount) / 100);
+		const discountType = this.discountType || 'percentage';
+		let final = mrp;
+		
+		if (discountType === 'amount') {
+			const discountAmount = Number(this.discountAmount) || 0;
+			final = Math.max(0, mrp - discountAmount);
+			// Also update discount percentage for backward compatibility
+			if (mrp > 0) {
+				this.discount = (discountAmount / mrp) * 100;
+			}
+		} else {
+			const discount = Number(this.discount) || 0;
+			final = Math.max(0, mrp - (mrp * discount) / 100);
+			// Also update discountAmount for consistency
+			this.discountAmount = (mrp * discount) / 100;
+		}
+		
 		this.discountedPrice = Number.isFinite(final) ? Number(final.toFixed(2)) : 0;
 	}
 	next();
@@ -184,6 +207,23 @@ if (mongoose.models.Book) {
 	if (!BookModel.schema.path('featuredOrder')) {
 		BookModel.schema.add({ featuredOrder: { type: Number, default: 0, min: 0 } });
 		try { BookModel.schema.index({ featured: 1, featuredOrder: 1 }); } catch {}
+	}
+	// Add new fields for backward compatibility
+	const authorNamePath = BookModel.schema.path('authorName');
+	if (authorNamePath && (authorNamePath as any).options?.required) {
+		(authorNamePath as any).options.required = false;
+	}
+	if (!BookModel.schema.path('discountType')) {
+		BookModel.schema.add({ discountType: { type: String, enum: ['percentage', 'amount'], default: 'percentage' } });
+	}
+	if (!BookModel.schema.path('discountAmount')) {
+		BookModel.schema.add({ discountAmount: { type: Number, min: 0, default: 0 } });
+	}
+	if (!BookModel.schema.path('hsnCode')) {
+		BookModel.schema.add({ hsnCode: { type: String, trim: true, maxlength: 50 } });
+	}
+	if (!BookModel.schema.path('totalPages')) {
+		BookModel.schema.add({ totalPages: { type: Number, min: 0 } });
 	}
 } else {
 	BookModel = mongoose.model<IBook>('Book', BookSchema);

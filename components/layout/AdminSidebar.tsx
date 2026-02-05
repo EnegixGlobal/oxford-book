@@ -94,7 +94,7 @@ export function AdminSidebar() {
   return (
     <div className="h-screen w-64 bg-white border-r fixed left-0 top-0 flex flex-col p-4">
       <div className="flex items-center justify-center mb-8 flex-shrink-0">
-        <h1 className="text-2xl font-bold text-purple-600">BookHaven</h1>
+        <h1 className="text-2xl font-bold text-purple-600">Oxford Book House</h1>
       </div>
       
       <nav className="space-y-2 overflow-y-auto flex-1">

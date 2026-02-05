@@ -139,8 +139,8 @@ export default function ReturnsPage() {
             <h2 className="text-2xl font-bold mb-4">Need Help with Returns?</h2>
             <p className="mb-6">Our customer service team is here to help you with any return questions.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:oxfordbookhouse@outlook.com" className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Email: oxfordbookhouse@outlook.com
+              <a href="mailto:Info@oxfordbookhouse.in" className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Email: Info@oxfordbookhouse.in
               </a>
               <a href="tel: +919835770807" className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                 Call: +91 9835770807
