@@ -97,16 +97,38 @@ export async function POST(req: NextRequest) {
     // Automatically create Shiprocket shipment if enabled and credentials are configured
     const autoCreateShipment = process.env.SHIPROCKET_AUTO_CREATE === 'true';
     const hasShiprocketCredentials = process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD;
+    
+    console.log('[RAZORPAY][VERIFY] Shiprocket check:', {
+      autoCreateShipment,
+      hasShiprocketCredentials: !!hasShiprocketCredentials,
+      existingShipmentId: order.shiprocketShipmentId,
+      willCreate: autoCreateShipment && hasShiprocketCredentials && !order.shiprocketShipmentId
+    });
+    
     if (autoCreateShipment && hasShiprocketCredentials && !order.shiprocketShipmentId) {
       try {
-        const defaultPickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary';
+        // Try to get primary pickup location from Shiprocket, fallback to env or default
+        let pickupLocation: string = process.env.SHIPROCKET_PICKUP_LOCATION || '';
+        if (!pickupLocation) {
+          try {
+            const primaryLocation = await shiprocketService.getPrimaryPickupLocation();
+            if (primaryLocation) {
+              pickupLocation = primaryLocation;
+              console.log('[RAZORPAY][VERIFY] Fetched primary pickup location from Shiprocket:', pickupLocation);
+            }
+          } catch (err) {
+            console.warn('[RAZORPAY][VERIFY] Could not fetch pickup location, using default');
+          }
+        }
+        pickupLocation = pickupLocation || 'Primary';
+        
         const [firstName, ...lastNameParts] = order.shippingAddress.fullName.split(' ');
         const lastName = lastNameParts.join(' ') || firstName;
 
         const shipmentData = {
           order_id: order.orderId,
           order_date: order.createdAt.toISOString().split('T')[0],
-          pickup_location: defaultPickupLocation,
+          pickup_location: pickupLocation,
           billing_customer_name: firstName,
           billing_last_name: lastName,
           billing_address: order.shippingAddress.line1,
@@ -132,12 +154,21 @@ export async function POST(req: NextRequest) {
             units: item.quantity,
             selling_price: item.price,
           })),
-          payment_method: 'Prepaid' as const,
+          payment_method: (order.paymentMethod === 'cod' ? 'COD' : 'Prepaid') as 'Prepaid' | 'COD',
           sub_total: order.totalAmount,
-          weight: 0.5, // Default weight per item
+          weight: Math.max(0.5, order.items.reduce((sum, item) => sum + item.quantity, 0) * 0.5), // Weight: 0.5kg per item, minimum 0.5kg
+          length: 25, // Default length in cm
+          breadth: 20, // Default breadth in cm
+          height: Math.max(2, order.items.reduce((sum, item) => sum + item.quantity, 0) * 2), // Height: 2cm per item, minimum 2cm
         };
 
+        console.log('[RAZORPAY][VERIFY] Creating Shiprocket shipment for order:', order.orderId);
         const shipmentResponse = await shiprocketService.createShipment(shipmentData);
+        console.log('[RAZORPAY][VERIFY] Shiprocket shipment created successfully:', {
+          shipment_id: shipmentResponse.shipment_id,
+          awb_code: shipmentResponse.awb_code,
+          courier_name: shipmentResponse.courier_name
+        });
         
         // Update order with Shiprocket data
         order.shiprocketShipmentId = shipmentResponse.shipment_id;
@@ -158,11 +189,22 @@ export async function POST(req: NextRequest) {
           }
         }
         await order.save();
+        console.log('[RAZORPAY][VERIFY] Order updated with Shiprocket shipment data');
       } catch (shipmentError: any) {
         // Log error but don't fail payment verification
-        console.error('[RAZORPAY][VERIFY] Shiprocket shipment creation failed:', shipmentError);
+        console.error('[RAZORPAY][VERIFY] Shiprocket shipment creation failed:', {
+          error: shipmentError.message,
+          stack: shipmentError.stack,
+          orderId: order.orderId
+        });
         // Payment is still verified, shipment can be created manually later
       }
+    } else if (!autoCreateShipment) {
+      console.log('[RAZORPAY][VERIFY] Shiprocket auto-create is disabled (SHIPROCKET_AUTO_CREATE !== "true")');
+    } else if (!hasShiprocketCredentials) {
+      console.log('[RAZORPAY][VERIFY] Shiprocket credentials not configured');
+    } else if (order.shiprocketShipmentId) {
+      console.log('[RAZORPAY][VERIFY] Order already has Shiprocket shipment:', order.shiprocketShipmentId);
     }
 
     return NextResponse.json({

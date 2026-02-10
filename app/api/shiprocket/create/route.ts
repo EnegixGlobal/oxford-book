@@ -91,7 +91,10 @@ export async function POST(req: NextRequest) {
       })),
       payment_method: (order.paymentMethod === 'cod' ? 'COD' : 'Prepaid') as 'Prepaid' | 'COD',
       sub_total: order.totalAmount,
-      weight: 0.5, // Default weight per item, adjust based on your products
+      weight: Math.max(0.5, order.items.reduce((sum, item) => sum + item.quantity, 0) * 0.5), // Weight: 0.5kg per item, minimum 0.5kg
+      length: 25, // Default length in cm
+      breadth: 20, // Default breadth in cm
+      height: Math.max(2, order.items.reduce((sum, item) => sum + item.quantity, 0) * 2), // Height: 2cm per item, minimum 2cm
     };
 
     // Create shipment in Shiprocket

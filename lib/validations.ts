@@ -106,8 +106,37 @@ export const updateProfileSchema = z.object({
     .optional()
 });
 
+// Forgot Password Schema (for both customer and admin)
+export const forgotPasswordSchema = z.object({
+  email: z.string()
+    .email('Please enter a valid email address')
+    .toLowerCase()
+    .trim()
+});
+
+// Reset Password Schema
+export const resetPasswordSchema = z.object({
+  token: z.string()
+    .min(1, 'Reset token is required'),
+  
+  password: z.string()
+    .min(6, 'Password must be at least 6 characters')
+    .max(100, 'Password cannot exceed 100 characters')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'Password must contain at least one lowercase letter, one uppercase letter, and one number'
+    ),
+  
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 export type CustomerSignupInput = z.infer<typeof customerSignupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type AdminCreationInput = z.infer<typeof adminCreationSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
