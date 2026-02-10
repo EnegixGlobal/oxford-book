@@ -195,7 +195,7 @@ export default function AdminDashboard() {
                 required
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
               <div className="relative">
@@ -235,7 +235,7 @@ export default function AdminDashboard() {
                 Remember me
               </label>
             </div>
-            
+
             <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
               Login to Dashboard
             </Button>
@@ -249,21 +249,22 @@ export default function AdminDashboard() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      className="p-4 sm:p-6"
     >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
-            <p className="text-gray-600">Welcome back, {user.name}</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
+            <p className="text-sm sm:text-base text-gray-600">Welcome back, {user.name}</p>
           </div>
-          <Button onClick={logout} variant="outline">
+          <Button onClick={logout} variant="outline" className="w-full sm:w-auto">
             Logout
           </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}
@@ -273,14 +274,14 @@ export default function AdminDashboard() {
             >
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2">
                     {stat.title}
                     {loadingDash && <span className="animate-pulse text-xs text-gray-400">loading...</span>}
                   </CardTitle>
                   <stat.icon className={`h-4 w-4 text-${stat.color}-600`} />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold text-${stat.color}-600`}>
+                  <div className={`text-xl sm:text-2xl font-bold text-${stat.color}-600`}>
                     {stat.value}
                   </div>
                 </CardContent>
@@ -288,21 +289,21 @@ export default function AdminDashboard() {
             </motion.div>
           ))}
         </div>
-        
+
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card>
             <CardHeader>
-              <CardTitle>Monthly Activity</CardTitle>
-              <CardDescription>Books added & user signups (last 6 months)</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Monthly Activity</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Books added & user signups (last 6 months)</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={monthlyChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Bar dataKey="books" fill="#6a0dad" name="Books Added" />
                   <Bar dataKey="signups" fill="#38bdf8" name="User Signups" />
@@ -313,15 +314,15 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Rated Books</CardTitle>
-              <CardDescription>Highest rated books (by rating & reviews)</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Top Rated Books</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Highest rated books (by rating & reviews)</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={topRatedChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" hide={topRatedChartData.length > 8} />
-                  <YAxis domain={[0, 5]} />
+                  <XAxis dataKey="name" hide={topRatedChartData.length > 8} tick={{ fontSize: 12 }} />
+                  <YAxis domain={[0, 5]} tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Line type="monotone" dataKey="rating" stroke="#6a0dad" strokeWidth={2} />
                 </LineChart>
@@ -332,21 +333,21 @@ export default function AdminDashboard() {
 
         {/* Management Tabs */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="books">Books</TabsTrigger>
-                <TabsTrigger value="authors">Authors</TabsTrigger>
-                <TabsTrigger value="categories">Categories</TabsTrigger>
-                <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-5 h-auto gap-1 sm:gap-0 p-1">
+                <TabsTrigger value="books" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Books</TabsTrigger>
+                <TabsTrigger value="authors" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Authors</TabsTrigger>
+                <TabsTrigger value="categories" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Categories</TabsTrigger>
+                <TabsTrigger value="orders" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Orders</TabsTrigger>
+                <TabsTrigger value="reviews" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Reviews</TabsTrigger>
               </TabsList>
-              
-              <TabsContent value="books" className="mt-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold">Recent Books</h3>
-                  <Button 
-                    className="bg-purple-600 hover:bg-purple-700"
+
+              <TabsContent value="books" className="mt-4 sm:mt-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+                  <h3 className="text-lg sm:text-xl font-bold">Recent Books</h3>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
                     onClick={() => {
                       setBookDialogMode('add');
                       setEditingBook(null);
@@ -357,124 +358,129 @@ export default function AdminDashboard() {
                     Add New Book
                   </Button>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full table-auto">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4">Title</th>
-                        <th className="text-left py-3 px-4">Author</th>
-                        <th className="text-left py-3 px-4">Price</th>
-                        <th className="text-left py-3 px-4">Stock</th>
-                        <th className="text-left py-3 px-4">Added</th>
-                        <th className="text-left py-3 px-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(dashboard?.recent.books || []).map((book) => (
-                        <tr key={book.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium">{book.title}</td>
-                          <td className="py-3 px-4">{book.authorName}</td>
-                          <td className="py-3 px-4">₹{book.discountedPrice}</td>
-                          <td className="py-3 px-4">
-                            <Badge className={book.inStock ? 'bg-green-500' : 'bg-red-500'}>
-                              {book.inStock ? 'In Stock' : 'Out of Stock'}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-500">{new Date(book.createdAt).toLocaleDateString()}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={async () => {
-                                  try {
-                                    // Fetch full book details for editing
-                                    const res = await fetch(`/api/books/${book.id}`, {
-                                      headers: adminHeaders,
-                                    });
-                                    const json = await res.json();
-                                    if (res.ok && json.success && json.data) {
-                                      const fullBook = json.data;
-                                      setBookDialogMode('edit');
-                                      setEditingBook({
-                                        ...fullBook,
-                                        _id: fullBook._id || fullBook.id,
-                                        id: fullBook._id || fullBook.id,
-                                        author: fullBook.authorName || fullBook.author,
-                                        originalPrice: fullBook.mrp,
-                                        finalPrice: fullBook.discountedPrice,
-                                        category: fullBook.categorySlug,
-                                        subcategory: fullBook.subcategorySlug,
-                                        ageGroup: fullBook.ageGroup,
-                                        genre: fullBook.genre,
-                                        anticipated: !!fullBook.anticipated,
-                                        bestseller: !!fullBook.bestseller,
-                                        newRelease: !!fullBook.newRelease,
-                                      });
-                                      setBookDialogOpen(true);
-                                    } else {
-                                      toast.error('Failed to load book details');
-                                    }
-                                  } catch (e) {
-                                    console.error('Error fetching book details', e);
-                                    toast.error('Error loading book details');
-                                  }
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-red-600 hover:text-red-700"
-                                onClick={async () => {
-                                  if (confirm('Are you sure you want to delete this book?')) {
-                                    try {
-                                      const res = await fetch(`/api/admin/books?id=${book.id}`, {
-                                        method: 'DELETE',
-                                        headers: adminHeaders,
-                                      });
-                                      const json = await res.json();
-                                      if (res.ok && json.success) {
-                                        toast.success('Book deleted successfully');
-                                        // Refresh dashboard
-                                        const dashRes = await fetch('/api/admin/dashboard', {
-                                          headers: { Authorization: token ? `Bearer ${token}` : '' }
+                <div className="overflow-x-auto -mx-3 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle">
+                    <div className="overflow-hidden border rounded-md">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-700">Title</th>
+                            <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-700">Author</th>
+                            <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-700">Price</th>
+                            <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-700">Stock</th>
+                            <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-700 hidden sm:table-cell">Added</th>
+                            <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-700">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {(dashboard?.recent.books || []).map((book) => (
+                            <tr key={book.id} className="hover:bg-gray-50">
+                              <td className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">{book.title}</td>
+                              <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">{book.authorName}</td>
+                              <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">₹{book.discountedPrice}</td>
+                              <td className="py-2 sm:py-3 px-2 sm:px-4">
+                                <Badge className={`${book.inStock ? 'bg-green-500' : 'bg-red-500'} text-xs`}>
+                                  {book.inStock ? 'In Stock' : 'Out'}
+                                </Badge>
+                              </td>
+                              <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm text-gray-500 hidden sm:table-cell">{new Date(book.createdAt).toLocaleDateString()}</td>
+                              <td className="py-2 sm:py-3 px-2 sm:px-4">
+                                <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs px-2 py-1"
+                                    onClick={async () => {
+                                      try {
+                                        // Fetch full book details for editing
+                                        const res = await fetch(`/api/books/${book.id}`, {
+                                          headers: adminHeaders,
                                         });
-                                        const dashJson = await dashRes.json();
-                                        if (dashRes.ok && dashJson.success) {
-                                          setDashboard(dashJson.data);
+                                        const json = await res.json();
+                                        if (res.ok && json.success && json.data) {
+                                          const fullBook = json.data;
+                                          setBookDialogMode('edit');
+                                          setEditingBook({
+                                            ...fullBook,
+                                            _id: fullBook._id || fullBook.id,
+                                            id: fullBook._id || fullBook.id,
+                                            author: fullBook.authorName || fullBook.author,
+                                            originalPrice: fullBook.mrp,
+                                            finalPrice: fullBook.discountedPrice,
+                                            category: fullBook.categorySlug,
+                                            subcategory: fullBook.subcategorySlug,
+                                            ageGroup: fullBook.ageGroup,
+                                            genre: fullBook.genre,
+                                            anticipated: !!fullBook.anticipated,
+                                            bestseller: !!fullBook.bestseller,
+                                            newRelease: !!fullBook.newRelease,
+                                          });
+                                          setBookDialogOpen(true);
+                                        } else {
+                                          toast.error('Failed to load book details');
                                         }
-                                      } else {
-                                        toast.error(json.message || 'Failed to delete book');
+                                      } catch (e) {
+                                        console.error('Error fetching book details', e);
+                                        toast.error('Error loading book details');
                                       }
-                                    } catch (e) {
-                                      toast.error('Error deleting book');
-                                    }
-                                  }
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {!dashboard && (
-                        <tr>
-                          <td colSpan={6} className="py-6 text-center text-sm text-gray-500">
-                            Loading recent books...
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                                    }}
+                                  >
+                                    <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700 text-xs px-2 py-1"
+                                    onClick={async () => {
+                                      if (confirm('Are you sure you want to delete this book?')) {
+                                        try {
+                                          const res = await fetch(`/api/admin/books?id=${book.id}`, {
+                                            method: 'DELETE',
+                                            headers: adminHeaders,
+                                          });
+                                          const json = await res.json();
+                                          if (res.ok && json.success) {
+                                            toast.success('Book deleted successfully');
+                                            // Refresh dashboard
+                                            const dashRes = await fetch('/api/admin/dashboard', {
+                                              headers: { Authorization: token ? `Bearer ${token}` : '' }
+                                            });
+                                            const dashJson = await dashRes.json();
+                                            if (dashRes.ok && dashJson.success) {
+                                              setDashboard(dashJson.data);
+                                            }
+                                          } else {
+                                            toast.error(json.message || 'Failed to delete book');
+                                          }
+                                        } catch (e) {
+                                          toast.error('Error deleting book');
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {!dashboard && (
+                            <tr>
+                              <td colSpan={6} className="py-6 text-center text-xs sm:text-sm text-gray-500">
+                                Loading recent books...
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
                 <BookFormDialog
                   open={bookDialogOpen}
-                  onOpenChange={(o) => { 
-                    setBookDialogOpen(o); 
-                    if (!o) setEditingBook(null); 
+                  onOpenChange={(o) => {
+                    setBookDialogOpen(o);
+                    if (!o) setEditingBook(null);
                   }}
                   mode={bookDialogMode}
                   initialData={editingBook}
@@ -562,37 +568,37 @@ export default function AdminDashboard() {
                 />
               </TabsContent>
 
-              <TabsContent value="authors" className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold">Authors</h3>
-                  <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => { setAuthorDialogMode('add'); setEditingAuthor(null); setAuthorDialogOpen(true); }}>
+              <TabsContent value="authors" className="mt-4 sm:mt-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+                  <h3 className="text-lg sm:text-xl font-bold">Authors</h3>
+                  <Button className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto" onClick={() => { setAuthorDialogMode('add'); setEditingAuthor(null); setAuthorDialogOpen(true); }}>
                     <Plus className="w-4 h-4 mr-2" /> Add Author
                   </Button>
                 </div>
-                <div className="overflow-x-auto border rounded-md">
-                  <table className="w-full table-auto text-sm">
+                <div className="overflow-x-auto -mx-3 sm:mx-0 border rounded-md">
+                  <table className="w-full table-auto text-xs sm:text-sm">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="text-left py-2 px-3">Name</th>
-                        <th className="text-left py-2 px-3">Nationality</th>
-                        <th className="text-left py-2 px-3">Books</th>
-                        <th className="text-left py-2 px-3">Featured</th>
-                        <th className="text-left py-2 px-3">Actions</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Name</th>
+                        <th className="text-left py-2 px-2 sm:px-3 hidden sm:table-cell">Nationality</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Books</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Featured</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {authors.map(a => (
                         <tr key={a._id} className="border-t hover:bg-gray-50">
-                          <td className="py-2 px-3 font-medium">{a.name}</td>
-                          <td className="py-2 px-3">{a.nationality || '-'}</td>
-                          <td className="py-2 px-3">{a.booksCount}</td>
-                          <td className="py-2 px-3">
-                            <Badge className={a.featured ? 'bg-green-600' : 'bg-gray-400'}>{a.featured ? 'Yes' : 'No'}</Badge>
+                          <td className="py-2 px-2 sm:px-3 font-medium">{a.name}</td>
+                          <td className="py-2 px-2 sm:px-3 hidden sm:table-cell">{a.nationality || '-'}</td>
+                          <td className="py-2 px-2 sm:px-3">{a.booksCount}</td>
+                          <td className="py-2 px-2 sm:px-3">
+                            <Badge className={`${a.featured ? 'bg-green-600' : 'bg-gray-400'} text-xs`}>{a.featured ? 'Yes' : 'No'}</Badge>
                           </td>
-                          <td className="py-2 px-3">
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => { setAuthorDialogMode('edit'); setEditingAuthor(a); setAuthorDialogOpen(true); }}>
-                                <Edit className="w-4 h-4" />
+                          <td className="py-2 px-2 sm:px-3">
+                            <div className="flex gap-1 sm:gap-2">
+                              <Button variant="outline" size="sm" className="text-xs px-2 py-1" onClick={() => { setAuthorDialogMode('edit'); setEditingAuthor(a); setAuthorDialogOpen(true); }}>
+                                <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             </div>
                           </td>
@@ -656,35 +662,35 @@ export default function AdminDashboard() {
                 />
               </TabsContent>
 
-              <TabsContent value="categories" className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold">Categories</h3>
-                  <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => { setCategoryDialogMode('add'); setEditingCategory(null); setCategoryDialogOpen(true); }}>
+              <TabsContent value="categories" className="mt-4 sm:mt-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+                  <h3 className="text-lg sm:text-xl font-bold">Categories</h3>
+                  <Button className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto" onClick={() => { setCategoryDialogMode('add'); setEditingCategory(null); setCategoryDialogOpen(true); }}>
                     <Plus className="w-4 h-4 mr-2" /> Add Category
                   </Button>
                 </div>
-                <div className="overflow-x-auto border rounded-md">
-                  <table className="w-full table-auto text-sm">
+                <div className="overflow-x-auto -mx-3 sm:mx-0 border rounded-md">
+                  <table className="w-full table-auto text-xs sm:text-sm">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="text-left py-2 px-3">Name</th>
-                        <th className="text-left py-2 px-3">Featured</th>
-                        <th className="text-left py-2 px-3">Books</th>
-                        <th className="text-left py-2 px-3">Subcategories</th>
-                        <th className="text-left py-2 px-3">Actions</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Name</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Featured</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Books</th>
+                        <th className="text-left py-2 px-2 sm:px-3 hidden sm:table-cell">Subcategories</th>
+                        <th className="text-left py-2 px-2 sm:px-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {categories.map(c => (
                         <tr key={c._id} className="border-t hover:bg-gray-50">
-                          <td className="py-2 px-3 font-medium">{c.name}</td>
-                          <td className="py-2 px-3"><Badge className={c.featured ? 'bg-green-600' : 'bg-gray-400'}>{c.featured ? 'Yes' : 'No'}</Badge></td>
-                          <td className="py-2 px-3">{c.booksCount}</td>
-                          <td className="py-2 px-3">{c.subcategories?.length || 0}</td>
-                          <td className="py-2 px-3">
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => { setCategoryDialogMode('edit'); setEditingCategory(c); setCategoryDialogOpen(true); }}>
-                                <Edit className="w-4 h-4" />
+                          <td className="py-2 px-2 sm:px-3 font-medium">{c.name}</td>
+                          <td className="py-2 px-2 sm:px-3"><Badge className={`${c.featured ? 'bg-green-600' : 'bg-gray-400'} text-xs`}>{c.featured ? 'Yes' : 'No'}</Badge></td>
+                          <td className="py-2 px-2 sm:px-3">{c.booksCount}</td>
+                          <td className="py-2 px-2 sm:px-3 hidden sm:table-cell">{c.subcategories?.length || 0}</td>
+                          <td className="py-2 px-2 sm:px-3">
+                            <div className="flex gap-1 sm:gap-2">
+                              <Button variant="outline" size="sm" className="text-xs px-2 py-1" onClick={() => { setCategoryDialogMode('edit'); setEditingCategory(c); setCategoryDialogOpen(true); }}>
+                                <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             </div>
                           </td>
@@ -738,14 +744,14 @@ export default function AdminDashboard() {
                 />
               </TabsContent>
 
-              <TabsContent value="orders" className="mt-6">
-                <h3 className="text-xl font-bold mb-6">Order Management</h3>
-                <p className="text-gray-600">Order management interface would go here...</p>
+              <TabsContent value="orders" className="mt-4 sm:mt-6">
+                <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">Order Management</h3>
+                <p className="text-sm sm:text-base text-gray-600">Order management interface would go here...</p>
               </TabsContent>
 
-              <TabsContent value="reviews" className="mt-6">
-                <h3 className="text-xl font-bold mb-6">Review Management</h3>
-                <p className="text-gray-600">Review management interface would go here...</p>
+              <TabsContent value="reviews" className="mt-4 sm:mt-6">
+                <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">Review Management</h3>
+                <p className="text-sm sm:text-base text-gray-600">Review management interface would go here...</p>
               </TabsContent>
             </Tabs>
           </CardContent>
