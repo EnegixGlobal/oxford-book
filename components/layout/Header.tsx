@@ -262,7 +262,7 @@ const Header = () => {
                     logout();
                     setIsMenuOpen(false);
                   }}
-                  className="text-red-600 font-medium"
+                  className="text-red-500 font-medium"
                 >
                   Logout
                 </button>
