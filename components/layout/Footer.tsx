@@ -41,7 +41,7 @@ const Footer = () => {
               </Link>
 
               <Link
-                href="#"
+                href="mailto:info@oxfordbookhouse.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-purple-300 transition-colors"
