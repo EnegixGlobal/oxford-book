@@ -22,7 +22,7 @@ export default function ReturnsPage() {
             Returns & Exchanges
           </h1>
           <p className="text-xl text-gray-600">
-            Easy returns within 30 days of purchase
+            Easy returns within 7 days of purchase
           </p>
         </motion.div>
 

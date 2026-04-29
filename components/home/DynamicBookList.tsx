@@ -3,7 +3,8 @@
 import { motion } from "framer-motion";
 import BookCard from "@/components/books/BookCard";
 import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 interface BookDto {
   _id: string;
@@ -19,6 +20,7 @@ interface BookDto {
 interface BookListData {
   _id: string;
   title: string;
+  slug: string;
   description?: string;
   books: BookDto[];
 }
@@ -165,6 +167,22 @@ const DynamicBookList = ({ slug }: DynamicBookListProps) => {
             </motion.div>
           ))}
         </div>
+
+        {/* View All Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-10 flex justify-center"
+        >
+          <Link
+            href={`/booklist/${listData.slug}`}
+            className="group inline-flex items-center gap-2 px-7 py-3 rounded-full font-semibold text-sm text-purple-700 border-2 border-purple-400 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white shadow-sm shadow-md transition-all duration-300"
+          >
+            View all {listData.title}
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

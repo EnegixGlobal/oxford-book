@@ -96,11 +96,11 @@ export function AdminSidebar() {
       <div className="flex items-center justify-center mb-8 flex-shrink-0">
         <h1 className="text-2xl font-bold text-purple-600">Oxford Book House</h1>
       </div>
-      
+
       <nav className="space-y-2 overflow-y-auto flex-1">
         {sidebarItems.map((item) => {
           const isActive = pathname === item.href;
-          
+
           return (
             <Link
               key={item.href}
