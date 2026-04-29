@@ -117,6 +117,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
               coverImage: b.coverImage || '/logo.png',
               inStock: b.inStock,
               featured: !!b.featured,
+              totalPages: b.totalPages,
             });
         } else if (json?.data) {
           setBook(json.data);
@@ -555,6 +556,12 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     <p className="font-semibold capitalize">
                       {formatLabel(book.language)}
                     </p>
+                  </div>
+                )}
+                {book.totalPages && (
+                  <div>
+                    <p className="text-sm text-gray-600">Total Pages</p>
+                    <p className="font-semibold">{book.totalPages}</p>
                   </div>
                 )}
                 {book.ageGroup && (
