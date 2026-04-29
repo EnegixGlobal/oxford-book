@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Lock, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
+import { X, User, Mail, Lock, Phone, MapPin, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,6 +20,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) =
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,28 +33,35 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    if (mode === 'register') {
-      if (formData.password !== formData.confirmPassword) {
-        toast.error('Passwords do not match');
-        return;
-      }
-      
-      const success = await register(formData.name, formData.email, formData.password, formData.phone || undefined, formData.address || undefined);
-      if (success) {
-        toast.success('Account created successfully!');
-        onClose();
+    try {
+      if (mode === 'register') {
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match');
+          return;
+        }
+        
+        const success = await register(formData.name, formData.email, formData.password, formData.phone || undefined, formData.address || undefined);
+        if (success) {
+          toast.success('Account created successfully!');
+          onClose();
+        } else {
+          toast.error('Registration failed');
+        }
       } else {
-        toast.error('Registration failed');
+        const success = await login(formData.email, formData.password, rememberMe);
+        if (success) {
+          toast.success('Login successful!');
+          onClose();
+        } else {
+          toast.error('Invalid credentials');
+        }
       }
-    } else {
-      const success = await login(formData.email, formData.password, rememberMe);
-      if (success) {
-        toast.success('Login successful!');
-        onClose();
-      } else {
-        toast.error('Invalid credentials');
-      }
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -224,8 +232,19 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) =
                 </div>
               )}
               
-              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-                {mode === 'login' ? 'Login' : 'Create Account'}
+              <Button 
+                type="submit" 
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {mode === 'login' ? 'Logging in...' : 'Creating Account...'}
+                  </>
+                ) : (
+                  mode === 'login' ? 'Login' : 'Create Account'
+                )}
               </Button>
             </form>
 
