@@ -12,7 +12,12 @@ export async function GET(req: NextRequest) {
     
     let query: any = { isActive: true };
     if (slug) {
-      query.slug = slug;
+      // Find by slug OR by title (where title slugified matches)
+      // Since we can't easily slugify in Mongo query, we'll fetch and find or use $or with title regex
+      query.$or = [
+        { slug: slug },
+        { title: { $regex: new RegExp(`^${slug.replace(/-/g, ' ')}$`, 'i') } }
+      ];
     }
     
     const lists = await BookList.find(query).lean();
