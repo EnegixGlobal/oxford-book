@@ -5,9 +5,12 @@ export interface ICartItem {
   bookId: string;
   title: string;
   price: number;
+  mrp?: number;
   quantity: number;
   coverImage?: string;
   authorName?: string;
+  publisher?: string;
+  binding?: string;
   isbn?: string;
 }
 
@@ -90,6 +93,7 @@ const UserSchema: Schema<IUser> = new Schema({
         type: Number,
         required: true
       },
+      mrp: Number,
       quantity: {
         type: Number,
         required: true,
@@ -97,6 +101,8 @@ const UserSchema: Schema<IUser> = new Schema({
       },
       coverImage: String,
       authorName: String,
+      publisher: String,
+      binding: String,
       isbn: String
     }
   ]
