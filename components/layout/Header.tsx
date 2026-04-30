@@ -31,6 +31,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useWishlist } from '@/components/providers/WishlistProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import NavigationMenu from './NavigationMenu';
+import AuthModal from '../auth/AuthModal';
 
 const Header = () => {
   const router = useRouter();
@@ -106,19 +107,29 @@ const Header = () => {
               </Link>
             )}
 
-            {/* Desktop Search Bar */}
-            <div className="hidden md:flex items-center space-x-4 flex-1 max-w-md mx-8">
-              <div className="relative w-full">
+            {/* Search Bar */}
+            <div className={`${isSearchOpen ? 'flex' : 'hidden'} md:flex items-center space-x-4 flex-1 max-w-md mx-4 md:mx-8 relative`}>
+              <div className="relative w-full flex items-center">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   type="text"
                   placeholder="Search for books, authors, or ISBN..."
-                  className="pl-10 pr-4 py-2 w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500"
+                  className="pl-10 pr-10 py-2 w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500"
                   onChange={handleSearch}
                   onKeyDown={handleEnterPress}
                   value={searchTerm}
                   autoFocus={isSearchOpen}
                 />
+                {isSearchOpen && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 md:hidden"
+                    onClick={() => setIsSearchOpen(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
 
                 {/* Live Search Results */}
                 {searchTerm.length > 1 && !isNavigating && (
@@ -229,14 +240,11 @@ const Header = () => {
                 </Button>
               </Link>
 
-              {/* Mobile Menu */}
+              {/* Mobile Menu Button */}
               <Button
                 variant="ghost"
                 size="sm"
                 className="lg:hidden"
-                aria-haspopup="dialog"
-                aria-expanded={isMenuOpen}
-                aria-controls="mobile-nav-drawer"
                 onClick={() => {
                   setIsMenuOpen(!isMenuOpen);
                   setIsSearchOpen(false);
@@ -247,22 +255,52 @@ const Header = () => {
             </div>
           </div>
         </div>
-      </header>
 
-        </div>
-
-            {/* Mobile search results */}
-            {searchTerm.length > 1 && !isNavigating && (
-              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                {searchResults.length > 0 ? (
-                  searchResults.map((book: any) => (
-                    <Link
-                      key={book._id}
-                      href={`/book/${book._id}`}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
-                      onClick={() => setSearchTerm('')}
-                    >
-                      {book.title}
+        {/* Mobile Menu Drawer */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMenuOpen(false)}
+                className="fixed inset-0 bg-black/50 z-[60] lg:hidden"
+              />
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed top-0 right-0 h-full w-[280px] bg-white z-[70] shadow-xl lg:hidden overflow-y-auto"
+              >
+                <div className="flex flex-col h-full">
+                  <div className="p-4 border-b flex items-center justify-between">
+                    <span className="font-bold text-lg text-purple-600">Menu</span>
+                    <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(false)}>
+                      <X className="w-6 h-6" />
+                    </Button>
+                  </div>
+                  <div className="flex-1">
+                    <NavigationMenu mobile />
+                  </div>
+                  <div className="p-4 border-t space-y-2">
+                    {!user && (
+                      <Button 
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          setIsAuthModalOpen(true);
+                        }}
+                      >
+                        Login / Register
+                      </Button>
+                    )}
+                    <Link href="/wishlist" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" className="w-full flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-pink-600" />
+                        Wishlist
+                      </Button>
                     </Link>
                   </div>
                 </div>
