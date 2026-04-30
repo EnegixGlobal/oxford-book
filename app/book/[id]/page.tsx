@@ -509,7 +509,7 @@ export default function BookPage({ params }: { params: Promise<{ id: string }> }
                     </span>
                     {book.mrp > book.discountedPrice && (
                       <span className="text-base sm:text-xl text-gray-500 line-through">
-                        ₹{book.mrp}
+                        ₹{Math.floor(book.mrp)}
                       </span>
                     )}
                     {discountPercentage > 0 && (

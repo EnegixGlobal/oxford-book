@@ -535,14 +535,14 @@ export default function CheckoutPage() {
                         <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                       </div>
                     </div>
-                    <div className="text-sm font-semibold whitespace-nowrap">₹{item.discountedPrice * item.quantity}</div>
+                    <div className="text-sm font-semibold whitespace-nowrap">₹{Math.floor(item.discountedPrice * item.quantity)}</div>
                   </motion.div>
                 ))}
               </AnimatePresence>
               <div className="mt-2 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Subtotal</span>
-                  <span>₹{subtotal}</span>
+                  <span>₹{Math.floor(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500 flex items-center gap-1">Shipping <Truck className="h-3 w-3" /></span>
@@ -554,7 +554,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="pt-2 border-t flex justify-between text-base font-bold">
                   <span>Grand Total</span>
-                  <span className="text-purple-600">₹{grandTotal}</span>
+                  <span className="text-purple-600">₹{Math.floor(grandTotal)}</span>
                 </div>
               </div>
             </div>

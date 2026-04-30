@@ -137,7 +137,7 @@ export default function CartPage() {
                           </p>
                           {item.mrp > item.discountedPrice && (
                             <p className="text-sm text-gray-500 line-through">
-                              ₹{item.mrp * item.quantity}
+                              ₹{Math.floor(item.mrp * item.quantity)}
                             </p>
                           )}
                         </div>
