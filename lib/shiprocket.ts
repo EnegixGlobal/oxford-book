@@ -192,6 +192,11 @@ class ShiprocketService {
 
     if (!response.ok) {
       const error = await response.text();
+      console.error(`[SHIPROCKET] API request failed: ${response.status} ${response.statusText}`, {
+        url,
+        endpoint,
+        error
+      });
       throw new Error(`Shiprocket API error: ${error}`);
     }
 
@@ -199,10 +204,39 @@ class ShiprocketService {
   }
 
   /**
+   * Get pickup locations from Shiprocket
+   */
+  async getPickupLocations(): Promise<any[]> {
+    try {
+      const response = await this.makeRequest<any>('/settings/company/pickup');
+      // Pickup locations are in data.data.shipping_address array
+      return response?.data?.shipping_address || [];
+    } catch (error) {
+      console.error('[SHIPROCKET] Get pickup locations error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the primary pickup location name
+   */
+  async getPrimaryPickupLocation(): Promise<string | null> {
+    try {
+      const locations = await this.getPickupLocations();
+      const primary = locations.find((loc: any) => loc.is_primary_location === 1);
+      return primary?.pickup_location || locations[0]?.pickup_location || null;
+    } catch (error) {
+      console.error('[SHIPROCKET] Get primary pickup location error:', error);
+      return null;
+    }
+  }
+
+  /**
    * Create a shipment in Shiprocket
    */
   async createShipment(data: CreateShipmentRequest): Promise<ShiprocketShipmentResponse> {
     try {
+      console.log('[SHIPROCKET] Creating shipment with data:', JSON.stringify(data, null, 2));
       const response = await this.makeRequest<ShiprocketShipmentResponse>(
         '/orders/create/adhoc',
         {
@@ -210,9 +244,10 @@ class ShiprocketService {
           body: JSON.stringify(data),
         }
       );
+      console.log('[SHIPROCKET] Shipment created successfully:', response);
       return response;
     } catch (error) {
-      console.error('Shiprocket create shipment error:', error);
+      console.error('[SHIPROCKET] Create shipment error:', error);
       throw error;
     }
   }

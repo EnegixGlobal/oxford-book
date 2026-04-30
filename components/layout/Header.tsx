@@ -14,6 +14,7 @@ import {
   Shield,
   Heart,
 } from 'lucide-react';
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,89 +23,75 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/providers/CartProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
-import AuthModal from '@/components/auth/AuthModal';
 import { useWishlist } from '@/components/providers/WishlistProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import NavigationMenu from './NavigationMenu';
 
 const Header = () => {
   const router = useRouter();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   const { getTotalItems } = useCart();
   const { user, logout } = useAuth();
   const { wishlist } = useWishlist();
 
-  // search states
+  // Search states
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isNavigating, setIsNavigating] = useState(false); // 🔥 prevent flicker on Enter
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  // 🔍 handleSearch
+  // Search handler
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
     setSearchTerm(term);
 
     if (term.trim().length > 1) {
-      const url = new URL('/api/books', window.location.origin);
-      url.searchParams.set('search', term);
-
-      if (term.length < 3) url.searchParams.set('limit', '8');
-
       try {
+        const url = new URL('/api/books', window.location.origin);
+        url.searchParams.set('search', term);
+
         const res = await fetch(url.toString(), { cache: 'no-store' });
         const data = await res.json();
         setSearchResults(data?.data || []);
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
       }
     } else {
       setSearchResults([]);
     }
   };
 
-  //  Key Enter Search
+  // Enter key navigation
   const handleEnterPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (!searchTerm.trim()) return;
-
-      if (searchResults && searchResults.length > 0) {
-        setIsNavigating(true);
-        (e.target as HTMLInputElement).blur();
-
-        router.push(`/book/${searchResults[0]._id}`);
-
-        setSearchTerm('');
-      }
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      setIsNavigating(true);
+      router.push(`/book/${searchResults[0]._id}`);
+      setSearchTerm('');
     }
   };
 
-  // lock body scroll on mobile menu open
+  // Lock scroll when menu open
   useEffect(() => {
     if (isMenuOpen) {
-      const original = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      const handleKey = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsMenuOpen(false);
-      };
-      window.addEventListener('keydown', handleKey);
       return () => {
-        document.body.style.overflow = original;
-        window.removeEventListener('keydown', handleKey);
+        document.body.style.overflow = '';
       };
     }
   }, [isMenuOpen]);
 
   return (
     <>
-      <header className="bg-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-50 bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             {!isSearchOpen && (
@@ -147,7 +134,7 @@ const Header = () => {
                 {searchTerm.length > 1 && !isNavigating && (
                   <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-[60] max-h-60 overflow-y-auto">
                     {searchResults.length > 0 ? (
-                      searchResults.map((book: any) => (
+                      searchResults.map((book) => (
                         <Link
                           key={book._id}
                           href={`/book/${book._id}`}
@@ -161,8 +148,8 @@ const Header = () => {
                         </Link>
                       ))
                     ) : (
-                      <div className="text-sm text-gray-500 p-2">
-                        No books found.
+                      <div className="px-4 py-2 text-sm text-gray-500">
+                        No results found
                       </div>
                     )}
                   </div>
@@ -190,64 +177,46 @@ const Header = () => {
                 <Button variant="ghost" size="sm" className="relative">
                   <Heart className="w-5 h-5" />
                   {wishlist.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 w-5 h-5 text-xs bg-pink-600 text-white rounded-full flex items-center justify-center">
                       {wishlist.length}
                     </span>
                   )}
-                  <span className="ml-2 hidden lg:inline">Wishlist</span>
                 </Button>
               </Link>
 
+              {/* User */}
               {user ? (
-                <div className="flex items-center space-x-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <User className="w-5 h-5" />
-                        <span className="hidden sm:inline max-w-[120px] truncate text-left">
-                          {user.name}
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel className="text-xs font-medium text-gray-500">
-                        Account
-                      </DropdownMenuLabel>
-                      {user.role === 'admin' && (
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin" className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-fuchsia-600" />
-                            <span>Admin</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <User className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Account</DropdownMenuLabel>
+
+                    {user.role === 'admin' && (
                       <DropdownMenuItem asChild>
-                        <Link href="/profile" className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          <span>Profile</span>
+                        <Link href="/admin">
+                          <Shield className="w-4 h-4 mr-2" /> Admin
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/wishlist" className="flex items-center gap-2">
-                          <Heart className="w-4 h-4 text-pink-600" />
-                          <span>Wishlist</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={logout}
-                        className="flex items-center gap-2 text-red-600 focus:text-red-700"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Logout</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                    )}
+
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">Profile</Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={logout}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" /> Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <Button
                   variant="ghost"
@@ -255,23 +224,22 @@ const Header = () => {
                   onClick={() => setIsAuthModalOpen(true)}
                 >
                   <User className="w-5 h-5" />
-                  <span className="ml-2 hidden sm:inline">Login</span>
                 </Button>
               )}
 
+              {/* Cart */}
               <Link href="/cart">
                 <Button variant="ghost" size="sm" className="relative">
                   <ShoppingCart className="w-5 h-5" />
                   {getTotalItems() > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 w-5 h-5 text-xs bg-purple-600 text-white rounded-full flex items-center justify-center">
                       {getTotalItems()}
                     </span>
                   )}
-                  <span className="ml-2 hidden sm:inline">Cart</span>
                 </Button>
               </Link>
 
-              {/* Mobile Menu Button */}
+              {/* Mobile Menu */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -284,15 +252,12 @@ const Header = () => {
                   setIsSearchOpen(false);
                 }}
               >
-                {isMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
-                <span className="sr-only">Toggle navigation menu</span>
+                <Menu className="w-6 h-6" />
               </Button>
             </div>
           </div>
+        </div>
+      </header>
 
         </div>
 

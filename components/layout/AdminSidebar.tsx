@@ -92,7 +92,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="h-screen w-64 bg-white border-r fixed left-0 top-0 flex flex-col p-4">
+    <div className="h-screen w-64 bg-white border-r fixed left-0 top-12 flex flex-col p-4">
       <div className="flex items-center justify-center mb-8 flex-shrink-0">
         <h1 className="text-2xl font-bold text-purple-600">Oxford Book House</h1>
       </div>

@@ -222,18 +222,26 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="rememberMe"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked === true)}
-              />
-              <label
-                htmlFor="rememberMe"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <label
+                  htmlFor="rememberMe"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Remember me
+                </label>
+              </div>
+              <a
+                href="/forgot-password?admin=true"
+                className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
               >
-                Remember me
-              </label>
+                Forgot password?
+              </a>
             </div>
 
             <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
