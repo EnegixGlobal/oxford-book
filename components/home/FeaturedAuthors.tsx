@@ -27,8 +27,9 @@ const FeaturedAuthors = () => {
   useEffect(() => {
     const loadAuthors = async () => {
       try {
-        const res = await fetch('/api/authors?featured=true&limit=12', { cache: 'no-store' });
+        const res = await fetch('/api/authors?limit=12', { cache: 'no-store' });
         const json = await res.json();
+        console.log('author', json)
         if (json?.success && Array.isArray(json.data)) {
           setAuthors(json.data);
         }
@@ -150,14 +151,20 @@ const FeaturedAuthors = () => {
             >
               <Link href={`/author/${author.slug}`} className="block">
                 <div className="relative mb-4">
-                  <div className="w-32 h-32 mx-auto rounded-full overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                    <Image
-                      src={author.profileImage || '/logo.png'}
-                      alt={`Portrait of ${author.name}`}
-                      width={128}
-                      height={128}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                  <div className="w-32 h-32 mx-auto rounded-full overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300 flex items-center justify-center bg-fuchsia-100 text-fuchsia-600">
+                    {author.profileImage ? (
+                      <Image
+                        src={author.profileImage}
+                        alt={`Portrait of ${author.name}`}
+                        width={128}
+                        height={128}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <span className="text-4xl font-bold uppercase">
+                        {author.name.charAt(0)}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-fuchsia-600 transition-colors duration-300">

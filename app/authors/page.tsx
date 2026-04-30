@@ -109,13 +109,19 @@ export default function AuthorsPage() {
               >
                 <Link href={`/author/${author.slug}`} className="block">
                   <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300">
-                    <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden ring-4 ring-white shadow-md">
-                      <Image
-                        src={author.profileImage || '/logo.png'}
-                        alt={author.name}
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden ring-4 ring-white shadow-md flex items-center justify-center bg-fuchsia-100 text-fuchsia-600">
+                      {author.profileImage ? (
+                        <Image
+                          src={author.profileImage}
+                          alt={author.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="text-4xl font-bold uppercase">
+                          {author.name.charAt(0)}
+                        </span>
+                      )}
                     </div>
                     <h3 className="mt-3 text-center text-base font-semibold text-gray-900 group-hover:text-fuchsia-700 transition-colors">
                       {author.name}

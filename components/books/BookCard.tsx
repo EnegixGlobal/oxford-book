@@ -147,7 +147,7 @@ const BookCard = ({ book, showBuyNow = true, showReviewSnippet = false }: BookCa
                     </span>
                     {book.mrp > book.discountedPrice && (
                       <span className="text-xs text-gray-500 line-through ml-1">
-                        ₹{book.mrp}
+                        ₹{Math.floor(book.mrp)}
                       </span>
                     )}
                   </div>

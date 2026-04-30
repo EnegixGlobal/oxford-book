@@ -48,8 +48,11 @@ const CartProvider = ({ children }: CartProviderProps) => {
     return {
       ...item,
       id: item.bookId || item.id || item._id || '',
+      author: item.author || item.authorName || 'Unknown Author',
       discountedPrice: item.price || item.discountedPrice || 0,
       mrp: item.mrp || item.price || 0,
+      publisher: item.publisher || '',
+      binding: item.binding || '',
     } as CartItem;
   };
 
@@ -116,10 +119,13 @@ const CartProvider = ({ children }: CartProviderProps) => {
         bookId: item.id,
         title: item.title || '',
         price: item.discountedPrice || (item as any).price || 0,
+        mrp: item.mrp || 0,
         quantity: item.quantity,
         coverImage: item.coverImage || '',
-        authorName: (item as any).authorName || '',
-        isbn: (item as any).isbn || ''
+        authorName: item.author || (item as any).authorName || '',
+        publisher: item.publisher || '',
+        binding: item.binding || '',
+        isbn: item.isbn || ''
       }));
 
       await fetch('/api/profile/cart', {

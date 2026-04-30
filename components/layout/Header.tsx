@@ -29,13 +29,12 @@ import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/providers/CartProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useWishlist } from '@/components/providers/WishlistProvider';
-import AuthModal from '@/components/auth/AuthModal';
-import NavigationMenu from '@/components/layout/NavigationMenu';
 
 const Header = () => {
   const router = useRouter();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const { getTotalItems } = useCart();
@@ -93,35 +92,38 @@ const Header = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center">
+            <Link href="/" className="flex items-center space-x-2">
               <Image
                 src="/oxford-logo.png"
-                alt="Oxford Book House"
-                width={140}
+                alt="Oxford Logo"
+                width={120}
                 height={40}
+                className="h-10 w-auto"
               />
             </Link>
 
-            {/* Desktop Search */}
-            <div className="hidden md:flex flex-1 mx-8">
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            {/* Desktop Search Bar */}
+            <div className="hidden md:flex items-center space-x-4 flex-1 max-w-md mx-8">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search books..."
-                  className="pl-10"
-                  value={searchTerm}
+                  type="text"
+                  placeholder="Search for books, authors, or ISBN..."
+                  className="pl-10 pr-4 py-2 w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500"
                   onChange={handleSearch}
                   onKeyDown={handleEnterPress}
+                  value={searchTerm}
                 />
 
+                {/* Desktop Live Search */}
                 {searchTerm.length > 1 && !isNavigating && (
-                  <div className="absolute top-full w-full bg-white border rounded shadow mt-1 z-50">
+                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
                     {searchResults.length > 0 ? (
                       searchResults.map((book) => (
                         <Link
                           key={book._id}
                           href={`/book/${book._id}`}
-                          className="block px-4 py-2 text-sm hover:bg-purple-50"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
                           onClick={() => setSearchTerm('')}
                         >
                           {book.title}
@@ -137,8 +139,8 @@ const Header = () => {
               </div>
             </div>
 
-            {/* Right Icons */}
-            <div className="flex items-center gap-2">
+            {/* Right Actions */}
+            <div className="flex items-center space-x-4">
               {/* Wishlist */}
               <Link href="/wishlist" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className="relative">
@@ -211,66 +213,50 @@ const Header = () => {
                 variant="ghost"
                 size="sm"
                 className="lg:hidden"
-                onClick={() => setIsMenuOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={isMenuOpen}
+                aria-controls="mobile-nav-drawer"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 <Menu className="w-6 h-6" />
               </Button>
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* MOBILE DRAWER */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setIsMenuOpen(false)}
-          />
+          {/* Mobile Search */}
+          <div className="md:hidden pb-4 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Search books..."
+              className="pl-10 pr-4 py-2 w-full"
+              onChange={handleSearch}
+              onKeyDown={handleEnterPress}
+              value={searchTerm}
+            />
 
-          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-lg overflow-y-auto">
-            <div className="flex items-center justify-between px-4 h-16 border-b">
-              <span className="font-semibold">Menu</span>
-              <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(false)}>
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <NavigationMenu mobile />
-
-            <div className="border-t p-4 space-y-3">
-              <Link href="/wishlist" onClick={() => setIsMenuOpen(false)}>
-                Wishlist
-              </Link>
-              <Link href="/cart" onClick={() => setIsMenuOpen(false)}>
-                Cart
-              </Link>
-
-              {!user ? (
-                <button
-                  onClick={() => {
-                    setIsAuthModalOpen(true);
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-purple-600 font-medium"
-                >
-                  Login / Register
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-red-500 font-medium"
-                >
-                  Logout
-                </button>
-              )}
-            </div>
+            {/* Mobile search results */}
+            {searchTerm.length > 1 && !isNavigating && (
+              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                {searchResults.length > 0 ? (
+                  searchResults.map((book: any) => (
+                    <Link
+                      key={book._id}
+                      href={`/book/${book._id}`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                      onClick={() => setSearchTerm('')}
+                    >
+                      {book.title}
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-500 p-2">No books found.</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </header>
 
       <AuthModal
         isOpen={isAuthModalOpen}

@@ -70,9 +70,12 @@ export async function POST(req: NextRequest) {
       bookId: item.bookId || item.id || item._id || '',
       title: item.title || '',
       price: Number(item.price || item.discountedPrice || 0),
+      mrp: Number(item.mrp || item.price || 0),
       quantity: Number(item.quantity || 1),
       coverImage: item.coverImage || '',
-      authorName: item.authorName || '',
+      authorName: item.authorName || item.author || '',
+      publisher: item.publisher || '',
+      binding: item.binding || '',
       isbn: item.isbn || ''
     })).filter((item: any) => item.bookId && item.title && item.quantity > 0);
 

@@ -115,7 +115,13 @@ export default function CartPage() {
                   <div className="flex-grow w-full text-center sm:text-left">
                     <h3 className="text-lg font-bold text-gray-900 mb-1">{item.title}</h3>
                     <p className="text-gray-600 mb-2">by {item.author}</p>
-                    <p className="text-sm text-gray-500 mb-3">{item.publisher} • {item.binding}</p>
+                    {item.publisher || item.binding ? (
+                      <p className="text-sm text-gray-500 mb-3">
+                        {item.publisher}
+                        {item.publisher && item.binding && ' • '}
+                        {item.binding}
+                      </p>
+                    ) : null}
 
                     <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
                       <div className="flex items-center space-x-3">
@@ -131,7 +137,7 @@ export default function CartPage() {
                           </p>
                           {item.mrp > item.discountedPrice && (
                             <p className="text-sm text-gray-500 line-through">
-                              ₹{item.mrp * item.quantity}
+                              ₹{Math.floor(item.mrp * item.quantity)}
                             </p>
                           )}
                         </div>

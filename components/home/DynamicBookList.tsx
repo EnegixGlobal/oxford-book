@@ -176,7 +176,7 @@ const DynamicBookList = ({ slug }: DynamicBookListProps) => {
           className="mt-10 flex justify-center"
         >
           <Link
-            href={`/booklist/${listData.slug}`}
+            href={`/booklist/${listData.title.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}
             className="group inline-flex items-center gap-2 px-7 py-3 rounded-full font-semibold text-sm text-purple-700 border-2 border-purple-400 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white shadow-sm shadow-md transition-all duration-300"
           >
             View all {listData.title}
