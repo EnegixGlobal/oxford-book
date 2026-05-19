@@ -39,37 +39,79 @@ interface FullOrderData {
   shippingAddress?: { fullName:string; phone:string; line1:string; line2?:string; city:string; state:string; postalCode:string };
   createdAt: string;
   trackingInfo?: any;
+  shiprocketShipmentId?: number;
+  shiprocketAWB?: string;
+  shiprocketCourierName?: string;
+  shiprocketTrackingUrl?: string;
 }
 
 export function OrderDetailsDialog({ open, onOpenChange, order, onUpdate }: OrderDetailsDialogProps) {
   const [status, setStatus] = useState('');
   // paymentStatus removed from interactive editing
   const [loading, setLoading] = useState(false);
+  const [syncingShiprocket, setSyncingShiprocket] = useState(false);
   const [fullOrder, setFullOrder] = useState<FullOrderData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchOrderDetails = async () => {
+    if (!order?._id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+      const r = await fetch(`/api/orders/${order._id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const j = await r.json();
+      if (j.success) {
+        setFullOrder(j.data);
+        setStatus(j.data.status);
+      } else {
+        setError(j.message || 'Failed to load order');
+      }
+    } catch {
+      setError('Failed to load order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (open && order?._id) {
-      setLoading(true);
-      setError(null);
-      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
-      fetch(`/api/orders/${order._id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-        .then(r => r.json())
-        .then(j => {
-          if (j.success) {
-            setFullOrder(j.data);
-            setStatus(j.data.status);
-            // paymentStatus no longer tracked in dialog
-          } else {
-            setError(j.message || 'Failed to load order');
-          }
-        })
-        .catch(() => setError('Failed to load order'))
-        .finally(() => setLoading(false));
+      fetchOrderDetails();
     } else if (!open) {
       setFullOrder(null);
     }
   }, [open, order?._id]);
+
+  const handleCreateShipment = async () => {
+    if (!fullOrder?._id) return;
+    setSyncingShiprocket(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+      const res = await fetch('/api/shiprocket/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ orderId: fullOrder._id })
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(json.message || 'Shiprocket shipment created successfully');
+        await fetchOrderDetails();
+        if (onUpdate) {
+          onUpdate(fullOrder.orderId, { status: 'shipped' });
+        }
+      } else {
+        toast.error(json.message || 'Failed to create Shiprocket shipment');
+      }
+    } catch (err: any) {
+      console.error('Shiprocket creation error:', err);
+      toast.error('An error occurred while creating shipment');
+    } finally {
+      setSyncingShiprocket(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!order) return;
@@ -83,7 +125,7 @@ export function OrderDetailsDialog({ open, onOpenChange, order, onUpdate }: Orde
       const json = await res.json();
       if (json.success) {
         setFullOrder(json.data);
-  if (onUpdate) onUpdate(order.orderId, { status: json.data.status });
+        if (onUpdate) onUpdate(order.orderId, { status: json.data.status });
         toast.success('Order updated');
       } else {
         toast.error(json.message || 'Update failed');
@@ -175,6 +217,60 @@ export function OrderDetailsDialog({ open, onOpenChange, order, onUpdate }: Orde
                 </p>
               ) : (
                 <p className="text-gray-500 text-sm">No shipping address saved.</p>
+              )}
+            </div>
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-purple-100">
+              <h3 className="font-semibold mb-2 flex items-center justify-between">
+                <span>Shiprocket Shipment</span>
+                {fullOrder.shiprocketShipmentId ? (
+                  <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Synced</Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Not Synced</Badge>
+                )}
+              </h3>
+              {fullOrder.shiprocketShipmentId ? (
+                <div className="text-sm text-gray-700 space-y-1">
+                  <p><span className="font-medium text-gray-600">Shipment ID:</span> {fullOrder.shiprocketShipmentId}</p>
+                  {fullOrder.shiprocketAWB && (
+                    <p><span className="font-medium text-gray-600">AWB Code:</span> {fullOrder.shiprocketAWB}</p>
+                  )}
+                  {fullOrder.shiprocketCourierName && (
+                    <p><span className="font-medium text-gray-600">Courier Partner:</span> {fullOrder.shiprocketCourierName}</p>
+                  )}
+                  {fullOrder.shiprocketTrackingUrl && (
+                    <p className="mt-2">
+                      <a 
+                        href={fullOrder.shiprocketTrackingUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-purple-600 hover:text-purple-700 font-semibold hover:underline inline-flex items-center gap-1"
+                      >
+                        Track Shipment &rarr;
+                      </a>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500">
+                    This order is not currently synced with Shiprocket. You can sync it manually below.
+                  </p>
+                  <Button 
+                    onClick={handleCreateShipment} 
+                    disabled={syncingShiprocket}
+                    variant="outline"
+                    className="w-full border-purple-200 hover:border-purple-300 bg-white text-purple-700 hover:bg-purple-50 hover:text-purple-800"
+                  >
+                    {syncingShiprocket ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Syncing with Shiprocket...
+                      </>
+                    ) : (
+                      'Sync & Create Shiprocket Shipment'
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
             <div className="mt-6 flex justify-end">
