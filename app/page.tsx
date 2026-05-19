@@ -20,6 +20,7 @@ import NewReleases from '@/components/home/NewReleases';
 import DynamicBookList from '@/components/home/DynamicBookList';
 import PromoBanner from '@/components/home/PromoBanner';
 import SmallBanners from '@/components/home/SmallBanners';
+import DynamicHomeSections from '@/components/home/DynamicHomeSections';
 
 export default function Home() {
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -62,6 +63,7 @@ export default function Home() {
       <BestSellers />
       <SmallBanners />
       <FouthComing />
+      <DynamicHomeSections />
       {/* <MostAnticipatedBooks /> */}
 
       {/* <ShopByAge /> */}

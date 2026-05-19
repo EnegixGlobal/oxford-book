@@ -16,6 +16,8 @@ export default function ForthcomingBooksPage() {
   const [hasNext, setHasNext] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [sort, setSort] = useState<SortKey>("newest");
+  const [listTitle, setListTitle] = useState("Upcoming Titles You Can’t Miss");
+  const [listDesc, setListDesc] = useState("Discover our soon-to-be-released books — fresh stories and ideas on their way to you!");
 
   const limit = 16;
 
@@ -75,6 +77,21 @@ export default function ForthcomingBooksPage() {
   };
 
   useEffect(() => {
+    // Load dynamic settings
+    const loadSettings = async () => {
+      try {
+        const settingsRes = await fetch("/api/forthcoming-title", { cache: "no-store" });
+        const settingsData = await settingsRes.json();
+        if (settingsData?.success && settingsData.data) {
+          setListTitle(settingsData.data.title || "Upcoming Titles You Can’t Miss");
+          setListDesc(settingsData.data.description || "Discover our soon-to-be-released books — fresh stories and ideas on their way to you!");
+        }
+      } catch (err) {
+        console.error("Error loading forthcoming title settings:", err);
+      }
+    };
+    loadSettings();
+
     let alive = true;
     (async () => {
       if (alive) await load(1, false);
@@ -123,13 +140,14 @@ export default function ForthcomingBooksPage() {
               <Clock className="w-4 h-4" />
               <span>Forthcoming Books</span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
-              Upcoming Titles You Can’t Miss
+            <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">
+              {listTitle}
             </h1>
-            <p className="mt-3 text-lg md:text-xl text-gray-700 max-w-2xl">
-              Discover our soon-to-be-released books — fresh stories and ideas
-              on their way to you!
-            </p>
+            {listDesc && (
+              <p className="mt-3 text-lg md:text-xl text-gray-700 max-w-2xl">
+                {listDesc}
+              </p>
+            )}
           </motion.div>
         </div>
       </div>
