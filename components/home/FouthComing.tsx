@@ -7,6 +7,9 @@ import { useEffect, useState, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const ForthComing = () => {
+  const [title, setTitle] = useState("Forthcoming Books");
+  const [description, setDescription] = useState("Be the first to explore our soon-to-be-released titles");
+  const [isVisible, setIsVisible] = useState(true);
   const [forthComingBooks, setForthComingBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -20,6 +23,19 @@ const ForthComing = () => {
 
     const load = async () => {
       try {
+        // Fetch Title & Description Settings
+        try {
+          const settingsRes = await fetch("/api/forthcoming-title", { cache: "no-store" });
+          const settingsData = await settingsRes.json();
+          if (settingsData?.success && settingsData.data) {
+            setTitle(settingsData.data.title || "Forthcoming Books");
+            setDescription(settingsData.data.description || "Be the first to explore our soon-to-be-released titles");
+            setIsVisible(settingsData.data.isActive ?? true);
+          }
+        } catch (settingsErr) {
+          console.error("Error fetching settings:", settingsErr);
+        }
+
         const url = new URL("/api/books/", window.location.origin);
         url.searchParams.set("featured", "true");
         url.searchParams.set("limit", "8");
@@ -45,7 +61,7 @@ const ForthComing = () => {
   // 🔁 Auto-scroll (same as NewReleases/BestSellers)
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container || loading) return;
+    if (!container || loading || !isVisible) return;
 
     const step = 1; // pixels per tick
     const interval = 15; // ms
@@ -79,7 +95,7 @@ const ForthComing = () => {
       container.removeEventListener("mouseenter", handleMouseEnter);
       container.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [forthComingBooks, loading]);
+  }, [forthComingBooks, loading, isVisible]);
 
   // ⏩ Manual scroll buttons
   const scroll = (direction: "left" | "right") => {
@@ -94,6 +110,8 @@ const ForthComing = () => {
     setTimeout(() => (isPaused.current = false), 2000);
   };
 
+  if (!isVisible) return null;
+
   return (
     <section className="py-16 bg-gray-50 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -104,12 +122,14 @@ const ForthComing = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Forthcoming Books
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600">
+            {title}
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Be the first to explore our soon-to-be-released titles
-          </p>
+          {description && (
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              {description}
+            </p>
+          )}
         </motion.div>
 
         {/* 🔸 Left & Right Buttons */}
@@ -158,22 +178,22 @@ const ForthComing = () => {
 
           {loading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-shrink-0 w-64 h-80 bg-gray-200 rounded-xl overflow-hidden shimmer"
-                ></div>
-              ))
+              <div
+                key={i}
+                className="flex-shrink-0 w-64 h-80 bg-gray-200 rounded-xl overflow-hidden shimmer"
+              ></div>
+            ))
             : forthComingBooks.map((book, index) => (
-                <motion.div
-                  key={book._id || index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.05 }}
-                  className="flex-shrink-0 w-64"
-                >
-                  <BookCard book={book as any} showBuyNow />
-                </motion.div>
-              ))}
+              <motion.div
+                key={book._id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.05 }}
+                className="flex-shrink-0 w-64"
+              >
+                <BookCard book={book as any} showBuyNow />
+              </motion.div>
+            ))}
         </div>
 
         {/* 🔸 View All Button */}
@@ -186,15 +206,14 @@ const ForthComing = () => {
             <Link href={loading ? "#" : "/fouthComing"}>
               <button
                 disabled={loading}
-                className={`px-8 py-3 font-semibold rounded-lg transition-colors duration-300 ${
-                  loading
+                className={`px-8 py-3 font-semibold rounded-lg transition-colors duration-300 ${loading
                     ? "bg-gray-400 text-white cursor-not-allowed"
                     : "bg-purple-600 hover:bg-purple-700 text-white"
-                }`}
+                  }`}
               >
                 {loading
-                  ? "View All Forthcoming Books..."
-                  : "View All Forthcoming Books"}
+                  ? `View All ${title}...`
+                  : `View All ${title}`}
               </button>
             </Link>
           </motion.div>
