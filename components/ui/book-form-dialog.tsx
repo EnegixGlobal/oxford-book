@@ -55,6 +55,17 @@ export function BookFormDialog({
   const [creatingAuthor, setCreatingAuthor] = useState(false);
   const [authorDialogOpen, setAuthorDialogOpen] = useState(false);
   const [authorDialogMode, setAuthorDialogMode] = useState<'add' | 'edit'>('add');
+  
+  // Dynamic binding states
+  const [bindings, setBindings] = useState<Array<{ slug: string; name: string }>>([]);
+  const [selectedBinding, setSelectedBinding] = useState<string>('paperback');
+  const [bindingDialogOpen, setBindingDialogOpen] = useState(false);
+  const [newBindingName, setNewBindingName] = useState('');
+  const [creatingBinding, setCreatingBinding] = useState(false);
+
+  // Subcategory controlled state
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>(initialData?.subcategory || '');
+
   const authorTriggerRef = useRef<HTMLButtonElement>(null);
   const authorInputRef = useRef<HTMLInputElement>(null);
   const resolvedAgeOptions = useMemo(() => {
@@ -84,8 +95,10 @@ export function BookFormDialog({
     if (open) {
       setSelectedAuthorId(initialData?.authorId);
       setSelectedCategory(initialData?.category || '');
+      setSelectedSubcategory(initialData?.subcategory || '');
       setImageOption(initialData?.imageFile ? 'file' : 'url');
       setPreviewUrl(initialData?.coverImage || '');
+      setSelectedBinding(initialData?.binding || 'paperback');
 
       // Set initial discount type display
       setTimeout(() => {
@@ -109,11 +122,20 @@ export function BookFormDialog({
   useEffect(() => {
     if (selectedCategory) {
       const category = categories.find(cat => cat.slug === selectedCategory);
-      setAvailableSubcategories(category?.subcategories || []);
+      const subcats = category?.subcategories || [];
+      setAvailableSubcategories(subcats);
+      
+      // If the category was changed, reset subcategory unless it is in the new subcategories list
+      if (!subcats.some(s => s.slug === selectedSubcategory)) {
+        if (selectedCategory !== initialData?.category) {
+          setSelectedSubcategory('');
+        }
+      }
     } else {
       setAvailableSubcategories([]);
+      setSelectedSubcategory('');
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, categories]);
 
   // Focus the search input when the author popover opens
   useEffect(() => {
@@ -137,6 +159,12 @@ export function BookFormDialog({
         const cj = await cres.json();
         if (mounted && cj?.success && Array.isArray(cj.data)) {
           setCategories(cj.data);
+        }
+        // bindings
+        const bres = await fetch('/api/bindings', { cache: 'no-store' });
+        const bj = await bres.json();
+        if (mounted && bj?.success && Array.isArray(bj.data)) {
+          setBindings(bj.data.map((b: any) => ({ slug: b.slug, name: b.name })));
         }
       } catch { }
     };
@@ -205,6 +233,42 @@ export function BookFormDialog({
       toast.error(err?.message || 'Failed to add author');
     } finally {
       setCreatingAuthor(false);
+    }
+  };
+
+  const handleQuickAddBindingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBindingName.trim()) {
+      toast.error('Binding name is required');
+      return;
+    }
+    setCreatingBinding(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+      const res = await fetch('/api/admin/bindings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          name: newBindingName.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!json?.success || !json?.data) {
+        throw new Error(json?.message || 'Failed to create binding');
+      }
+      const newBinding = { slug: json.data.slug, name: json.data.name };
+      setBindings((prev) => [...prev, newBinding]);
+      setSelectedBinding(newBinding.slug);
+      setNewBindingName('');
+      toast.success('Binding added successfully');
+      setBindingDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to add binding');
+    } finally {
+      setCreatingBinding(false);
     }
   };
 
@@ -747,6 +811,8 @@ export function BookFormDialog({
                 <Label htmlFor="subcategory">Subcategory</Label>
                 <Select
                   name="subcategory"
+                  value={selectedSubcategory}
+                  onValueChange={setSelectedSubcategory}
                   disabled={!selectedCategory}
                 >
                   <SelectTrigger>
@@ -775,16 +841,42 @@ export function BookFormDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="binding">Binding</Label>
-                <Select name="binding" defaultValue={initialData?.binding}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select binding type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hardcover">Hardcover</SelectItem>
-                    <SelectItem value="paperback">Paperback</SelectItem>
-                    <SelectItem value="digital">Digital</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Select
+                      name="binding"
+                      value={selectedBinding}
+                      onValueChange={setSelectedBinding}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select binding type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bindings.length > 0 ? (
+                          bindings.map((b) => (
+                            <SelectItem key={b.slug} value={b.slug}>
+                              {b.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem disabled value="__no_bindings__">
+                            No bindings available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setBindingDialogOpen(true)}
+                    className="h-9 w-9"
+                    title="Add new binding"
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -983,6 +1075,42 @@ export function BookFormDialog({
         mode={authorDialogMode}
         onSubmit={handleAuthorDialogSubmit}
       />
+      <Dialog open={bindingDialogOpen} onOpenChange={setBindingDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Quick-Add Binding Type</DialogTitle>
+            <DialogDescription>
+              Create a new book binding option instantly. It will be added to the dropdown list.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleQuickAddBindingSubmit} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="newBindingName">Binding Name</Label>
+              <Input
+                id="newBindingName"
+                value={newBindingName}
+                onChange={(e) => setNewBindingName(e.target.value)}
+                placeholder="e.g. Spiralbound, Board Book"
+                required
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setBindingDialogOpen(false)}
+                disabled={creatingBinding}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creatingBinding}>
+                {creatingBinding ? 'Adding...' : 'Add Binding'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
