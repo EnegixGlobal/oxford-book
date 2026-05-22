@@ -189,14 +189,7 @@ export async function POST(request: NextRequest) {
       const coverImage = row.coverImage || row['coverImage'] || '';
       const publisher = row.publisher || row['publisher'] || '';
       const rawBinding = (row.binding || row['binding'] || '').trim().toLowerCase();
-      let binding: 'paperback' | 'hardcover' | 'digital' = 'paperback';
-      if (rawBinding.includes('hard')) {
-        binding = 'hardcover';
-      } else if (rawBinding.includes('digital') || rawBinding.includes('ebook') || rawBinding.includes('pdf') || rawBinding.includes('epub')) {
-        binding = 'digital';
-      } else {
-        binding = 'paperback';
-      }
+      const binding = rawBinding || 'paperback';
       const language = row.language || row['language'] || '';
 
       const featured = toBool(row.featured || row['featured'] || row['Featured']);

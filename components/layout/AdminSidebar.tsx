@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Book, Users, Grid, ShoppingCart, MessageSquare, Home, User, Star, Flame, Zap, Tags, Layers, Images, ListOrdered, LayoutGrid, Clock } from 'lucide-react';
+import { Book, Users, Grid, ShoppingCart, MessageSquare, Home, User, Star, Flame, Zap, Tags, Layers, Images, ListOrdered, LayoutGrid, Clock, BookOpen } from 'lucide-react';
 
 const sidebarItems = [
   {
@@ -30,6 +30,11 @@ const sidebarItems = [
     title: 'Age Groups',
     href: '/admin/age-groups',
     icon: Layers
+  },
+  {
+    title: 'Bindings',
+    href: '/admin/bindings',
+    icon: BookOpen
   },
   {
     title: 'Users',

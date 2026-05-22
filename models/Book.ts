@@ -22,7 +22,7 @@ export interface IBook extends Document {
 	totalPages?: number; // New field: total page count (optional)
 	isbn: string;
 	publisher?: string;
-	binding?: 'hardcover' | 'paperback' | 'digital';
+	binding?: string;
 	language?: string; // e.g., 'english'
 	rating: number; // average rating
 	reviewCount: number;
@@ -62,7 +62,7 @@ const BookSchema: Schema<IBook> = new Schema(
 		totalPages: { type: Number, min: 0 }, // New field (optional)
 		isbn: { type: String, required: true, unique: true, trim: true },
 		publisher: { type: String, trim: true },
-		binding: { type: String, enum: ['hardcover', 'paperback', 'digital'], default: 'paperback' },
+		binding: { type: String, default: 'paperback' },
 		language: { type: String, trim: true, lowercase: true },
 		rating: { type: Number, default: 0, min: 0, max: 5 },
 		reviewCount: { type: Number, default: 0, min: 0 },
@@ -224,6 +224,15 @@ if (mongoose.models.Book) {
 	}
 	if (!BookModel.schema.path('totalPages')) {
 		BookModel.schema.add({ totalPages: { type: Number, min: 0 } });
+	}
+	const bindingPath = BookModel.schema.path('binding');
+	if (bindingPath && (bindingPath as any).options?.enum) {
+		delete (bindingPath as any).options.enum;
+		if (Array.isArray((bindingPath as any).validators)) {
+			(bindingPath as any).validators = (bindingPath as any).validators.filter(
+				(v: any) => v.type !== 'enum'
+			);
+		}
 	}
 } else {
 	BookModel = mongoose.model<IBook>('Book', BookSchema);
