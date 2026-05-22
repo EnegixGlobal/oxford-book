@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     await order.save();
 
     // Automatically create Shiprocket shipment if enabled and credentials are configured
-    const autoCreateShipment = process.env.SHIPROCKET_AUTO_CREATE === 'true';
+    const autoCreateShipment = process.env.SHIPROCKET_AUTO_CREATE !== 'false';
     const hasShiprocketCredentials = process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD;
     
     console.log('[RAZORPAY][VERIFY] Shiprocket check:', {

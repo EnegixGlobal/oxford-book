@@ -158,6 +158,7 @@ export default function CheckoutPage() {
         headers,
         body: JSON.stringify({
           items: cartItems.map(ci => ({
+            bookMongoId: ci.id,
             title: ci.title,
             price: ci.discountedPrice,
             quantity: ci.quantity,
