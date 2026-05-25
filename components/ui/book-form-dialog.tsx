@@ -105,13 +105,19 @@ export function BookFormDialog({
         const discountType = initialData?.discountType || 'percentage';
         const discountTypeDiv = document.getElementById('discountTypeDiv');
         const discountAmountDiv = document.getElementById('discountAmountDiv');
+        const discountInput = document.getElementById('discount') as HTMLInputElement;
+        const discountAmountInput = document.getElementById('discountAmount') as HTMLInputElement;
         if (discountTypeDiv && discountAmountDiv) {
           if (discountType === 'percentage') {
             discountTypeDiv.style.display = 'block';
             discountAmountDiv.style.display = 'none';
+            if (discountInput) discountInput.disabled = false;
+            if (discountAmountInput) discountAmountInput.disabled = true;
           } else {
             discountTypeDiv.style.display = 'none';
             discountAmountDiv.style.display = 'block';
+            if (discountInput) discountInput.disabled = true;
+            if (discountAmountInput) discountAmountInput.disabled = false;
           }
         }
       }, 100);
@@ -665,9 +671,13 @@ export function BookFormDialog({
                       if (value === 'percentage') {
                         discountTypeDiv.style.display = 'block';
                         discountAmountDiv.style.display = 'none';
+                        if (discountInput) discountInput.disabled = false;
+                        if (discountAmountInput) discountAmountInput.disabled = true;
                       } else {
                         discountTypeDiv.style.display = 'none';
                         discountAmountDiv.style.display = 'block';
+                        if (discountInput) discountInput.disabled = true;
+                        if (discountAmountInput) discountAmountInput.disabled = false;
                       }
                     }
 
@@ -707,9 +717,13 @@ export function BookFormDialog({
                   min="0"
                   max="100"
                   step="0.1"
-                  defaultValue={initialData?.discount || ((initialData?.mrp && initialData?.discountedPrice)
-                    ? ((initialData.mrp - initialData.discountedPrice) / initialData.mrp * 100).toFixed(1)
-                    : "0")}
+                  defaultValue={initialData?.discount || (() => {
+                    if (initialData?.mrp && initialData?.discountedPrice && initialData.mrp > 0) {
+                      const pct = ((initialData.mrp - initialData.discountedPrice) / initialData.mrp * 100);
+                      return Math.min(100, Math.max(0, pct)).toFixed(1);
+                    }
+                    return "0";
+                  })()}
                   placeholder="Enter discount percentage"
                   onChange={(e) => {
                     const discount = parseFloat(e.target.value);
