@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '12', 10);
+    const limitParam = searchParams.get('limit');
     const search = searchParams.get('search') || '';
     const featured = searchParams.get('featured');
 
@@ -23,17 +23,31 @@ export async function GET(request: NextRequest) {
     if (featured === 'true') query.featured = true;
     if (featured === 'false') query.featured = false;
 
-    const skip = (page - 1) * limit;
-    const [authors, total] = await Promise.all([
-      Author.find(query)
-        .select('name slug nationality profileImage featured booksCount biography createdAt')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      Author.countDocuments(query)
-    ]);
+    let authors;
+    let total;
+    let totalPages;
 
-    const totalPages = Math.ceil(total / limit) || 1;
+    if (limitParam === 'all' || limitParam === '0') {
+      [authors, total] = await Promise.all([
+        Author.find(query)
+          .select('name slug nationality profileImage featured booksCount biography createdAt')
+          .sort({ name: 1 }),
+        Author.countDocuments(query)
+      ]);
+      totalPages = 1;
+    } else {
+      const limit = parseInt(limitParam || '12', 10);
+      const skip = (page - 1) * limit;
+      [authors, total] = await Promise.all([
+        Author.find(query)
+          .select('name slug nationality profileImage featured booksCount biography createdAt')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+        Author.countDocuments(query)
+      ]);
+      totalPages = Math.ceil(total / limit) || 1;
+    }
 
     return NextResponse.json({
       success: true,
@@ -42,9 +56,9 @@ export async function GET(request: NextRequest) {
         page,
         totalPages,
         totalItems: total,
-        itemsPerPage: limit,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        itemsPerPage: limitParam === 'all' || limitParam === '0' ? total : parseInt(limitParam || '12', 10),
+        hasNext: limitParam === 'all' || limitParam === '0' ? false : page < totalPages,
+        hasPrev: limitParam === 'all' || limitParam === '0' ? false : page > 1,
       }
     });
   } catch (error) {

@@ -149,7 +149,7 @@ export function BookFormDialog({
     const load = async () => {
       try {
         // authors
-        const ares = await fetch('/api/authors?limit=100', { cache: 'no-store' });
+        const ares = await fetch('/api/authors?limit=all', { cache: 'no-store' });
         const aj = await ares.json();
         if (mounted && aj?.success && Array.isArray(aj.data)) {
           setAuthors(aj.data.map((a: any) => ({ _id: a._id, name: a.name, slug: a.slug })));
