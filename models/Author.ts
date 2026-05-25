@@ -58,7 +58,7 @@ AuthorSchema.index({ featured: 1 });
 
 // Pre-save middleware to generate slug from name
 AuthorSchema.pre('save', function(next) {
-  if (this.isModified('name')) {
+  if (this.isModified('name') && !this.isModified('slug')) {
     this.slug = this.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
   next();

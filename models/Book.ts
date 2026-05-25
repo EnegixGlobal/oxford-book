@@ -114,7 +114,7 @@ BookSchema.pre('validate', function (next) {
 
 // Generate/refresh derived fields on save
 BookSchema.pre('save', function (next) {
-	if (this.isModified('title')) {
+	if (this.isModified('title') && !this.isModified('slug')) {
 		this.slug = this.title
 			.toLowerCase()
 			.replace(/\s+/g, '-')

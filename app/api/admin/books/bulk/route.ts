@@ -57,7 +57,8 @@ function parseCsvWithHeader(text: string): CsvRow[] {
     return cells;
   };
 
-  const headerCells = splitLine(lines[0]).map((h) => h.trim());
+  const firstLine = lines[0].replace(/^\uFEFF/, '');
+  const headerCells = splitLine(firstLine).map((h) => h.trim());
   const rows: CsvRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -71,6 +72,20 @@ function parseCsvWithHeader(text: string): CsvRow[] {
   }
 
   return rows;
+}
+
+function getRowValue(row: CsvRow, fieldName: string, aliases: string[] = []): string {
+  const keys = Object.keys(row);
+  const possibleNames = [fieldName, ...aliases].map(name => name.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  
+  for (const key of keys) {
+    const cleanKey = key.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (possibleNames.includes(cleanKey)) {
+      return String(row[key] ?? '').trim();
+    }
+  }
+  
+  return '';
 }
 
 const toBool = (value: string | undefined): boolean => {
@@ -141,15 +156,15 @@ export async function POST(request: NextRequest) {
     for (let index = 0; index < rows.length; index++) {
       const row = rows[index];
 
-      const title = row.title || row['Title'];
-      const author = row.author || row['author'];
-      const isbn = row.isbn || row['ISBN'];
-      const mrpStr = row.mrp || row['mrp'];
-      const discountedStr = row.discountedPrice || row['discountedPrice'];
-      const stockStr = row.stock || row['stock'];
+      const title = getRowValue(row, 'title', ['booktitle', 'book name', 'name']);
+      const author = getRowValue(row, 'author', ['authorname', 'writer']);
+      const isbn = getRowValue(row, 'isbn', ['isbn13', 'isbn10', 'code']);
+      const mrpStr = getRowValue(row, 'mrp', ['originalprice', 'price', 'marketprice']);
+      const discountedStr = getRowValue(row, 'discountedPrice', ['discountedprice', 'finalprice', 'saleprice', 'sellingprice', 'discountprice']);
+      const stockStr = getRowValue(row, 'stock', ['quantity', 'qty', 'count']);
 
-      if (!title || !author || !isbn || !mrpStr || !discountedStr) {
-        failed.push({ row: index + 2, reason: 'Missing required fields (title, author, isbn, mrp, discountedPrice)' });
+      if (!title || !isbn || !mrpStr || !discountedStr) {
+        failed.push({ row: index + 2, reason: 'Missing required fields (title, isbn, mrp, discountedPrice)' });
         continue;
       }
 
@@ -163,40 +178,40 @@ export async function POST(request: NextRequest) {
       const mrp = Number(mrpStr);
       const discountedPrice = Number(discountedStr);
       const stock = Number(stockStr || '0');
-      const discount = Number(row.discount || row['discount'] || '0');
+      const discount = Number(getRowValue(row, 'discount') || '0');
 
       if (Number.isNaN(mrp) || Number.isNaN(discountedPrice)) {
         failed.push({ row: index + 2, reason: 'Invalid number in mrp or discountedPrice' });
         continue;
       }
 
-      const categoryName = row.category || row['category'] || '';
+      const categoryName = getRowValue(row, 'category', ['categoryname']);
       if (!categoryName) {
         failed.push({ row: index + 2, reason: 'Category is required' });
         continue;
       }
 
-      const subcategoryName = (row.subcategory || row['subcategory'] || row['Subcategory'] || '').trim();
-      const ageGroupName = (row.ageGroup || row['ageGroup'] || row['AgeGroup'] || '').trim();
-      const genreName = (row.genre || row['genre'] || row['Genre'] || '').trim();
+      const subcategoryName = getRowValue(row, 'subcategory', ['subcategoryname']).trim();
+      const ageGroupName = getRowValue(row, 'ageGroup', ['age']).trim();
+      const genreName = getRowValue(row, 'genre', ['genres']).trim();
 
       const categorySlug = makeSlug(categoryName);
       const subcategorySlug = subcategoryName && subcategoryName.length > 0 ? makeSlug(subcategoryName) : undefined;
       const ageGroupSlug = ageGroupName ? makeSlug(ageGroupName) : undefined;
       const genreSlug = genreName ? makeSlug(genreName) : undefined;
 
-      const description = row.description || row['description'] || '';
-      const coverImage = row.coverImage || row['coverImage'] || '';
-      const publisher = row.publisher || row['publisher'] || '';
-      const rawBinding = (row.binding || row['binding'] || '').trim().toLowerCase();
+      const description = getRowValue(row, 'description', ['desc', 'about']);
+      const coverImage = getRowValue(row, 'coverImage', ['image', 'url', 'photourl', 'cover']);
+      const publisher = getRowValue(row, 'publisher', ['publication']);
+      const rawBinding = getRowValue(row, 'binding', ['bindingtype']).trim().toLowerCase();
       const binding = rawBinding || 'paperback';
-      const language = row.language || row['language'] || '';
+      const language = getRowValue(row, 'language', ['lang']);
 
-      const featured = toBool(row.featured || row['featured'] || row['Featured']);
-      const anticipated = toBool(row.anticipated || row['anticipated'] || row['Anticipated']);
-      const newRelease = toBool(row.newRelease || row['newRelease'] || row['NewRelease']);
-      const awardWinner = toBool(row.awardWinner || row['awardWinner'] || row['AwardWinner']);
-      const schoolLibrary = toBool(row.schoolLibrary || row['schoolLibrary'] || row['SchoolLibrary']);
+      const featured = toBool(getRowValue(row, 'featured'));
+      const anticipated = toBool(getRowValue(row, 'anticipated'));
+      const newRelease = toBool(getRowValue(row, 'newRelease'));
+      const awardWinner = toBool(getRowValue(row, 'awardWinner'));
+      const schoolLibrary = toBool(getRowValue(row, 'schoolLibrary'));
 
       const baseSlug = makeSlug(title);
       const uniqueSlug = await generateUniqueSlug(baseSlug);

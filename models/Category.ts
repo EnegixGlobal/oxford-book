@@ -100,7 +100,7 @@ CategorySchema.index({ name: 1 });
 
 // Pre-save middleware to generate slug from name
 CategorySchema.pre('save', function(next) {
-  if (this.isModified('name')) {
+  if (this.isModified('name') && !this.isModified('slug')) {
     this.slug = this.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
   next();
@@ -108,7 +108,7 @@ CategorySchema.pre('save', function(next) {
 
 // Pre-save middleware for subcategories to generate slug
 SubCategorySchema.pre('save', function(next) {
-  if (this.isModified('name')) {
+  if (this.isModified('name') && !this.isModified('slug')) {
     this.slug = this.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
   next();
