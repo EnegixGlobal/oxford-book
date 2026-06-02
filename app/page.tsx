@@ -57,7 +57,7 @@ export default function Home() {
      <FeaturedCategories />
       {/* <BookCarousel /> */}
       {/* <ShopGenre /> */}
-      {/* <NewReleases /> */}
+      <NewReleases /> 
       <DynamicBookList />
       <PromoBanner />
       <BestSellers />
