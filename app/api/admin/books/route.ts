@@ -295,9 +295,9 @@ export async function PUT(request: NextRequest) {
     };
 
   map('title', 'title');
-    map('author', 'authorName');
+    map('author', 'authorName', (v) => typeof v === 'string' && v.trim() ? v.trim() : undefined);
   map('description', 'description');
-  map('authorId', 'authorId');
+  map('authorId', 'authorId', (v) => v ? v : undefined);
     // Only update coverImage if the client provided a non-empty string
     if (body.coverImage !== undefined) {
       const v = typeof body.coverImage === 'string' ? body.coverImage.trim() : '';
