@@ -17,8 +17,39 @@ if (!cached) {
   cached = (global as any).mongoose = { conn: null, promise: null };
 }
 
+async function cleanBookIndexes(mongooseInstance: any) {
+  try {
+    const db = mongooseInstance.connection.db;
+    if (db) {
+      const collections = await db.listCollections({ name: 'books' }).toArray();
+      if (collections.length > 0) {
+        const indexes = await db.collection('books').listIndexes().toArray();
+        let dropped = false;
+        for (const idx of indexes) {
+          const isTextIndex = Object.values(idx.key).some((val) => val === 'text');
+          if (isTextIndex && idx.language_override !== 'textLanguage') {
+            await db.collection('books').dropIndex(idx.name);
+            console.log(`✅ Successfully dropped old text index: ${idx.name}`);
+            dropped = true;
+          }
+        }
+        if (dropped && mongooseInstance.models.Book) {
+          await mongooseInstance.models.Book.createIndexes();
+          console.log('✅ Successfully rebuilt Book indexes');
+        }
+      }
+    }
+  } catch (err) {
+    console.error('⚠️ Failed to clean up old text index:', err);
+  }
+}
+
 async function connectDB() {
   if (cached.conn) {
+    if (!cached.indexCleaned) {
+      await cleanBookIndexes(cached.conn);
+      cached.indexCleaned = true;
+    }
     return cached.conn;
   }
 
@@ -27,9 +58,11 @@ async function connectDB() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then(async (mongooseInstance) => {
       console.log('✅ Connected to MongoDB');
-      return mongoose;
+      await cleanBookIndexes(mongooseInstance);
+      cached.indexCleaned = true;
+      return mongooseInstance;
     });
   }
 

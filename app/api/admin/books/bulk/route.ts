@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
         await Book.create({
           title,
           slug: uniqueSlug,
-          authorName: author,
+          authorName: author || undefined,
           description: description.trim() || undefined,
           coverImage: coverImage && coverImage !== '{}' ? coverImage : undefined,
           categorySlug,

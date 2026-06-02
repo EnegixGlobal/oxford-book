@@ -66,6 +66,18 @@ export function BookFormDialog({
   // Subcategory controlled state
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>(initialData?.subcategory || '');
 
+  // Controlled states for selects that don't bind to form data properly or are not reactive
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(initialData?.language || 'english');
+  const [selectedGenre, setSelectedGenre] = useState<string>(initialData?.genre || '');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>(initialData?.ageGroup || '');
+  const [selectedDiscountType, setSelectedDiscountType] = useState<string>(initialData?.discountType || 'percentage');
+
+  // Dynamic language states
+  const [languages, setLanguages] = useState<Array<{ slug: string; name: string }>>([]);
+  const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
+  const [newLanguageName, setNewLanguageName] = useState('');
+  const [creatingLanguage, setCreatingLanguage] = useState(false);
+
   const authorTriggerRef = useRef<HTMLButtonElement>(null);
   const authorInputRef = useRef<HTMLInputElement>(null);
   const resolvedAgeOptions = useMemo(() => {
@@ -99,6 +111,10 @@ export function BookFormDialog({
       setImageOption(initialData?.imageFile ? 'file' : 'url');
       setPreviewUrl(initialData?.coverImage || '');
       setSelectedBinding(initialData?.binding || 'paperback');
+      setSelectedLanguage(initialData?.language || 'english');
+      setSelectedGenre(initialData?.genre || '');
+      setSelectedAgeGroup(initialData?.ageGroup || '');
+      setSelectedDiscountType(initialData?.discountType || 'percentage');
 
       // Set initial discount type display
       setTimeout(() => {
@@ -171,6 +187,12 @@ export function BookFormDialog({
         const bj = await bres.json();
         if (mounted && bj?.success && Array.isArray(bj.data)) {
           setBindings(bj.data.map((b: any) => ({ slug: b.slug, name: b.name })));
+        }
+        // languages
+        const lres = await fetch('/api/languages', { cache: 'no-store' });
+        const lj = await lres.json();
+        if (mounted && lj?.success && Array.isArray(lj.data)) {
+          setLanguages(lj.data.map((l: any) => ({ slug: l.slug, name: l.name })));
         }
       } catch { }
     };
@@ -278,6 +300,42 @@ export function BookFormDialog({
     }
   };
 
+  const handleQuickAddLanguageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLanguageName.trim()) {
+      toast.error('Language name is required');
+      return;
+    }
+    setCreatingLanguage(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('bookhaven-token') : null;
+      const res = await fetch('/api/admin/languages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          name: newLanguageName.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!json?.success || !json?.data) {
+        throw new Error(json?.message || 'Failed to create language');
+      }
+      const newLang = { slug: json.data.slug, name: json.data.name };
+      setLanguages((prev) => [...prev, newLang]);
+      setSelectedLanguage(newLang.slug);
+      setNewLanguageName('');
+      toast.success('Language added successfully');
+      setLanguageDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to add language');
+    } finally {
+      setCreatingLanguage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
@@ -321,7 +379,7 @@ export function BookFormDialog({
     }
 
     const originalPrice = Math.round(Number(formData.get('originalPrice')) || 0);
-    const discountType = (formData.get('discountType') as string) || 'percentage';
+    const discountType = selectedDiscountType;
     const discount = Number(formData.get('discount')) || 0;
     const discountAmount = Number(formData.get('discountAmount')) || 0;
     const finalPrice = Math.round(Number(formData.get('finalPrice')) || 0);
@@ -336,8 +394,8 @@ export function BookFormDialog({
       description: formData.get('description'),
       stock: formData.get('stock'),
       coverImage: coverImage,
-      category: formData.get('category'),
-      subcategory: formData.get('subcategory'),
+      category: selectedCategory,
+      subcategory: selectedSubcategory || undefined,
       inStock: Number(formData.get('stock')) > 0,
       mrp: originalPrice,
       discountedPrice: finalPrice,
@@ -348,10 +406,10 @@ export function BookFormDialog({
       totalPages: formData.get('totalPages') ? Number(formData.get('totalPages')) : undefined,
       isbn: formData.get('isbn'),
       publisher: formData.get('publisher'),
-      binding: formData.get('binding'),
-      language: formData.get('language'),
-      ageGroup: formData.get('ageGroup') || undefined,
-      genre: formData.get('genre') || undefined,
+      binding: selectedBinding,
+      language: selectedLanguage,
+      ageGroup: selectedAgeGroup || undefined,
+      genre: selectedGenre || undefined,
       rating: 0,
       reviewCount: 0,
       featured: false,
@@ -388,7 +446,11 @@ export function BookFormDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="genre">Genre (optional)</Label>
-                <Select name="genre" defaultValue={initialData?.genre ?? undefined}>
+                <Select
+                  name="genre"
+                  value={selectedGenre}
+                  onValueChange={setSelectedGenre}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select genre" />
                   </SelectTrigger>
@@ -657,9 +719,9 @@ export function BookFormDialog({
                 <Label htmlFor="discountType">Discount Type</Label>
                 <Select
                   name="discountType"
-                  defaultValue={initialData?.discountType || 'percentage'}
+                  value={selectedDiscountType}
                   onValueChange={(value) => {
-                    const discountTypeSelect = document.querySelector('[name="discountType"]') as HTMLSelectElement;
+                    setSelectedDiscountType(value);
                     const originalPriceInput = document.getElementById('originalPrice') as HTMLInputElement;
                     const discountInput = document.getElementById('discount') as HTMLInputElement;
                     const discountAmountInput = document.getElementById('discountAmount') as HTMLInputElement;
@@ -919,20 +981,50 @@ export function BookFormDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="language">Language</Label>
-                <Select name="language" defaultValue={initialData?.language}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="hindi">Hindi</SelectItem>
-                    <SelectItem value="marathi">Marathi</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Select
+                      name="language"
+                      value={selectedLanguage}
+                      onValueChange={setSelectedLanguage}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {languages.length > 0 ? (
+                          languages.map((l) => (
+                            <SelectItem key={l.slug} value={l.slug}>
+                              {l.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem disabled value="__no_languages__">
+                            No languages available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setLanguageDialogOpen(true)}
+                    className="h-9 w-9"
+                    title="Add new language"
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ageGroup">Age Group (optional)</Label>
-                <Select name="ageGroup" defaultValue={initialData?.ageGroup ?? undefined}>
+                <Select
+                  name="ageGroup"
+                  value={selectedAgeGroup}
+                  onValueChange={setSelectedAgeGroup}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select age group (optional)" />
                   </SelectTrigger>
@@ -1120,6 +1212,42 @@ export function BookFormDialog({
               </Button>
               <Button type="submit" disabled={creatingBinding}>
                 {creatingBinding ? 'Adding...' : 'Add Binding'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={languageDialogOpen} onOpenChange={setLanguageDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Quick-Add Language</DialogTitle>
+            <DialogDescription>
+              Create a new book language option instantly. It will be added to the dropdown list.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleQuickAddLanguageSubmit} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="newLanguageName">Language Name</Label>
+              <Input
+                id="newLanguageName"
+                value={newLanguageName}
+                onChange={(e) => setNewLanguageName(e.target.value)}
+                placeholder="e.g. Sanskrit, French, German"
+                required
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setLanguageDialogOpen(false)}
+                disabled={creatingLanguage}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creatingLanguage}>
+                {creatingLanguage ? 'Adding...' : 'Add Language'}
               </Button>
             </DialogFooter>
           </form>

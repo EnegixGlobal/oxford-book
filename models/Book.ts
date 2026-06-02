@@ -210,8 +210,13 @@ if (mongoose.models.Book) {
 	}
 	// Add new fields for backward compatibility
 	const authorNamePath = BookModel.schema.path('authorName');
-	if (authorNamePath && (authorNamePath as any).options?.required) {
+	if (authorNamePath) {
 		(authorNamePath as any).options.required = false;
+		if (Array.isArray((authorNamePath as any).validators)) {
+			(authorNamePath as any).validators = (authorNamePath as any).validators.filter(
+				(v: any) => v.type !== 'required'
+			);
+		}
 	}
 	if (!BookModel.schema.path('discountType')) {
 		BookModel.schema.add({ discountType: { type: String, enum: ['percentage', 'amount'], default: 'percentage' } });
